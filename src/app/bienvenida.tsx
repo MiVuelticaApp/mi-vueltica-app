@@ -2,7 +2,6 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Icon } from '@/components/icons/Icon';
 import { MapPreview } from '@/components/map/MapPreview';
 import { Button } from '@/components/ui/Button';
 import { Tap } from '@/components/ui/Tap';
@@ -58,7 +57,6 @@ export default function Bienvenida() {
         <Button testID="welcome.allow" label={t.welcome.allow} icon="locate" onPress={allow} loading={busy} />
         <Button testID="welcome.notNow" label={t.welcome.notNow} variant="text" onPress={() => finish(null)} />
       </View>
-      <View style={{ position: 'absolute', opacity: 0 }}><Icon name="map" /></View>
     </View>
   );
 }

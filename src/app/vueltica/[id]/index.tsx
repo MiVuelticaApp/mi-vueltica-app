@@ -104,7 +104,7 @@ export default function Detalle() {
   const save = () => {
     if (!v) return;
     requireAuth('save', { kind: 'save', id }, { next: `/vueltica/${id}`, replace: true }, () =>
-      toggle.mutate({ id, saved: !!d?.saved }, { onSuccess: () => toast(d?.saved ? t.saved.removedToast : t.saved.savedToast) }),
+      toggle.mutate({ id, saved: !!d?.saved }, { onSuccess: () => toast(d?.saved ? t.saved.removedToast : t.saved.savedToast, { label: t.common.undo, run: () => toggle.mutate({ id, saved: !d?.saved }) }) }),
     );
   };
   const confirm = () =>

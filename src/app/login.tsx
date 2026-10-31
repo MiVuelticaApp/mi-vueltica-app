@@ -27,15 +27,16 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const isTab = !!next && ['/perfil', '/aportar', '/guardados', '/lista'].includes(next);
   const leave = () => {
-    if (next) router.replace(next as never);
+    if (next && !isTab) router.replace(next as never);
     else if (router.canGoBack()) router.back();
     else router.replace('/');
   };
   const dismiss = () => {
     // "Ahora no": drop the action that needed the account.
     useSession.getState().setPending(null);
-    if (next) router.replace(next as never);
+    if (next && !isTab) router.replace(next as never);
     else if (router.canGoBack()) router.back();
     else router.replace('/');
   };

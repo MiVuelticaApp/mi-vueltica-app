@@ -12,6 +12,7 @@ import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { sheetOptions } from '@/components/ui/Sheet';
+import { DialogHost } from '@/components/ui/Dialog';
 import { ToastHost } from '@/components/ui/Toast';
 import { t } from '@/i18n/es-CR';
 import { Bootstrap } from '@/features/app/Bootstrap';
@@ -48,6 +49,7 @@ function Navigator() {
           <Stack.Screen name="vueltica/[id]/reportar" options={sheetOptions([0.5, 1])} />
           <Stack.Screen name="vueltica/[id]/como-llegar" options={sheetOptions([0.5])} />
           <Stack.Screen name="filtros" options={sheetOptions([1])} />
+          <Stack.Screen name="elegir-ubicacion" options={sheetOptions([1])} />
           <Stack.Screen name="login" options={{ presentation: Platform.OS === 'web' ? 'card' : 'fullScreenModal', animation: 'slide_from_bottom' }} />
           <Stack.Screen name="vueltica-enviada/[id]" options={{ gestureEnabled: false }} />
           <Stack.Screen name="mis-vuelticas" options={{ headerShown: true, title: t.mine.title, headerBackTitle: t.profile.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
@@ -58,6 +60,7 @@ function Navigator() {
         </Stack.Protected>
       </Stack>
       <ToastHost />
+      <DialogHost />
     </ThemeProvider>
   );
 }

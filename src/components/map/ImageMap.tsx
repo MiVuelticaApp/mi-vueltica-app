@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, View, type LayoutChangeEvent } from 'react-native';
+import { PanResponder, Pressable, View, type LayoutChangeEvent } from 'react-native';
 import { IconButton } from '@/components/ui/IconButton';
 import { DEFAULT_LOCATION } from '@/domain/geo';
 import { useAppTheme } from '@/theme/useAppTheme';
@@ -18,7 +18,7 @@ const MAX_KPP = 0.08;
  * Fallback map: the "Map Base" art from Figma with an equirectangular projection around the base center.
  * Used on web (test target) and when the native maps module is unavailable (Expo Go). Same supercluster and pin PNGs.
  */
-export default function ImageMap({ items, pending, selectedId, center, showUser, recenterToken, onSelect, onSelectPending }: MapViewProps) {
+export default function ImageMap({ items, pending, selectedId, center, showUser, recenterToken, onSelect, onSelectPending, onMapPress, dropPin }: MapViewProps) {
   const { dark } = useAppTheme();
   const [size, setSize] = useState({ w: 402, h: 874 });
   const [base] = useState(() => (center.lat ? center : DEFAULT_LOCATION));
@@ -79,6 +79,22 @@ export default function ImageMap({ items, pending, selectedId, center, showUser,
         style={{ position: 'absolute', left: bx - (size.w / 2) * s, top: by - (size.h / 2) * s, width: size.w * s, height: size.h * s }}
         contentFit="cover"
       />
+      {onMapPress ? (
+        <Pressable
+          testID="map.surface"
+          accessibilityLabel="Mapa"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          onPress={(e) => {
+            const { locationX, locationY } = e.nativeEvent;
+            onMapPress(view.lat - ((locationY - size.h / 2) * view.kpp) / KM_LAT, view.lng + ((locationX - size.w / 2) * view.kpp) / kmLng);
+          }}
+        />
+      ) : null}
+      {dropPin ? (() => {
+        const p = toXY(dropPin.lat, dropPin.lng);
+        const pseudo = { id: 'drop', type: dropPin.type, priceTier: 'gratis', name: 'Ubicación elegida' } as never;
+        return <PinMarker item={pseudo} selected x={p.x} y={p.y} onPress={() => {}} />;
+      })() : null}
       {showUser ? <UserDot x={user.x} y={user.y} /> : null}
       {nodes.map((n) => {
         const { x, y } = toXY(n.lat, n.lng);

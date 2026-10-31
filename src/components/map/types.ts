@@ -16,6 +16,10 @@ export interface MapViewProps {
   onSelectPending: (v: PendingView) => void;
   /** When the active chip/filter changes the camera should refit on the items. */
   offline?: boolean;
+  /** Tap on empty map (location picker). */
+  onMapPress?: (lat: number, lng: number) => void;
+  /** Extra marker (location picker). */
+  dropPin?: { lat: number; lng: number; type: 'lugar' | 'evento' } | null;
 }
 
 export type MapNode =

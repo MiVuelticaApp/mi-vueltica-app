@@ -78,7 +78,7 @@ export const t = {
     legal: 'Al continuar aceptás los Términos y la Política de privacidad. Podés explorar sin cuenta.',
     terms: 'Términos', privacy: 'Política de privacidad',
     emailTitle: 'Tu correo', emailPlaceholder: 'correo@ejemplo.com', emailInvalid: 'Ingresá un correo válido', emailSubmit: 'Entrar',
-    gate: { save: 'Iniciá sesión para guardar planes', contribute: 'Iniciá sesión para aportar vuelticas', review: 'Iniciá sesión para escribir reseñas', moderate: 'Iniciá sesión para moderar', useful: 'Iniciá sesión para marcar reseñas útiles' },
+    gate: { save: 'Iniciá sesión para guardar. Guardá tus vuelticas favoritas.', contribute: 'Iniciá sesión para aportar. Sumá una vueltica para la comunidad.', review: 'Iniciá sesión para escribir una reseña. Contá cómo te fue.', moderate: 'Iniciá sesión para moderar. Ayudá a revisar lo que se publica.', useful: 'Iniciá sesión para marcar reseñas útiles.' },
   },
   detail: {
     howToGet: 'Cómo llegar', save: 'Guardar', saved: 'Guardado', share: 'Compartir', close: 'Cerrar',
@@ -91,7 +91,7 @@ export const t = {
     description: 'Descripción', hours: 'Horario', openingHours: 'Horario de apertura', pending: 'Pendiente de aprobación', hidden: 'Oculta', rejected: 'No publicada',
     verifiedBy: 'Verificada por la comunidad', priceConditions: 'Precio y condiciones', perks: 'Beneficios', accessibility: 'Accesibilidad',
     copied: 'Enlace copiado', shareMessage: (name: string, url: string) => `${name} en MiVueltica: ${url}`,
-    notFound: 'No encontramos este plan', stillThere: 'Sigue igual', thanks: 'Gracias por verificar · +2 confianza', thanksGuest: 'Gracias por verificar',
+    notFound: 'No encontramos este plan', stillThere: 'Sigue igual', thanks: 'Verificación enviada · +2 puntos', thanksGuest: 'Gracias por verificar',
   },
   directions: {
     title: 'Cómo llegar', subtitle: (name: string, km: string) => `${name} · a ${km} · Abrir en:`,
@@ -103,7 +103,7 @@ export const t = {
     pricePaid: '¿Cuánto costó por persona?', free: 'Gratis', lt2500: `Menos de ${c(2500)}`, mid: `${c(2500)} – ${c(5000)}`, gt5000: `Más de ${c(5000)}`,
     scheduleOk: '¿El horario es correcto?', correctTime: 'Horario correcto', photo: 'Foto del rótulo o entrada', photoHint: 'Opcional · ayuda a confirmar precios',
     footer: `Cuando 3 personas reporten el mismo cambio, actualizamos la ficha. Si pasa de ${c(5000)} o ya no existe, se oculta del mapa.`,
-    levelNote: 'El precio cuenta desde Nivel 2', send: 'Enviar verificación', sent: 'Verificación enviada · +2 confianza', sentGuest: 'Verificación enviada',
+    levelNote: 'El precio cuenta desde Nivel 2', send: 'Enviar verificación', sent: 'Verificación enviada · +2 puntos', sentGuest: 'Verificación enviada',
   },
   report: {
     title: 'Reportar vueltica', whatsUp: '¿Qué pasa con esta vueltica?', reasons: {
@@ -112,7 +112,7 @@ export const t = {
     },
     tellUs: 'Contanos más (opcional)', placeholder: 'Ej.: ahora cobran ₡3.000 por persona', photo: 'Foto como prueba', photoHint: 'Opcional · nos ayuda a revisar más rápido',
     footer: 'Tu reporte es anónimo. Si 3 personas reportan lo mismo, ocultamos la vueltica del mapa mientras la revisamos.',
-    sent: 'Reporte enviado. Gracias por avisar', dupe: 'Ya reportaste esta vueltica',
+    sent: 'Reporte enviado. Gracias por cuidar de la comunidad', dupe: 'Ya reportaste esta vueltica',
   },
   reviews: {
     title: 'Reseñas', summary: (n: number) => `${n} reseñas`, didYouGo: '¿Fuiste? Calificá tu visita', write: 'Escribir reseña',
@@ -123,7 +123,7 @@ export const t = {
     spent: { nada: 'Nada', menos2500: `Menos de ${c(2500)}`, entre2500y5000: `${c(2500)} – ${c(5000)}` },
     starLabels: ['Muy malo', 'Malo', 'Regular', 'Bueno', 'Muy bueno'],
     compose: { title: 'Escribir reseña', withWhom: '¿Con quién fuiste?', spent: '¿Cuánto gastaste por persona?', experience: 'Tu experiencia', photos: 'Agregar fotos',
-      footer: 'Tu reseña será pública con tu nombre.', publish: 'Publicar', published: 'Reseña publicada', placeholder: 'Contá cómo estuvo', needStars: 'Elegí una calificación' },
+      footer: 'Tu reseña será pública con tu nombre.', publish: 'Publicar', published: 'Tu reseña ya está publicada', placeholder: 'Contá cómo estuvo', needStars: 'Elegí una calificación' },
     star: (n: number) => `${n} ${n === 1 ? 'estrella' : 'estrellas'}`,
   },
   contribute: {
@@ -154,7 +154,7 @@ export const t = {
     title: 'Guardados', all: 'Todo', places: 'Lugares', events: 'Eventos', reminder: (d: number) => `Te avisamos ${d} ${d === 1 ? 'día' : 'días'} antes de cada evento guardado.`,
     change: 'Cambiar', thisWeek: 'Esta semana', nextMonth: 'Próximo mes', later: 'Más adelante', places2: 'Lugares guardados',
     signedOutTitle: 'Guardá tus planes favoritos', signedOutBody: 'Iniciá sesión para guardar lugares y eventos y recibir recordatorios.', signIn: 'Iniciar sesión',
-    savedToast: 'Guardado', removedToast: 'Quitado de guardados',
+    savedToast: 'Guardada en tus favoritos', removedToast: 'Quitada de guardados',
   },
   profile: {
     title: 'Perfil', since: (y: number) => `desde ${y}`, level: (n: number, name: string) => `Nivel ${n} · ${name}`,
@@ -180,7 +180,7 @@ export const t = {
     lastReport: (ago: string, a: string) => `Último reporte ${ago} · Vueltica de ${a}`, thanks: '¡Gracias! Tu voto quedó registrado · +1 confianza', undo: 'Deshacer',
     footer: 'Las decisiones se toman por mayoría de votos. Si votás seguido en contra de la mayoría, tu confianza baja.',
     locked: 'La moderación se abre en el Nivel 3 · De confianza', lockedBody: 'Seguí verificando y aportando para llegar.', needsReview: 'Necesita revisión',
-    voteUndone: 'Voto deshecho',
+    voteUndone: 'Voto deshecho', voteAgain: 'Volver a votar',
   },
   settings: {
     title: 'Ajustes', appearance: 'Apariencia', dark: 'Modo oscuro', accessibility: 'Accesibilidad', textSize: 'Tamaño del texto', followsSystem: 'Sigue al sistema',
@@ -189,8 +189,8 @@ export const t = {
     preferences: 'Preferencias', maxPrice: 'Precio máximo', directionsApp: 'App para cómo llegar', ask: 'Preguntar', privacy: 'Privacidad y cuenta', location: 'Ubicación',
     whileUsing: 'Al usar la app', denied: 'Sin permiso', download: 'Descargar mis datos', deleteAccount: 'Eliminar cuenta',
     deleteFooter: 'Eliminar tu cuenta borra tu perfil, reseñas y vuelticas pendientes. Las vuelticas publicadas quedan a nombre de «Anónimo».',
-    deleteTitle: '¿Eliminar tu cuenta?', deleteBody: 'Esta acción no se puede deshacer.', deleteConfirm: 'Eliminar cuenta', deleted: 'Cuenta eliminada',
-    exportDone: 'Tus datos están listos', exportBody: 'Generamos un archivo con tu información.', exportShare: 'Guardar archivo',
+    deleteTitle: '¿Eliminar tu cuenta?', deleteBody: 'Se borran tu perfil, tus reseñas y tus vuelticas pendientes. Las publicadas quedan a nombre de «Anónimo». No se puede deshacer.', deleteConfirm: 'Eliminar cuenta', deleted: 'Cuenta eliminada',
+    exportDone: 'Tus datos están listos', exportBody: 'Armamos un archivo con tu perfil, guardados, reseñas y vuelticas.', exportShare: 'Compartir archivo', reminderWhen: 'Cuándo recordar', promptTitle: '¿Querés recordatorios?', promptHeadline: 'Te avisamos un día antes', promptBody: 'Mandamos un aviso a las 9:00 a. m. del día anterior a tus eventos guardados. Después el sistema te pide permiso.', promptAccept: 'Activar recordatorios', promptLater: 'Ahora no', noMapsTitle: 'No encontramos una app de mapas', noMapsBody: 'Instalá Google Maps o Waze, o abrí la dirección en el navegador.', openBrowser: 'Abrir en el navegador', copyAddress: 'Copiar dirección',
     dev: 'Desarrollo', simulateCommunity: 'Simular comunidad', simulateOffline: 'Simular sin conexión', simulated: 'Comunidad simulada',
     locationHint: 'MiVueltica solo usa tu ubicación mientras la app está abierta. Podés cambiarlo en los ajustes del sistema.',
     reminderTitle: 'Recordatorio', reminderOptions: [1, 2, 3, 7] as const, reminderOption: (d: number) => (d === 1 ? '1 día antes' : `${d} días antes`),
