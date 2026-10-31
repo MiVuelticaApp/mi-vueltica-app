@@ -18,10 +18,11 @@ interface Props {
   /** Guardados shows "Verificado hace 3 días" / "¿Sigue igual? Verificar". */
   showVerification?: 'saved' | 'list';
   testID?: string;
+  saveDisabled?: boolean;
 }
 
 /** Figma "Activity Card": photo, title, type · distance, schedule, badges, rating, save. */
-export function ActivityCard({ item, onPress, onToggleSave, showVerification = 'list', testID }: Props) {
+export function ActivityCard({ item, onPress, onToggleSave, showVerification = 'list', testID, saveDisabled }: Props) {
   const { c } = useAppTheme();
   const d = daysSince(item.lastVerifiedAt);
   const dist = formatDistance(item.distanceKm);
@@ -39,7 +40,7 @@ export function ActivityCard({ item, onPress, onToggleSave, showVerification = '
       <View style={{ flex: 1, gap: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
           <Text variant="headline" numberOfLines={1} style={{ flex: 1 }} testID={`card.title.${item.id}`}>{item.name}</Text>
-          <Tap testID={`card.save.${item.id}`} label={item.saved ? t.card.unsave : t.card.save} accessibilityState={{ selected: !!item.saved }} onPress={onToggleSave} hitSlop={10} style={{ marginTop: -2 }}>
+          <Tap testID={`card.save.${item.id}`} label={item.saved ? t.card.unsave : t.card.save} onPress={saveDisabled ? undefined : onToggleSave} accessibilityState={{ selected: !!item.saved, disabled: !!saveDisabled }} hitSlop={10} style={{ marginTop: -2 }}>
             <Icon name={item.saved ? 'bookmarkFilled' : 'bookmark'} size={24} color={item.saved ? 'primary' : 'onSurface'} />
           </Tap>
         </View>

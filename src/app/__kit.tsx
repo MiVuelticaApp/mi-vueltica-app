@@ -1,3 +1,4 @@
+import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { Banner } from '@/components/ui/Banner';
@@ -21,7 +22,12 @@ import { MAP_IMAGES } from '@/components/map/pins';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 /** Dev-only component gallery (M3): /__kit */
-export default function Kit() {
+export default function KitRoute() {
+  if (!__DEV__ && process.env.EXPO_PUBLIC_E2E !== '1') return <Redirect href="/" />;
+  return <Kit />;
+}
+
+function Kit() {
   const { c } = useAppTheme();
   const [seg, setSeg] = useState<'a' | 'b' | 'c'>('a');
   const [sw, setSw] = useState(true);

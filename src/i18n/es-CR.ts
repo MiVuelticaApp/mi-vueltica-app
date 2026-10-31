@@ -8,7 +8,7 @@ export const t = {
   common: {
     cancel: 'Cancelar', close: 'Cerrar', retry: 'Reintentar', done: 'Listo', clear: 'Limpiar', save: 'Guardar', saved: 'Guardado',
     share: 'Compartir', back: 'Atrás', ok: 'Aceptar', understood: 'Entendido', change: 'Cambiar', send: 'Enviar', publish: 'Publicar',
-    optional: 'Opcional', yes: 'Sí', no: 'No', today: 'Hoy', delete: 'Eliminar', confirm: 'Confirmar', loading: 'Cargando…',
+    optional: 'Opcional', choose: 'Elegir…', photoAdded: '1 foto agregada', notifDenied: 'Activá las notificaciones en los ajustes del sistema para recibir recordatorios', yes: 'Sí', no: 'No', today: 'Hoy', delete: 'Eliminar', confirm: 'Confirmar', loading: 'Cargando…',
     seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', free: 'Gratis', anonymous: 'Anónimo', km: 'km',
     errorTitle: 'Algo salió mal', errorBody: 'No pudimos cargar esta información. Probá de nuevo.',
   },
@@ -32,7 +32,7 @@ export const t = {
     locate: 'Mi ubicación', account: 'Perfil', accountA11y: 'Abrir tu perfil', cluster: (n: number) => `${n} planes agrupados`,
     pinPlace: (name: string) => `Lugar: ${name}`, pinEvent: (name: string) => `Evento: ${name}`, pinPending: (name: string) => `Pendiente: ${name}`,
     userLocation: 'Tu ubicación', noMap: 'El mapa necesita internet',
-    locationOff: 'Ubicación desactivada', openSettings: 'Abrir ajustes',
+    pickedLocation: 'Ubicación elegida', mapA11y: 'Mapa', zoomIn: 'Acercar', zoomOut: 'Alejar', locationOff: 'Ubicación desactivada', openSettings: 'Abrir ajustes',
   },
   list: {
     title: 'Explorar', all: 'Todo', places: 'Lugares', events: 'Eventos', nearMe: 'Cerca de mí',
@@ -91,7 +91,7 @@ export const t = {
     description: 'Descripción', hours: 'Horario', openingHours: 'Horario de apertura', pending: 'Pendiente de aprobación', hidden: 'Oculta', rejected: 'No publicada',
     verifiedBy: 'Verificada por la comunidad', priceConditions: 'Precio y condiciones', perks: 'Beneficios', accessibility: 'Accesibilidad',
     copied: 'Enlace copiado', shareMessage: (name: string, url: string) => `${name} en MiVueltica: ${url}`,
-    notFound: 'No encontramos este plan', stillThere: 'Sigue igual', thanks: 'Verificación enviada · +2 puntos', thanksGuest: 'Gracias por verificar',
+    notFound: 'No encontramos este plan', stillThere: 'Sigue igual', alreadyVerified: 'Ya verificaste este plan hoy', thanks: 'Verificación enviada · +2 puntos', thanksGuest: 'Gracias por verificar',
   },
   directions: {
     title: 'Cómo llegar', subtitle: (name: string, km: string) => `${name} · a ${km} · Abrir en:`,

@@ -71,7 +71,7 @@ export const lightColors: ColorTokens = {
   danger: '#b3261e',
   success: '#0b6b3a',
   labelPrimary: '#000000',
-  labelSecondary: '#3c3c4399',
+  labelSecondary: '#5c5c63',
   labelTertiary: '#3c3c434d',
   separator: '#3c3c431f',
   fillTertiary: '#7676801f',

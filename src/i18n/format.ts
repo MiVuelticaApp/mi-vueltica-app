@@ -80,6 +80,16 @@ export function plural(n: number, one: string, many: string): string {
   return n === 1 ? one : many;
 }
 
+/** "hace 5 min" / "hace 2 h" / "hace 3 días": age of a timestamp, for the offline banner. */
+export function formatAgo(iso: string | null, now: Date): string {
+  if (!iso) return 'hace un momento';
+  const min = Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / 60000));
+  if (min < 1) return 'hace un momento';
+  if (min < 60) return `hace ${min} min`;
+  if (min < 24 * 60) return `hace ${Math.floor(min / 60)} h`;
+  return formatRelative(iso, now);
+}
+
 /** "hace 3 días" style relative date, relative to `now`. */
 export function formatRelative(iso: string, now: Date): string {
   const diff = now.getTime() - new Date(iso).getTime();

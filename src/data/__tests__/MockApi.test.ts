@@ -194,3 +194,50 @@ describe('account', () => {
     expect(await b.currentUser()).toMatchObject({ displayName: 'Ana Mora' });
   });
 });
+
+describe('review fixes', () => {
+  it('counts one verification per person: repeating does not hide a plan or farm points', async () => {
+    const api = make();
+    for (let i = 0; i < 4; i++) await api.verify({ vuelticaId: 'v-plaza', stillHappening: 'no' });
+    let list = await api.listVuelticas({ filters, location: loc });
+    expect(list.items.find((v) => v.id === 'v-plaza')).toBeDefined();
+    await api.signIn({ provider: 'apple' });
+    const p0 = (await api.reputationSummary()).points;
+    for (let i = 0; i < 3; i++) await api.verify({ vuelticaId: 'v-espana', stillHappening: 'si', pricePaid: 'mas5000' });
+    expect((await api.reputationSummary()).points).toBe(p0 + 2);
+    list = await api.listVuelticas({ filters, location: loc });
+    expect(list.items.find((v) => v.id === 'v-espana')).toBeDefined();
+    const d = await api.getVueltica('v-espana', loc);
+    expect(d.verification.myVerifiedToday).toBe(true);
+  });
+  it('different people still hide after 3 matching answers', async () => {
+    const api = make();
+    await api.verify({ vuelticaId: 'v-plaza', stillHappening: 'no' });
+    await api.simulateCommunity({ kind: 'verifications', vuelticaId: 'v-plaza', count: 2, stillHappening: 'no' });
+    const list = await api.listVuelticas({ filters, location: loc });
+    expect(list.items.find((v) => v.id === 'v-plaza')).toBeUndefined();
+  });
+  it('keeps myVote after re-entering and replaces it instead of ignoring a second vote', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    await api.vote({ vuelticaId: 'v-cuentos', choice: 'for' });
+    let q = await api.moderationQueue(loc);
+    expect(q.nuevas.find((i) => i.vuelticaId === 'v-cuentos')?.myVote).toBe('for');
+    const p = (await api.reputationSummary()).points;
+    await api.vote({ vuelticaId: 'v-cuentos', choice: 'against' });
+    q = await api.moderationQueue(loc);
+    const item = q.nuevas.find((i) => i.vuelticaId === 'v-cuentos')!;
+    expect(item.myVote).toBe('against');
+    expect(item.votesFor).toBe(0);
+    expect(item.votesAgainst).toBe(1);
+    expect((await api.reputationSummary()).points).toBe(p);
+  });
+  it('does not list hidden plans in Guardados', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    await api.saveVueltica('v-plaza');
+    await api.simulateCommunity({ kind: 'reports', vuelticaId: 'v-plaza', count: 3, reason: 'spam' });
+    const saved = await api.listSaved(loc);
+    expect(saved.find((s) => s.vuelticaView.id === 'v-plaza')).toBeUndefined();
+  });
+});

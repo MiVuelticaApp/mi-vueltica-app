@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { nowIso } from '@/lib/clock';
 
 interface NetworkState {
   connected: boolean;
@@ -13,8 +14,8 @@ export const useNetwork = create<NetworkState>((set) => ({
   connected: true,
   simulatedOffline: false,
   lastOnlineAt: null,
-  setConnected: (connected) => set((s) => ({ connected, lastOnlineAt: connected ? null : (s.lastOnlineAt ?? new Date().toISOString()) })),
-  setSimulated: (simulatedOffline) => set((s) => ({ simulatedOffline, lastOnlineAt: simulatedOffline ? (s.lastOnlineAt ?? new Date().toISOString()) : null })),
+  setConnected: (connected) => set((s) => ({ connected, lastOnlineAt: connected ? null : (s.lastOnlineAt ?? nowIso()) })),
+  setSimulated: (simulatedOffline) => set((s) => ({ simulatedOffline, lastOnlineAt: simulatedOffline ? (s.lastOnlineAt ?? nowIso()) : null })),
 }));
 
 export const isOffline = () => {

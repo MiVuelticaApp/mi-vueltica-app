@@ -14,6 +14,7 @@ import { useRequireAuth } from '@/features/auth/useRequireAuth';
 import { useReviewActions } from '@/features/detail/useReviewActions';
 import { formatRating } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
+import { useIsOffline } from '@/state/network';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 type Sort = 'recientes' | 'fotos' | 'utiles';
@@ -27,6 +28,7 @@ export default function Resenas() {
   const q = useReviews({ vuelticaId: id, sort, audience });
   const detail = useVuelticaDetail(id);
   const requireAuth = useRequireAuth();
+  const offline = useIsOffline();
   const rev = useReviewActions(`/vueltica/${id}/resenas`);
   const [stars, setStars] = useState(0);
   const sum = q.data?.summary;
@@ -58,7 +60,7 @@ export default function Resenas() {
       <View style={{ marginHorizontal: 16, padding: 16, borderRadius: 16, backgroundColor: c.surface, gap: 12, alignItems: 'center' }}>
         <Text variant="headline" align="center">{t.reviews.didYouGo}</Text>
         <StarInput testID="reviews.stars" value={stars} onChange={(n) => { setStars(n); write(n); }} size={32} />
-        <Button testID="reviews.write" label={t.reviews.write} variant="glass" onPress={() => write(stars)} />
+        <Button testID="reviews.write" label={t.reviews.write} variant="glass" disabled={offline} onPress={() => write(stars)} />
       </View>
       <View style={{ paddingHorizontal: 16 }}>
         <Segmented<Sort>

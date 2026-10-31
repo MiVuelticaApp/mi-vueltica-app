@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/icons/Icon';
 import MapView from '@/components/map/MapView';
 import { Banner } from '@/components/ui/Banner';
+import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { IconButton } from '@/components/ui/IconButton';
 import { Tap } from '@/components/ui/Tap';
 import { Text } from '@/components/ui/Text';
@@ -18,7 +19,6 @@ import { FilterChipsRow } from '@/features/map/FilterChipsRow';
 import { requestAndLocate } from '@/lib/location';
 import { useFilters } from '@/state/filters';
 import { useMapSelection } from '@/state/mapSelection';
-import { useIsOffline } from '@/state/network';
 import { useSession } from '@/state/session';
 import { useSettings } from '@/state/settings';
 import { useAppTheme } from '@/theme/useAppTheme';
@@ -33,7 +33,6 @@ export default function MapaScreen() {
   const user = useSession((s) => s.user);
   const coords = useSession((s) => s.coords);
   const permission = useSettings((s) => s.settings.locationPermission);
-  const offline = useIsOffline();
   const [recenter, setRecenter] = useState(0);
   const query = useVuelticas({ ...filters, nearMe: true });
   const data = query.data;
@@ -96,7 +95,7 @@ export default function MapaScreen() {
         {permission === 'denied' ? (
           <Banner testID="map.locationBanner" tone="warning" icon="locate" text={t.map.locationOff} action={t.map.openSettings} onAction={() => void Linking.openSettings().catch(() => {})} />
         ) : null}
-        {offline ? <Banner testID="map.offlineBanner" tone="warning" icon="wifiOff" text={t.offline.bannerShort} action={t.offline.retry} onAction={() => void query.refetch()} actionTestID="map.retry" /> : null}
+        <OfflineBanner testID="map.offlineBanner" onRetry={() => void query.refetch()} />
       </View>
 
       <View pointerEvents="box-none" style={{ position: 'absolute', right: 16, bottom: insets.bottom + 192, }}>

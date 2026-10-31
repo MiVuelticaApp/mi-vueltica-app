@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Pressable, View, type LayoutChangeEvent } from 'react-native';
+import { t } from '@/i18n/es-CR';
 import { IconButton } from '@/components/ui/IconButton';
 import { DEFAULT_LOCATION } from '@/domain/geo';
 import { useAppTheme } from '@/theme/useAppTheme';
@@ -82,7 +83,7 @@ export default function ImageMap({ items, pending, selectedId, center, showUser,
       {onMapPress ? (
         <Pressable
           testID="map.surface"
-          accessibilityLabel="Mapa"
+          accessibilityLabel={t.map.mapA11y}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           onPress={(e) => {
             const { locationX, locationY } = e.nativeEvent;
@@ -92,7 +93,7 @@ export default function ImageMap({ items, pending, selectedId, center, showUser,
       ) : null}
       {dropPin ? (() => {
         const p = toXY(dropPin.lat, dropPin.lng);
-        const pseudo = { id: 'drop', type: dropPin.type, priceTier: 'gratis', name: 'Ubicación elegida' } as never;
+        const pseudo = { id: 'drop', type: dropPin.type, priceTier: 'gratis', name: t.map.pickedLocation } as never;
         return <PinMarker item={pseudo} selected x={p.x} y={p.y} onPress={() => {}} />;
       })() : null}
       {showUser ? <UserDot x={user.x} y={user.y} /> : null}
@@ -104,8 +105,8 @@ export default function ImageMap({ items, pending, selectedId, center, showUser,
         return <PinMarker key={n.id} item={n.item} selected={selectedId === n.id} x={x} y={y} onPress={() => onSelect(n.id)} />;
       })}
       <View style={{ position: 'absolute', right: 16, top: 240, gap: 8 }}>
-        <IconButton testID="map.zoomIn" icon="plus" label="Acercar" onPress={() => zoomBy(0.6)} />
-        <IconButton testID="map.zoomOut" icon="minus" label="Alejar" onPress={() => zoomBy(1 / 0.6)} />
+        <IconButton testID="map.zoomIn" icon="plus" label={t.map.zoomIn} onPress={() => zoomBy(0.6)} />
+        <IconButton testID="map.zoomOut" icon="minus" label={t.map.zoomOut} onPress={() => zoomBy(1 / 0.6)} />
       </View>
       <View testID="map.zoomLevel" accessibilityLabel={`zoom ${Math.round(zoom)}`} style={{ position: 'absolute', width: 1, height: 1, opacity: 0 }} />
     </View>

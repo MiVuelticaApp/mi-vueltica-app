@@ -197,7 +197,7 @@ export class MockApi implements MiVuelticaApi {
         verification: {
           lastVerifiedAt: v.lastVerifiedAt,
           count: v.verificationCount,
-          myVerifiedToday: this.db.verifications.some((x) => x.vuelticaId === id && x.userId === (me?.id ?? '__') && new Date(x.createdAt).toDateString() === today),
+          myVerifiedToday: this.db.verifications.some((x) => x.vuelticaId === id && x.personKey === (me?.id ?? `device:${this.opts.deviceId}`) && new Date(x.createdAt).toDateString() === today),
         },
         community: { authorName: v.authorName, verifiedBy: v.verificationCount, updatedAt: v.lastVerifiedAt ?? v.createdAt },
         mine: !!me && v.authorId === me.id,
@@ -300,31 +300,40 @@ export class MockApi implements MiVuelticaApi {
       return this.db.saved
         .filter((s) => s.userId === me.id)
         .map((s) => ({ s, v: this.db.vuelticas.find((x) => x.id === s.vueltica) }))
-        .filter((x): x is { s: Saved; v: Vueltica } => !!x.v && x.v.status !== 'rechazada')
+        .filter((x): x is { s: Saved; v: Vueltica } => !!x.v && x.v.status === 'publicada')
         .map(({ s, v }) => ({ saved: s, vuelticaView: this.view(v, location) }));
     });
   }
 
   /* ------------------------------------------------------------ verify/report */
 
-  private applyVerification(input: VerifyInput, userId: string | null, forcePrice = false): VerifyResult {
+  private applyVerification(input: VerifyInput, userId: string | null, forcePrice = false, personKey?: string): VerifyResult {
     const v = this.db.vuelticas.find((x) => x.id === input.vuelticaId);
     if (!v) throw new NotFoundError();
     const user = userId ? this.db.users.find((u) => u.id === userId) : undefined;
     const lvl = user ? levelForPoints(user.points).number : 0;
-    const ver: Verification = {
-      id: this.id('ver'), vuelticaId: v.id, userId, stillHappening: input.stillHappening,
+    const key = personKey ?? userId ?? `device:${this.opts.deviceId}`;
+    const fields = {
+      stillHappening: input.stillHappening,
       // Price answers only count from Level 2 (placeholder decision #3).
       pricePaid: forcePrice || canVerifyPrice(lvl) ? input.pricePaid : undefined,
-      scheduleCorrect: input.scheduleCorrect, correctedTime: input.correctedTime, photo: input.photo, createdAt: clockNow().toISOString(),
+      scheduleCorrect: input.scheduleCorrect, correctedTime: input.correctedTime, photo: input.photo,
     };
-    this.db.verifications.push(ver);
-    v.lastVerifiedAt = ver.createdAt;
-    v.verificationCount += 1;
     let points = 0;
-    if (user) {
-      user.counts.verifications += 1;
-      points = this.addPoints(user.id, 'verified');
+    const prev = this.db.verifications.find((x) => x.vuelticaId === v.id && x.personKey === key);
+    if (prev) {
+      // Same person again: the latest answer replaces the previous one; no extra count and no extra points.
+      Object.assign(prev, fields, { createdAt: clockNow().toISOString() });
+      v.lastVerifiedAt = prev.createdAt;
+    } else {
+      const ver: Verification = { id: this.id('ver'), vuelticaId: v.id, userId, personKey: key, ...fields, createdAt: clockNow().toISOString() };
+      this.db.verifications.push(ver);
+      v.lastVerifiedAt = ver.createdAt;
+      v.verificationCount += 1;
+      if (user) {
+        user.counts.verifications += 1;
+        points = this.addPoints(user.id, 'verified');
+      }
     }
     // 3 matching verifications update the listing (level 4+ count double).
     const weighted = this.db.verifications
@@ -546,7 +555,11 @@ export class MockApi implements MiVuelticaApi {
       if (!v) throw new NotFoundError();
       if (v.authorId === me.id) throw new ForbiddenError('own');
       const before = this.moderationItem(v)!;
-      if (!this.db.votes.some((x) => x.vuelticaId === v.id && x.voterId === me.id)) {
+      const mine = this.db.votes.find((x) => x.vuelticaId === v.id && x.voterId === me.id);
+      if (mine) {
+        // Voting again replaces the previous vote (no extra point).
+        mine.choice = input.choice;
+      } else {
         this.db.votes.push({ vuelticaId: v.id, voterId: me.id, kind: before.kind, choice: input.choice, weight: voteWeight(lvl) });
         this.addPoints(me.id, 'moderationVote');
       }
@@ -697,7 +710,7 @@ export class MockApi implements MiVuelticaApi {
           else c.votesAgainst += n;
           this.resolve(v);
         } else if (input.kind === 'verifications') {
-          for (let i = 0; i < n; i++) this.applyVerification({ vuelticaId: v.id, stillHappening: input.stillHappening ?? 'si', pricePaid: input.pricePaid }, null, true);
+          for (let i = 0; i < n; i++) this.applyVerification({ vuelticaId: v.id, stillHappening: input.stillHappening ?? 'si', pricePaid: input.pricePaid }, null, true, `sim:${this.id('p')}`);
           // anonymous simulated verifications count even for price (they stand for L2+ users)
         } else {
           for (let i = 0; i < n; i++) {

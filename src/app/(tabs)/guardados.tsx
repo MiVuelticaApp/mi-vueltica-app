@@ -4,6 +4,7 @@ import { SectionList, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityCard } from '@/components/ui/ActivityCard';
 import { Banner } from '@/components/ui/Banner';
+import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Segmented } from '@/components/ui/Segmented';
@@ -81,6 +82,7 @@ export default function GuardadosScreen() {
             <View style={{ paddingHorizontal: 16 }}>
               <Segmented<Seg> testID="saved.segment" value={seg} onChange={setSeg} options={[{ value: 'todo', label: t.saved.all }, { value: 'lugares', label: t.saved.places }, { value: 'eventos', label: t.saved.events }]} />
             </View>
+            {offline ? <OfflineBanner onRetry={() => void q.refetch()} /> : null}
             <Banner testID="saved.reminder" icon="clock" text={t.saved.reminder(offset)} action={t.saved.change} actionTestID="saved.reminder.change" onAction={() => setPicker(true)} />
           </View>
         }
@@ -93,6 +95,7 @@ export default function GuardadosScreen() {
             item={item.vuelticaView}
             showVerification="saved"
             onPress={() => router.push({ pathname: '/vueltica/[id]', params: { id: item.vuelticaView.id } })}
+            saveDisabled={offline}
             onToggleSave={() => toggle.mutate({ id: item.vuelticaView.id, saved: true }, { onSuccess: () => toast(t.saved.removedToast) })}
           />
         )}
