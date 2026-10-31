@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Linking, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/icons/Icon';
@@ -39,11 +39,6 @@ export default function MapaScreen() {
   const data = query.data;
   const n = activeFilterCount(filters);
   const label = describeFilters(filters);
-
-  useEffect(() => {
-    // After a filter change the user wants to see the whole area again.
-    setRecenter((x) => x + 1);
-  }, [center.lat, center.lng]);
 
   const card = data
     ? label || n > 0

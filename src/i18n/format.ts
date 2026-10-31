@@ -93,3 +93,10 @@ export function formatRelative(iso: string, now: Date): string {
   }
   return formatDayMonth(new Date(iso));
 }
+
+/** Calendar days from `from` to `to` (0 = same day). */
+export function daysUntil(to: Date, from: Date): number {
+  const a = new Date(from.getFullYear(), from.getMonth(), from.getDate()).getTime();
+  const b = new Date(to.getFullYear(), to.getMonth(), to.getDate()).getTime();
+  return Math.round((b - a) / 86400000);
+}

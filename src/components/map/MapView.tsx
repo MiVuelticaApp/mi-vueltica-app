@@ -12,6 +12,7 @@ import { useClusters } from './useClusters';
 /** `expo-maps` is a native module: it is missing in Expo Go / some dev clients. Fall back to the image map then. */
 let Maps: typeof import('expo-maps') | null = null;
 try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   Maps = require('expo-maps');
   void Maps?.AppleMaps;
 } catch {
