@@ -41,7 +41,7 @@ export function useVuelticas(filters: Filters, sort: SortKey = 'cercanos', kind:
   const userId = useSession((s) => s.user?.id ?? null);
   return useQuery({
     queryKey: [...qk.list, kind, filters, sort, locKey(location), maxPrice, userId],
-    queryFn: () => (kind === 'list' ? api.listVuelticas : api.searchVuelticas)({ filters, location, sort, maxPrice }),
+    queryFn: () => (kind === 'list' ? api.listVuelticas({ filters, location, sort, maxPrice }) : api.searchVuelticas({ filters, location, sort, maxPrice })),
     placeholderData: keepPreviousData,
     retry: (n, e) => !(e instanceof Error && e.name === 'OfflineError') && n < 1,
   });

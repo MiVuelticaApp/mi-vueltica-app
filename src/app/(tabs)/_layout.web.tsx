@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon, type IconName } from '@/components/icons/Icon';
@@ -17,7 +17,7 @@ const ITEMS: { name: string; label: string; icon: IconName; id: string }[] = [
 ];
 
 /** Web (test target only): a JS tab bar that mimics the native glass bar. */
-function WebTabBar({ state, navigation }: { state: { index: number; routes: { key: string; name: string }[] }; navigation: { navigate: (n: string) => void } }) {
+function WebTabBar({ state }: { state: { index: number; routes: { key: string; name: string }[] } }) {
   const { c } = useAppTheme();
   const insets = useSafeAreaInsets();
   return (
@@ -27,7 +27,7 @@ function WebTabBar({ state, navigation }: { state: { index: number; routes: { ke
           const idx = state.routes.findIndex((r) => r.name === it.name);
           const sel = state.index === idx;
           return (
-            <Tap key={it.name} testID={it.id} label={it.label} accessibilityRole="tab" accessibilityState={{ selected: sel }} onPress={() => navigation.navigate(it.name)} style={{ width: 68, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: sel ? c.fillTertiary : undefined }}>
+            <Tap key={it.name} testID={it.id} label={it.label} accessibilityRole="tab" accessibilityState={{ selected: sel }} onPress={() => router.navigate(it.name === 'index' ? '/' : (`/${it.name}` as '/lista'))} style={{ width: 68, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center', gap: 2, backgroundColor: sel ? c.fillTertiary : undefined }}>
               <Icon name={it.icon} size={24} color={sel ? 'primary' : 'onSurface'} />
               <Text system bold variant="caption" color={sel ? 'primary' : 'onSurface'} style={{ fontSize: 10, lineHeight: 12 }}>{it.label}</Text>
             </Tap>
