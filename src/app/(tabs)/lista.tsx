@@ -11,7 +11,6 @@ import { TypeSegment } from '@/features/list/TypeSegment';
 import { FilterChipsRow } from '@/features/map/FilterChipsRow';
 import { ResultsList } from '@/features/list/ResultsList';
 import { t } from '@/i18n/es-CR';
-import { useFilters } from '@/state/filters';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 /** 02 Lista (+ 18 Cargando skeleton ≥ 1 s every time the tab opens, 16 Sin resultados, 17 Sin conexión). */

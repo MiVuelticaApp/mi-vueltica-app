@@ -160,7 +160,7 @@ export function buildSeed(now: Date): DB {
       const text = i === 0 && v.id === 'v-jade' ? TEXTS[0] : i === 1 && v.id === 'v-jade' ? TEXTS[1] : TEXTS[(vi + i) % TEXTS.length];
       reviews.push({
         id: `r-${++rid}`, vuelticaId: v.id, authorId: `u-${name.split(' ')[0].toLowerCase()}`, authorName: name, authorInitials: initialsOf(name),
-        createdAt: iso(i === 0 ? 3 : i === 1 ? 7 : 3 + i * 6 + (vi % 5)), stars: i % 5 === 4 ? 3 : i % 3 === 2 ? 4 : v.ratingAvg > 4.6 ? 5 : 4,
+        createdAt: iso(i === 0 ? 3 : i === 1 ? 7 : 3 + i * 6 + (vi % 5)), stars: v.id === 'v-jade' && i < 2 ? 4 : i % 5 === 4 ? 3 : i % 3 === 2 ? 4 : v.ratingAvg > 4.6 ? 5 : 4,
         wentWith: i === 0 ? 'familia' : i === 1 ? 'amigos' : WENT[(vi + i) % 4], spent: SPENT[(vi + i) % 4], text,
         photos: i % 4 === 1 ? [`ph:rv${rid}`] : [], usefulCount: i === 0 ? 12 : i === 1 ? 8 : (vi * 3 + i * 5) % 15, markedUsefulByMe: false,
       });

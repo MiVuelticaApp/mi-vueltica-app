@@ -21,17 +21,23 @@ const MAX_KPP = 0.08;
 export default function ImageMap({ items, pending, selectedId, center, showUser, recenterToken, onSelect, onSelectPending }: MapViewProps) {
   const { dark } = useAppTheme();
   const [size, setSize] = useState({ w: 402, h: 874 });
-  const base = useRef(center.lat ? center : DEFAULT_LOCATION);
+  const [base] = useState(() => (center.lat ? center : DEFAULT_LOCATION));
   const [view, setView] = useState({ lat: center.lat, lng: center.lng, kpp: KM_PER_PX_BASE });
   const viewRef = useRef(view);
-  viewRef.current = view;
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
   const kmLng = KM_LAT * Math.cos((view.lat * Math.PI) / 180);
 
-  useEffect(() => {
+  // Re-center when the location changes or the locate button is pressed (adjust state during render).
+  const [seen, setSeen] = useState({ lat: center.lat, lng: center.lng, token: recenterToken });
+  if (seen.lat !== center.lat || seen.lng !== center.lng || seen.token !== recenterToken) {
+    setSeen({ lat: center.lat, lng: center.lng, token: recenterToken });
     setView((v) => ({ ...v, lat: center.lat, lng: center.lng }));
-  }, [recenterToken, center.lat, center.lng]);
+  }
 
   const pan = useRef({ lat: 0, lng: 0 });
+  /* eslint-disable react-hooks/refs -- refs are only read inside the gesture handlers, never during render */
   const responder = useMemo(
     () =>
       PanResponder.create({
@@ -47,6 +53,7 @@ export default function ImageMap({ items, pending, selectedId, center, showUser,
       }),
     [],
   );
+  /* eslint-enable react-hooks/refs */
 
   const toXY = (lat: number, lng: number) => ({ x: size.w / 2 + ((lng - view.lng) * kmLng) / view.kpp, y: size.h / 2 - ((lat - view.lat) * KM_LAT) / view.kpp });
   const bounds = useMemo(() => {
@@ -58,8 +65,8 @@ export default function ImageMap({ items, pending, selectedId, center, showUser,
   const nodes = useClusters(items, pending, bounds, zoom);
 
   const s = KM_PER_PX_BASE / view.kpp;
-  const bx = size.w / 2 + ((base.current.lng - view.lng) * kmLng) / view.kpp;
-  const by = size.h / 2 - ((base.current.lat - view.lat) * KM_LAT) / view.kpp;
+  const bx = size.w / 2 + ((base.lng - view.lng) * kmLng) / view.kpp;
+  const by = size.h / 2 - ((base.lat - view.lat) * KM_LAT) / view.kpp;
   const onLayout = (e: LayoutChangeEvent) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height });
   const zoomBy = (f: number, around?: { lat: number; lng: number }) => setView((v) => ({ lat: around?.lat ?? v.lat, lng: around?.lng ?? v.lng, kpp: Math.min(MAX_KPP, Math.max(MIN_KPP, v.kpp * f)) }));
   const user = toXY(center.lat, center.lng);
