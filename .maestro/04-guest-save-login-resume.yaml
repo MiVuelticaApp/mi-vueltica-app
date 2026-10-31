@@ -1,0 +1,18 @@
+# D2: guest taps Guardar -> full-screen Login -> Apple/Google sign-in -> back on the plan, saved -> Guardados.
+appId: cr.mivueltica.app
+---
+- launchApp:
+    clearState: true
+- tapOn: "Ahora no"
+- openLink: "mivueltica://vueltica/v-jade"
+- tapOn:
+    id: "detail.save"
+- assertVisible:
+    id: "login.screen"
+- tapOn:
+    id: "login.apple"        # mock provider: signs in as Ana Mora
+- assertVisible: "Guardado"
+- tapOn:
+    id: "detail.close"
+- tapOn: "Guardados"
+- assertVisible: "Noche de Museos: Museo del Jade"

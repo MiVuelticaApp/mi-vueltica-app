@@ -1,0 +1,14 @@
+# M3 + FR-3.6/FR-1.2: tapping an expo-maps pin opens the native formSheet Detalle; close by swipe/X.
+appId: cr.mivueltica.app
+---
+- launchApp
+- tapOn:
+    id: "map.pin.v-sabana"   # if expo-maps does not expose testIDs on markers, use tapOn: { point: "50%,45%" }
+- assertVisible:
+    id: "detail.title"
+- assertVisible: "Parque La Sabana"
+- assertVisible: "Cómo llegar"
+- tapOn:
+    id: "detail.close"
+- assertVisible:
+    id: "map.results"

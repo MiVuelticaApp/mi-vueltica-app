@@ -1,0 +1,4 @@
+# Maestro flows for the native-only parts that Playwright (web export) cannot cover.
+# Run on a development build:  maestro test .maestro/
+# appId must match app.config.ts (ios.bundleIdentifier / android.package).
+appId: cr.mivueltica.app
