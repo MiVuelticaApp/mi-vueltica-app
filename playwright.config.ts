@@ -40,8 +40,8 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: { baseURL: `http://localhost:${PORT}`, trace: 'retain-on-failure', testIdAttribute: 'data-testid' },
   projects: [
-    { name: 'light', use: { ...mobile, colorScheme: 'light' } },
-    { name: 'dark', use: { ...mobile, colorScheme: 'dark' } },
+    { name: 'light', use: { ...mobile, colorScheme: 'light' }, testIgnore: /.*\.denied\.spec\.ts/ },
+    { name: 'dark', use: { ...mobile, colorScheme: 'dark' }, testIgnore: /.*\.denied\.spec\.ts/ },
     {
       name: 'denied',
       use: { ...mobile, colorScheme: 'light', permissions: [] },
