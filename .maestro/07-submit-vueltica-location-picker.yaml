@@ -1,0 +1,34 @@
+# N1: the form with the real expo-maps location picker (cannot be driven on the web fallback, see bug B3).
+appId: cr.mivueltica.app
+---
+- launchApp
+- tapOn: "Ahora no"
+- tapOn: "Perfil"
+- tapOn:
+    id: "profile.signIn"
+- tapOn:
+    id: "login.apple"
+- tapOn: "Aportar"
+- tapOn: "Lugar"
+- tapOn:
+    id: "contribute.name"
+- inputText: "Parque de prueba Maestro"
+- tapOn:
+    id: "contribute.category"
+- tapOn: "Parque"
+- tapOn:
+    id: "contribute.location"
+- tapOn:
+    point: "50%,40%"
+- tapOn:
+    id: "location.confirm"
+- tapOn:
+    id: "contribute.confirm"
+- tapOn:
+    id: "contribute.submit"
+- assertVisible:
+    id: "sent.screen"
+- assertVisible: "0 de 3 votos"
+- tapOn:
+    id: "sent.mine"
+- assertVisible: "En revisión"

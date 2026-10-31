@@ -28,16 +28,19 @@ const mobile = {
   launchOptions,
 };
 
-const build = `EXPO_PUBLIC_E2E=1 EXPO_PUBLIC_FAKE_NOW=${FAKE_NOW} npx expo export -p web`;
+// Isolation for parallel runs (several agents/CI jobs on one checkout): E2E_DIST, E2E_PORT, E2E_OUTPUT, E2E_REPORT.
+const DIST = process.env.E2E_DIST ?? 'dist';
+const build = `EXPO_PUBLIC_E2E=1 EXPO_PUBLIC_FAKE_NOW=${FAKE_NOW} npx expo export -p web --output-dir ${DIST}`;
 
 export default defineConfig({
   testDir: './e2e',
+  outputDir: process.env.E2E_OUTPUT ?? 'test-results',
   fullyParallel: true,
   workers: process.env.CI ? 2 : undefined,
   retries: process.env.CI ? 1 : 0,
   timeout: 30_000,
   expect: { timeout: 7_000 },
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [['list'], ['html', { open: 'never', outputFolder: process.env.E2E_REPORT ?? 'playwright-report' }]],
   use: { baseURL: `http://localhost:${PORT}`, trace: 'retain-on-failure', testIdAttribute: 'data-testid' },
   projects: [
     { name: 'light', use: { ...mobile, colorScheme: 'light' }, testIgnore: /.*\.denied\.spec\.ts/ },
@@ -49,7 +52,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `${process.env.E2E_SKIP_BUILD ? 'true' : build} && npx serve dist -s -l ${PORT}`,
+    command: `${process.env.E2E_SKIP_BUILD ? 'true' : build} && npx serve ${DIST} -s -l ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 600_000,
