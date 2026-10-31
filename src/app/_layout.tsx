@@ -40,6 +40,7 @@ function Navigator() {
         <Stack.Protected guard={onboarded}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="__kit" />
+          <Stack.Screen name="buscar" options={{ animation: 'fade' }} />
           <Stack.Screen name="vueltica/[id]/index" options={sheetOptions([0.5, 1])} />
           <Stack.Screen name="vueltica/[id]/resenas" options={{ headerShown: true, title: t.reviews.title, headerBackTitle: t.common.back, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
           <Stack.Screen name="vueltica/[id]/escribir-resena" options={Platform.OS === 'android' ? { presentation: 'fullScreenModal', animation: 'slide_from_bottom' } : sheetOptions([1])} />
