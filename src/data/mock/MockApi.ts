@@ -623,7 +623,9 @@ export class MockApi implements MiVuelticaApi {
 
   async updateSettings(patch: Partial<Settings>): Promise<Settings> {
     await this.ready;
+    const offsetChanged = patch.reminderOffsetDays !== undefined && patch.reminderOffsetDays !== this.db.settings.reminderOffsetDays;
     this.db.settings = { ...this.db.settings, ...patch };
+    if (offsetChanged) for (const s of this.db.saved) if (s.userId === this.db.currentUserId) s.reminderOffsetDays = patch.reminderOffsetDays!;
     this.persist();
     return { ...this.db.settings };
   }

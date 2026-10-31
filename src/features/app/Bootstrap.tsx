@@ -47,9 +47,9 @@ export function Bootstrap() {
     if (onboarded) void syncLocationPermission();
   }, [onboarded]);
 
-  // Local mirror of settings → "backend".
+  // Local mirror of settings → "backend"; then re-create the local reminders from it.
   useEffect(() => {
-    void api.updateSettings(settings);
+    void api.updateSettings(settings).then(() => (useSession.getState().user ? syncReminders() : undefined));
   }, [settings]);
 
   // Back online: send queued verifications and refresh everything.
@@ -60,7 +60,7 @@ export function Bootstrap() {
 
   useEffect(() => {
     if (user) void syncReminders();
-  }, [user, settings.notifyReminders, settings.reminderOffsetDays]);
+  }, [user]);
 
   return null;
 }

@@ -26,7 +26,7 @@ function clusterSvg(count: number, fill: string) {
 }
 
 function NativeMap(props: MapViewProps) {
-  const { items, pending, selectedId, center, showUser, recenterToken, onSelect, onSelectPending } = props;
+  const { items, pending, selectedId, center, showUser, recenterToken, onSelect, onSelectPending, onMapPress, dropPin } = props;
   const { dark, c } = useAppTheme();
   const ref = useRef<{ setCameraPosition: (p: { coordinates: { latitude: number; longitude: number }; zoom?: number }) => Promise<void> } | null>(null);
   const [cam, setCam] = useState({ zoom: 13, lat: center.lat, lng: center.lng, latDelta: 0.1 });
@@ -71,7 +71,8 @@ function NativeMap(props: MapViewProps) {
     }
   }, [wanted, clusterIcons, c.primary]);
 
-  const markers = nodes
+  const dropMarker = dropPin ? [{ id: 'drop', coordinates: { latitude: dropPin.lat, longitude: dropPin.lng }, title: 'Ubicación elegida', icon: icons[`${dropPin.type}.gratis.true`], anchor: PIN_ANCHOR }] : [];
+  const markers = [...nodes
     .map((n) => {
       if (n.kind === 'cluster') {
         const icon = clusterIcons[n.count];
@@ -82,7 +83,7 @@ function NativeMap(props: MapViewProps) {
       const icon = icons[key];
       return icon ? { id: n.kind === 'pending' ? `pending:${n.id}` : n.id, coordinates: { latitude: n.lat, longitude: n.lng }, title: n.item.name, icon, anchor: PIN_ANCHOR } : null;
     })
-    .filter((m): m is NonNullable<typeof m> => !!m);
+    .filter((m): m is NonNullable<typeof m> => !!m), ...dropMarker.filter((m) => !!m.icon)];
 
   const onMarkerClick = (m: { id?: string }) => {
     const id = m.id ?? '';
@@ -116,6 +117,7 @@ function NativeMap(props: MapViewProps) {
           onAnnotationClick={onMarkerClick}
           onMarkerClick={onMarkerClick}
           onCameraMove={onCameraMove as never}
+          onMapClick={(e: { coordinates: { latitude?: number; longitude?: number } }) => onMapPress?.(e.coordinates.latitude ?? 0, e.coordinates.longitude ?? 0)}
         />
       </View>
     );
@@ -132,6 +134,7 @@ function NativeMap(props: MapViewProps) {
         uiSettings={{ zoomControlsEnabled: false, myLocationButtonEnabled: false, compassEnabled: false, mapToolbarEnabled: false }}
         markers={markers}
         onMarkerClick={onMarkerClick}
+        onMapClick={(e: { coordinates: { latitude?: number; longitude?: number } }) => onMapPress?.(e.coordinates.latitude ?? 0, e.coordinates.longitude ?? 0)}
         onCameraMove={onCameraMove as never}
       />
     </View>
