@@ -22,6 +22,7 @@ export function useClusters(items: VuelticaView[], pending: PendingView[], bound
   return useMemo(() => {
     const byId = new Map(items.map((v) => [v.id, v] as const));
     const out: MapNode[] = [];
+    if (![bounds.west, bounds.south, bounds.east, bounds.north, zoom].every(Number.isFinite)) return [];
     const feats = index.getClusters([bounds.west, bounds.south, bounds.east, bounds.north], Math.round(zoom));
     for (const f of feats) {
       const [lng, lat] = f.geometry.coordinates;

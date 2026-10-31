@@ -1,12 +1,12 @@
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { DEFAULT_LOCATION, PROVINCE_CENTERS } from '@/domain/geo';
-import type { Filters, LatLng, SortKey } from '@/domain/types';
+import type { Filters, LatLng, SortKey, VuelticaView } from '@/domain/types';
 import { useSession } from '@/state/session';
 import { useSettings } from '@/state/settings';
 import { api } from '..';
 import type {
-  CreateReviewInput, CreateVuelticaInput, ReportInput, ReviewListParams, SimulateInput, VerifyInput,
+  CreateReviewInput, CreateVuelticaInput, ReportInput, ReviewListParams, SimulateInput, VerifyInput, VuelticaDetail,
 } from '../api';
 
 /** Effective location: GPS if allowed, else the chosen province's center, else downtown San José. */
@@ -47,10 +47,52 @@ export function useVuelticas(filters: Filters, sort: SortKey = 'cercanos', kind:
   });
 }
 
+/** Offline fallback: build a read-only detail from whatever list/saved/recent data is cached (FR-16.1). */
+function detailFromCache(qc: QueryClient, id: string): VuelticaDetail | null {
+  const found: VuelticaView[] = [];
+  for (const [, data] of qc.getQueriesData<unknown>({ queryKey: [] })) {
+    if (!data) continue;
+    if (Array.isArray(data)) {
+      for (const x of data as { id?: string; vuelticaView?: VuelticaView }[]) {
+        if (x?.vuelticaView?.id === id) found.push(x.vuelticaView);
+        else if (x?.id === id) found.push(x as VuelticaView);
+      }
+    } else if (typeof data === 'object' && Array.isArray((data as { items?: VuelticaView[] }).items)) {
+      for (const x of (data as { items: VuelticaView[] }).items) if (x.id === id) found.push(x);
+    }
+  }
+  const v = found[0];
+  if (!v) return null;
+  return {
+    vuelticaView: v,
+    saved: !!v.saved,
+    rating: { avg: v.ratingAvg, count: v.ratingCount, distribution: [0, 0, 0, 0, 0] },
+    reviewsPreview: [],
+    verification: { lastVerifiedAt: v.lastVerifiedAt, count: v.verificationCount, myVerifiedToday: false },
+    community: { authorName: v.authorName, verifiedBy: v.verificationCount, updatedAt: v.lastVerifiedAt ?? v.createdAt },
+    mine: false,
+  };
+}
+
 export function useVuelticaDetail(id: string) {
   const location = useAppLocation();
   const userId = useSession((s) => s.user?.id ?? null);
-  return useQuery({ queryKey: [...qk.detail(id), locKey(location), userId], queryFn: () => api.getVueltica(id, location), retry: false });
+  const qc = useQueryClient();
+  return useQuery({
+    queryKey: [...qk.detail(id), locKey(location), userId],
+    queryFn: async () => {
+      try {
+        return await api.getVueltica(id, location);
+      } catch (e) {
+        if (e instanceof Error && e.name === 'OfflineError') {
+          const cached = detailFromCache(qc, id);
+          if (cached) return cached;
+        }
+        throw e;
+      }
+    },
+    retry: false,
+  });
 }
 
 export function useRecentlyViewed() {

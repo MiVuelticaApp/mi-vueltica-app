@@ -74,8 +74,7 @@ test('F4 Accesible filter keeps wheelchair-accessible plans only', async ({ page
   await expect(page.getByTestId('card.v-zoo')).toHaveCount(0);
 });
 
-test('F5 [known app bug B1] applying filters dismisses the sheet instead of stacking a second map', async ({ page }) => {
-  test.fail(true, 'B1: "Mostrar N resultados" calls router.navigate("/") which pushes a second (tabs) navigator over the sheet');
+test('F5 applying filters dismisses the sheet instead of stacking a second map', async ({ page }) => {
   await start(page);
   await openFilters(page);
   await page.getByTestId('filters.apply').click();

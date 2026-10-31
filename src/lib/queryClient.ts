@@ -5,7 +5,9 @@ import { kv } from '@/data/storage/kv';
 export const queryClient = new QueryClient({
   defaultOptions: {
     // The mock decides offline behavior itself (OfflineError), so never pause on the OS flag.
-    queries: { networkMode: 'always', staleTime: 15_000, gcTime: 7 * 24 * 3600_000, retry: 1 },
+    // retryOnMount: false: an errored (offline) query must not refetch on every mount, or screens that swap
+    // skeleton/error/offline views loop forever (B5).
+    queries: { networkMode: 'always', retryOnMount: false, staleTime: 15_000, gcTime: 7 * 24 * 3600_000, retry: 1 },
     mutations: { networkMode: 'always' },
   },
 });

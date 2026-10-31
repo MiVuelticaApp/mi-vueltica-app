@@ -34,7 +34,6 @@ test('N0 signed-out Aportar asks to sign in, then shows the form', async ({ page
 });
 
 test('N1 submit a place: confirmation with status steps, then Mis vuelticas "En revisión · 0 de 3 votos"', async ({ page }) => {
-  test.fail(true, 'B3: tapping the map in "Elegir ubicación" crashes the web fallback map (ImageMap.onMapPress reads nativeEvent.locationX/Y, undefined for react-native-web press events -> NaN centre -> supercluster getClusters TypeError, white screen)');
   await openForm(page);
   await fillPlace(page);
   await flip(page, 'contribute.confirm');
@@ -54,7 +53,6 @@ test('N1 submit a place: confirmation with status steps, then Mis vuelticas "En 
 });
 
 test('N1b "Volver al mapa" from the confirmation shows the Pendiente pin to its author', async ({ page }) => {
-  test.fail(true, 'B3: tapping the map in "Elegir ubicación" crashes the web fallback map (ImageMap.onMapPress reads nativeEvent.locationX/Y, undefined for react-native-web press events -> NaN centre -> supercluster getClusters TypeError, white screen)');
   await openForm(page);
   await fillPlace(page, 'Mirador pendiente E2E');
   await flip(page, 'contribute.confirm');
@@ -84,7 +82,6 @@ test('N2 a price above ₡5.000 is blocked with an error', async ({ page }) => {
 });
 
 test('N3 "Enviar vueltica" stays disabled until the ₡5.000 confirmation is ticked', async ({ page }) => {
-  test.fail(true, 'B3: tapping the map in "Elegir ubicación" crashes the web fallback map (ImageMap.onMapPress reads nativeEvent.locationX/Y, undefined for react-native-web press events -> NaN centre -> supercluster getClusters TypeError, white screen)');
   await openForm(page);
   await fillPlace(page);
   const submit = page.getByTestId('contribute.submit');
@@ -123,7 +120,6 @@ test('N3c closing a dirty form asks to discard', async ({ page }) => {
 });
 
 test('N4 community votes publish the submission: +10 points and a published step', async ({ page }) => {
-  test.fail(true, 'B3: tapping the map in "Elegir ubicación" crashes the web fallback map (ImageMap.onMapPress reads nativeEvent.locationX/Y, undefined for react-native-web press events -> NaN centre -> supercluster getClusters TypeError, white screen)');
   await openForm(page);
   await fillPlace(page, 'Plaza votada E2E');
   await flip(page, 'contribute.confirm');
@@ -152,7 +148,7 @@ test('N5 Mis vuelticas lists statuses (review / rejected) and lets the author wi
 
 /** Workaround for B3: create the submission through the mock API hook, then drive the real confirmation / Mis vuelticas / publish UI. */
 async function createViaApi(page: Page, name: string) {
-  return page.evaluate(async (n) => {
+  return page.evaluate(async (n: string) => {
     const api = (window as unknown as { __mv: { api: { createVueltica(i: unknown): Promise<{ vueltica: { id: string } }> } } }).__mv.api;
     const r = await api.createVueltica({
       type: 'lugar', name: n, category: 'Parque', description: '', lat: 9.9333, lng: -84.0833, address: 'Ubicación de prueba', province: 'San José',

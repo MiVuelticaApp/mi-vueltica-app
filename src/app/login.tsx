@@ -41,9 +41,14 @@ export default function Login() {
     else router.replace('/');
   };
   const go = async (provider: 'apple' | 'google' | 'email', mail?: string) => {
+    const p = useSession.getState().pending;
     try {
       await signIn.mutateAsync({ provider, email: mail });
       leave();
+      if (p?.kind === 'review') {
+        useSession.getState().setPending(null);
+        setTimeout(() => router.push({ pathname: '/vueltica/[id]/escribir-resena', params: { id: p.id } }), 50);
+      }
     } catch {
       toast(t.common.errorBody);
     }

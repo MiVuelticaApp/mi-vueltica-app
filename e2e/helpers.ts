@@ -1,4 +1,5 @@
 import { expect, test as base, type Page } from '@playwright/test';
+export type { Page };
 
 /**
  * Shared fixtures. `test` clears the app storage ONCE per test (a sessionStorage flag keeps page.goto() reloads

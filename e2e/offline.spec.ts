@@ -30,8 +30,7 @@ test('O1 offline: banner with Reintentar, cached list/saved/recent plans, networ
   await expect(page.getByTestId('card.v-jade')).toBeVisible();
 });
 
-test('O1b [known app bug B4] a saved plan that was never opened is available offline', async ({ page }) => {
-  test.fail(true, 'B4: Guardados lists it from cache but its Detalle shows "No encontramos este plan" offline (getVueltica is not seeded from the saved/list cache)');
+test('O1b a saved plan that was never opened is available offline', async ({ page }) => {
   await startSignedIn(page);
   await tab(page, 'saved').click();
   await expect(page.getByTestId('card.v-jade')).toBeVisible();
@@ -64,8 +63,7 @@ test('O3 the dev switch "Simular sin conexión" in Ajustes toggles the offline s
   await expect(page.getByTestId('map.offlineBanner')).toBeVisible();
 });
 
-test('O4 [known app bug B5] Lista -> offline -> Guardados -> Mapa must not freeze the page', async ({ page }) => {
-  test.fail(true, 'B5: signed-in user: open Lista, go offline (dev switch), open Guardados, then Mapa -> the main thread hangs ~1 s after the map renders (probable render loop)');
+test('O4 Lista -> offline -> Guardados -> Mapa must not freeze the page', async ({ page }) => {
   await startSignedIn(page);
   await openList(page);
   await setOffline(page, true);

@@ -103,3 +103,11 @@ No flaky tests in the final run (0 retries needed; `retries` is 1 only on CI). T
 | @expo/ui native Switch/Slider/Picker/DateTimePicker, Dynamic Type, system dark mode, Larger buttons | web shims | 06 |
 | Photo picker, haptics, offline OS network state (`expo-network`) | | add flows when device farm is available |
 Maestro uses bundle id `cr.mivueltica.app`; flows were written but not run here (no emulator).
+
+## Update: B1-B5 fixed (app side)
+All five bugs are fixed and their tests are normal tests again (no `test.fail` left): full run 234 passed, 0 expected failures.
+- B1 `filtros.tsx` / `vueltica-enviada/[id].tsx` use `router.dismissTo('/')`.
+- B2 `login.tsx` opens the review composer itself after returning to `next` (`useResumePending` skips `review`).
+- B3 `ImageMap` derives the tap point from client coordinates when `locationX/Y` are missing and ignores non-finite values; `useClusters` returns nothing for non-finite bounds/zoom.
+- B4 `useVuelticaDetail` falls back to cached list/saved/recent data when offline.
+- B5 root cause: the errored (offline) saved/list query refetched on every mount, flipping the screen between skeleton and offline view forever (Guardados rendered thousands of times). Fix: `retryOnMount: false` default, and everything is invalidated once when the connection returns.

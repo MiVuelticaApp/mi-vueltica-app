@@ -45,7 +45,7 @@ export default function Filtros() {
   };
   const apply = () => {
     store.set({ ...draft, nearMe: true });
-    router.navigate('/');
+    router.dismissTo('/');
   };
   return (
     <Sheet testID="filters.sheet" tall>

@@ -1,5 +1,5 @@
 import * as Network from 'expo-network';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import { api, mockApi } from '@/data';
 import { useInvalidateAll } from '@/data/queries';
@@ -53,10 +53,17 @@ export function Bootstrap() {
   }, [settings]);
 
   // Back online: send queued verifications and refresh everything.
+  const wasOffline = useRef(false);
   useEffect(() => {
-    if (offline) return;
-    void api.flushQueuedVerifications().then((n) => (n > 0 ? invalidate() : undefined)).catch(() => {});
-  }, [offline, invalidate]);
+    if (offline) {
+      wasOffline.current = true;
+      return;
+    }
+    const recovered = wasOffline.current;
+    wasOffline.current = false;
+    void api.flushQueuedVerifications().then((n) => (n > 0 || recovered ? invalidate() : undefined)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offline]);
 
   useEffect(() => {
     if (user) void syncReminders();

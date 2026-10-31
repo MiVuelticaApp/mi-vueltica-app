@@ -65,7 +65,6 @@ test('RV3 "Más útiles" sorts by useful count; "Con fotos" keeps reviews with p
 });
 
 test('RV4 guest: "Escribir reseña" goes through Login and then opens the composer [known app bug B2]', async ({ page }) => {
-  test.fail(true, 'B2: after signing in from Reseñas > Escribir reseña the user lands back on Reseñas; the composer (pending action "review") never opens');
   await start(page);
   await reviewsOf(page, 'v-jade');
   await page.getByTestId('reviews.write').click();

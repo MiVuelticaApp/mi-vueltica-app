@@ -86,8 +86,17 @@ export default function ImageMap({ items, pending, selectedId, center, showUser,
           accessibilityLabel={t.map.mapA11y}
           style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
           onPress={(e) => {
-            const { locationX, locationY } = e.nativeEvent;
-            onMapPress(view.lat - ((locationY - size.h / 2) * view.kpp) / KM_LAT, view.lng + ((locationX - size.w / 2) * view.kpp) / kmLng);
+            // react-native-web press events have no locationX/Y: derive the point from client coordinates.
+            const ne = e.nativeEvent as unknown as { locationX?: number; locationY?: number; clientX?: number; clientY?: number; pageX?: number; pageY?: number };
+            let x = ne.locationX;
+            let y = ne.locationY;
+            if (!Number.isFinite(x) || !Number.isFinite(y)) {
+              const rect = (e.currentTarget as unknown as { getBoundingClientRect?: () => { left: number; top: number } }).getBoundingClientRect?.();
+              x = (ne.clientX ?? ne.pageX ?? NaN) - (rect?.left ?? 0);
+              y = (ne.clientY ?? ne.pageY ?? NaN) - (rect?.top ?? 0);
+            }
+            if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+            onMapPress(view.lat - ((y! - size.h / 2) * view.kpp) / KM_LAT, view.lng + ((x! - size.w / 2) * view.kpp) / kmLng);
           }}
         />
       ) : null}
