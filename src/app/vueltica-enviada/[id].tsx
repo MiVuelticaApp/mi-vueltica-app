@@ -54,7 +54,7 @@ export default function VuelticaEnviada() {
       </ScrollView>
       <View style={{ padding: 16, gap: 8, paddingBottom: Math.max(insets.bottom, 16) }}>
         <Button testID="sent.mine" label={t.sent.seeMine} onPress={() => router.replace('/mis-vuelticas')} />
-        <Button testID="sent.map" label={t.sent.backToMap} variant="glass" full onPress={() => router.replace('/')} />
+        <Button testID="sent.map" label={t.sent.backToMap} variant="glass" full onPress={() => router.dismissTo('/')} />
       </View>
     </View>
   );

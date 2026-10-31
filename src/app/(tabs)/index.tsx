@@ -23,6 +23,8 @@ import { useSession } from '@/state/session';
 import { useSettings } from '@/state/settings';
 import { useAppTheme } from '@/theme/useAppTheme';
 
+const NO_ITEMS: never[] = [];
+
 /** 01 Mapa / 01b Mapa filtrado. */
 export default function MapaScreen() {
   const { c, isAndroid } = useAppTheme();
@@ -54,8 +56,8 @@ export default function MapaScreen() {
     <View testID="map.screen" style={{ flex: 1, backgroundColor: c.surface }}>
       {data || !query.isError ? (
         <MapView
-          items={data?.items ?? []}
-          pending={data?.pending ?? []}
+          items={data?.items ?? NO_ITEMS}
+          pending={data?.pending ?? NO_ITEMS}
           selectedId={selectedId}
           center={center}
           showUser={!!coords}

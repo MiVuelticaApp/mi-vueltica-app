@@ -13,6 +13,8 @@ export function useResumePending() {
   const invalidate = useInvalidateAll();
   useEffect(() => {
     if (!user || !pending) return;
+    // 'review' is resumed by the login screen itself (it must open after navigating back to `next`).
+    if (pending.kind === 'review') return;
     const p = pending;
     useSession.getState().setPending(null);
     void (async () => {
@@ -21,8 +23,6 @@ export function useResumePending() {
           await api.saveVueltica(p.id);
           await invalidate();
           toast(t.saved.savedToast);
-        } else if (p.kind === 'review') {
-          router.push({ pathname: '/vueltica/[id]/escribir-resena', params: { id: p.id } });
         } else if (p.kind === 'useful') {
           await api.markUseful(p.reviewId);
           await invalidate();
