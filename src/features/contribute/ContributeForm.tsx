@@ -26,6 +26,7 @@ import type { Audience, VuelticaType } from '@/domain/types';
 import { t } from '@/i18n/es-CR';
 import { pickPhotos } from '@/lib/photos';
 import { isDirty, useDraft } from '@/state/draft';
+import { useIsOffline } from '@/state/network';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 const AUDS: { id: Audience; label: string; icon?: 'people' | 'school' | 'medal' }[] = [
@@ -48,7 +49,8 @@ export function ContributeForm() {
   const tooExpensive = d.paid && !isPublishablePrice(price);
   const priceInvalid = d.paid && (price <= 0 || tooExpensive);
   const cats = d.type === 'lugar' ? t.contribute.categories.place : t.contribute.categories.event;
-  const valid = d.name.trim().length > 0 && d.category !== '' && d.hasLocation && d.confirm && !priceInvalid;
+  const offline = useIsOffline();
+  const valid = !offline && d.name.trim().length > 0 && d.category !== '' && d.hasLocation && d.confirm && !priceInvalid;
   const reasons = useMemo(() => [!d.name.trim() && t.contribute.needName, !d.category && t.contribute.needCategory, !d.hasLocation && t.contribute.needLocation].filter(Boolean) as string[], [d.name, d.category, d.hasLocation]);
 
   const close = async () => {
@@ -121,7 +123,7 @@ export function ContributeForm() {
             <TextField testID="contribute.name" accessibilityLabel={t.contribute.name} value={d.name} onChangeText={(v) => patch({ name: v })} placeholder={t.contribute.namePlaceholder} maxLength={80} />
           </View>
           <View style={{ height: 1, backgroundColor: c.separator, marginLeft: 16 }} />
-          <Row title={t.contribute.category} last right={<Menu testID="contribute.category" accessibilityLabel={t.contribute.category} value={d.category} onChange={(v) => patch({ category: v })} options={[{ value: '', label: 'Elegir…' }, ...cats.map((x) => ({ value: x, label: x }))]} />} />
+          <Row title={t.contribute.category} last right={<Menu testID="contribute.category" accessibilityLabel={t.contribute.category} value={d.category} onChange={(v) => patch({ category: v })} options={[{ value: '', label: t.common.choose }, ...cats.map((x) => ({ value: x, label: x }))]} />} />
         </Group>
 
         <SectionHeader title={t.contribute.location} />

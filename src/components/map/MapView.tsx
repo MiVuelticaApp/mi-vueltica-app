@@ -1,7 +1,8 @@
 import { Image, type ImageRef } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
-import { boundsAround, zoomForLatDelta } from '@/domain/geo';
+import { zoomForLatDelta } from '@/domain/geo';
+import { t } from '@/i18n/es-CR';
 import { useAppTheme } from '@/theme/useAppTheme';
 import ImageMap from './ImageMap';
 import { PIN_ANCHOR } from './Markers';
@@ -36,7 +37,6 @@ function NativeMap(props: MapViewProps) {
     const span = Math.max(0.01, cam.latDelta);
     return { north: cam.lat + span / 2, south: cam.lat - span / 2, east: cam.lng + span, west: cam.lng - span };
   }, [cam]);
-  void boundsAround;
   const nodes = useClusters(items, pending, bounds, cam.zoom);
 
   useEffect(() => {
@@ -71,7 +71,9 @@ function NativeMap(props: MapViewProps) {
     }
   }, [wanted, clusterIcons, c.primary]);
 
-  const dropMarker = dropPin ? [{ id: 'drop', coordinates: { latitude: dropPin.lat, longitude: dropPin.lng }, title: 'Ubicación elegida', icon: icons[`${dropPin.type}.gratis.true`], anchor: PIN_ANCHOR }] : [];
+  const dropMarker = dropPin ? [{ id: 'drop', coordinates: { latitude: dropPin.lat, longitude: dropPin.lng }, title: t.map.pickedLocation, icon: icons[`${dropPin.type}.gratis.true`], anchor: PIN_ANCHOR }] : [];
+  // Stable object: a new cameraPosition on every render could be treated as a move command by the native view.
+  const camera = useMemo(() => ({ coordinates: { latitude: center.lat, longitude: center.lng }, zoom: 13 }), [center.lat, center.lng, recenterToken]); // eslint-disable-line react-hooks/exhaustive-deps
   const markers = [...nodes
     .map((n) => {
       if (n.kind === 'cluster') {
@@ -99,7 +101,6 @@ function NativeMap(props: MapViewProps) {
     setCam({ zoom: e.zoom ?? zoomForLatDelta(e.latitudeDelta), lat: e.coordinates.latitude ?? cam.lat, lng: e.coordinates.longitude ?? cam.lng, latDelta: e.latitudeDelta });
 
   if (!Maps) return <ImageMap {...props} />;
-  const camera = { coordinates: { latitude: center.lat, longitude: center.lng }, zoom: 13 };
   if (Platform.OS === 'ios') {
     const { AppleMaps } = Maps;
     // iOS pin taps need iOS 18+; annotations carry the icon on Apple Maps.

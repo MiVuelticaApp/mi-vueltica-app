@@ -124,6 +124,8 @@ export interface Verification {
   scheduleCorrect?: boolean;
   correctedTime?: string;
   photo?: string;
+  /** Who verified: user id, or `device:<id>` for guests. One counted verification per person per plan. */
+  personKey?: string;
   createdAt: string;
 }
 

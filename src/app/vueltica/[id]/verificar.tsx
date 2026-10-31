@@ -95,7 +95,7 @@ export default function Verificar() {
               <Icon name="camera" size={22} color="primary" />
               <View style={{ flex: 1 }}>
                 <Text variant="body" color="primary">{t.verify.photo}</Text>
-                <Text variant="caption" color="labelSecondary">{photo ? '1 foto agregada' : t.verify.photoHint}</Text>
+                <Text variant="caption" color="labelSecondary">{photo ? t.common.photoAdded : t.verify.photoHint}</Text>
               </View>
             </Tap>
           </Group>

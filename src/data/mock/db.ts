@@ -50,4 +50,4 @@ export interface DB {
   notified: string[];
 }
 
-export const DB_VERSION = 3;
+export const DB_VERSION = 4;

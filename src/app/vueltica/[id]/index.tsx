@@ -27,6 +27,8 @@ import { now } from '@/lib/clock';
 import { shareVueltica } from '@/lib/share';
 import { useMapSelection } from '@/state/mapSelection';
 import { useSettings } from '@/state/settings';
+import { useIsOffline } from '@/state/network';
+import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 function audienceLines(v: VuelticaView): { title: string; sub: string } {
@@ -80,6 +82,7 @@ export default function Detalle() {
   const verify = useVerify();
   const rev = useReviewActions(`/vueltica/${id}`);
   const settings = useSettings((s) => s.settings);
+  const offline = useIsOffline();
   const d = q.data;
   const v = d?.vuelticaView;
 
@@ -168,7 +171,7 @@ export default function Detalle() {
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 }}>
           <Button testID="detail.directions" label={t.detail.howToGet} icon="directions" onPress={howToGet} style={{ flex: 1 }} full={false} />
-          <Button testID="detail.save" label={d.saved ? t.detail.saved : t.detail.save} icon={d.saved ? 'bookmarkFilled' : 'bookmark'} variant="glass" onPress={save} full={false} accessibilityLabel={d.saved ? t.card.unsave : t.detail.save} />
+          <Button testID="detail.save" label={d.saved ? t.detail.saved : t.detail.save} icon={d.saved ? 'bookmarkFilled' : 'bookmark'} variant="glass" onPress={save} disabled={offline} full={false} accessibilityLabel={d.saved ? t.card.unsave : t.detail.save} />
           <IconButton testID="detail.share" icon="share" label={t.detail.share} onPress={() => void shareVueltica(v.id, v.name)} />
         </View>
 
@@ -180,9 +183,10 @@ export default function Detalle() {
           <View testID="detail.verification" style={{ marginHorizontal: 16, padding: 16, borderRadius: 16, backgroundColor: c.surface, gap: 10, borderWidth: 1, borderColor: c.outline }}>
             <Text variant="headline">{t.detail.verifyTitle}</Text>
             <Text variant="caption" color="labelSecondary">{t.detail.verifyLast(d.verification.lastVerifiedAt ? formatRelative(d.verification.lastVerifiedAt, now()) : '—', d.verification.count)}</Text>
+            {d.verification.myVerifiedToday ? <Text testID="detail.verify.done" variant="callout" color="free">{t.detail.alreadyVerified}</Text> : null}
             <View style={{ flexDirection: 'row', gap: 10 }}>
-              <Button testID="detail.verify.same" label={t.detail.stillSame} variant="secondary" size="compact" onPress={confirm} loading={verify.isPending} full={false} style={{ flex: 1 }} />
-              <Button testID="detail.verify.changed" label={t.detail.changed} variant="outline" size="compact" full={false} style={{ flex: 1 }} onPress={() => router.replace({ pathname: '/vueltica/[id]/verificar', params: { id } })} />
+              <Button testID="detail.verify.same" label={t.detail.stillSame} variant="secondary" size="compact" onPress={confirm} loading={verify.isPending} disabled={d.verification.myVerifiedToday} full={false} style={{ flex: 1 }} />
+              <Button testID="detail.verify.changed" label={t.detail.changed} variant="outline" size="compact" full={false} style={{ flex: 1 }} onPress={() => router.replace({ pathname: '/vueltica/[id]/verificar', params: { id } })} disabled={d.verification.myVerifiedToday} />
             </View>
           </View>
         ) : null}
@@ -191,7 +195,7 @@ export default function Detalle() {
           <Text testID="detail.community" variant="caption" color="labelSecondary">
             {`${t.detail.community(v.authorName, d.community.verifiedBy)} · ${t.detail.updated(formatRelative(d.community.updatedAt, now()))}`}
           </Text>
-          <Button testID="detail.report" label={t.detail.report} variant="text" icon="flag" full={false} style={{ alignSelf: 'flex-start' }} onPress={() => router.replace({ pathname: '/vueltica/[id]/reportar', params: { id } })} />
+          <Button testID="detail.report" label={t.detail.report} variant="text" icon="flag" disabled={offline} full={false} style={{ alignSelf: 'flex-start' }} onPress={() => router.replace({ pathname: '/vueltica/[id]/reportar', params: { id } })} />
         </View>
 
         {v.status === 'publicada' ? (
@@ -218,6 +222,7 @@ export default function Detalle() {
         <IconButton testID="detail.close" icon="close" label={t.common.close} onPress={close} />
       </View>
       <View style={{ height: 8 }} />
+      {offline ? <OfflineBanner onRetry={() => void q.refetch()} /> : null}
       {body}
     </Sheet>
   );

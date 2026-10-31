@@ -23,7 +23,7 @@ export function PinMarker({ item, selected, pending, x, y, onPress }: { item: Vu
       onPress={onPress}
       style={{ position: 'absolute', left: x - size.w * PIN_ANCHOR.x, top: y - size.h * PIN_ANCHOR.y, width: size.w, height: size.h, opacity, zIndex: selected ? 5 : pending ? 3 : 1 }}
     >
-      <Image source={pinSource(pending ? 'pendiente' : item.type, item.priceTier, selected)} style={{ width: size.w, height: size.h }} contentFit="contain" />
+      <Image source={pinSource(pending ? 'pendiente' : item.type, 'gratis', selected)} style={{ width: size.w, height: size.h }} contentFit="contain" />
     </Tap>
   );
 }

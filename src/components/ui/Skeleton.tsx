@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { View, type DimensionValue } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import { t } from '@/i18n/es-CR';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 export function SkeletonBlock({ w, h, r = 8 }: { w: DimensionValue; h: number; r?: number }) {
@@ -18,7 +19,7 @@ export function SkeletonBlock({ w, h, r = 8 }: { w: DimensionValue; h: number; r
 export function ListSkeleton({ count = 5 }: { count?: number }) {
   const { c } = useAppTheme();
   return (
-    <View testID="list.skeleton" accessibilityLabel="Cargando planes" accessibilityRole="progressbar" style={{ gap: 12, paddingHorizontal: 16 }}>
+    <View testID="list.skeleton" accessibilityLabel={t.skeleton.loading} accessibilityRole="progressbar" style={{ gap: 12, paddingHorizontal: 16 }}>
       {Array.from({ length: count }, (_, i) => (
         <View key={i} style={{ flexDirection: 'row', gap: 16, padding: 16, borderRadius: 16, backgroundColor: c.groupedSecondary, opacity: 1 - i * 0.12 }}>
           <SkeletonBlock w={76} h={76} r={12} />

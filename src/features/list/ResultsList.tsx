@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { FlatList, RefreshControl, View } from 'react-native';
 import { Menu } from '@/components/system/Menu';
 import { ActivityCard } from '@/components/ui/ActivityCard';
-import { Banner } from '@/components/ui/Banner';
+import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Chip } from '@/components/ui/Chip';
@@ -12,14 +12,13 @@ import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
 import { useSaved, useToggleSave, useVuelticas, useRecentlyViewed } from '@/data/queries';
 import { useRequireAuth } from '@/features/auth/useRequireAuth';
-import { activeFilterCount, DEFAULT_FILTERS, MAX_DISTANCE_KM } from '@/domain/filters';
+import { DEFAULT_FILTERS, MAX_DISTANCE_KM } from '@/domain/filters';
 import type { Filters, SortKey, VuelticaView } from '@/domain/types';
 import { formatCRC } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
 import { useFilters } from '@/state/filters';
-import { useIsOffline, useNetwork } from '@/state/network';
+import { useIsOffline } from '@/state/network';
 import { useAppTheme } from '@/theme/useAppTheme';
-import { Icon } from '@/components/icons/Icon';
 
 const SORTS: SortKey[] = ['cercanos', 'calificados', 'recientes', 'fecha'];
 
@@ -59,8 +58,6 @@ export function OfflineList() {
   const saved = useSaved();
   const recent = useRecentlyViewed();
   const a = useCardActions();
-  const lastOnline = useNetwork((s) => s.lastOnlineAt);
-  void lastOnline;
   const map = new Map<string, VuelticaView>();
   for (const s of saved.data ?? []) map.set(s.vuelticaView.id, s.vuelticaView);
   for (const r of recent.data ?? []) if (!map.has(r.id)) map.set(r.id, r);
@@ -69,7 +66,7 @@ export function OfflineList() {
     <View style={{ gap: 12 }}>
       <Text variant="caption" color="labelSecondary" style={{ textTransform: 'uppercase', paddingHorizontal: 32 }} testID="offline.header">{t.offline.availableOffline}</Text>
       {items.map((v) => (
-        <ActivityCard key={v.id} item={v} onPress={() => a.open(v.id)} onToggleSave={() => {}} />
+        <ActivityCard key={v.id} item={v} onPress={() => a.open(v.id)} onToggleSave={() => {}} saveDisabled />
       ))}
       <EmptyState testID="offline.mapNeeds" icon="map" title={t.offline.mapNeeds} body={t.offline.mapBody} />
     </View>
@@ -95,7 +92,6 @@ export function ResultsList({ text, kind, header, forceSkeleton, caps, idle }: P
   const query = useVuelticas(f, sort, kind);
   const a = useCardActions();
   const items = query.data?.items ?? [];
-  const n = activeFilterCount(filters);
   const loading = forceSkeleton || (query.isPending && !query.data);
   const countText = kind === 'search' && text ? t.search.resultsFor(items.length, text) : caps && !isAndroid ? t.list.countCaps(items.length) : t.list.count(items.length, formatCRC(5000));
 
@@ -111,10 +107,7 @@ export function ResultsList({ text, kind, header, forceSkeleton, caps, idle }: P
     body = <EmptyState testID="search.idle" icon="search" title={t.search.beforeTyping} />;
   } else if (query.isError && offline) {
     body = (
-      <View style={{ gap: 12 }}>
-        <Banner testID="offline.banner" tone="warning" icon="wifiOff" text={t.offline.banner('hace 2 h')} action={t.offline.retry} actionTestID="offline.retry" onAction={() => void query.refetch()} />
-        <OfflineList />
-      </View>
+      <OfflineList />
     );
   } else if (loading) {
     body = <ListSkeleton />;
@@ -135,8 +128,6 @@ export function ResultsList({ text, kind, header, forceSkeleton, caps, idle }: P
     body = null;
   }
   const showResults = !idle && !loading && !query.isError && items.length > 0;
-  void n;
-  void Icon;
   return (
     <FlatList
       testID={`${kind}.scroll`}
@@ -151,6 +142,7 @@ export function ResultsList({ text, kind, header, forceSkeleton, caps, idle }: P
       ListHeaderComponent={
         <View style={{ gap: 12 }}>
           {header}
+          {offline && !idle ? <OfflineBanner onRetry={() => void query.refetch()} /> : null}
           {!offline && !idle && !loading && (items.length > 0 || query.data) && !query.isError ? sortHeader : null}
         </View>
       }

@@ -60,7 +60,7 @@ export default function Moderacion() {
       },
     });
   const card = (i: Item) => (
-    <ModerationCard key={i.vuelticaId} item={i} voted={voted[i.vuelticaId]?.choice} onVote={(ch) => onVote(i, ch)} onUndo={() => onUndo(i.vuelticaId)} onOpen={() => router.push({ pathname: '/vueltica/[id]', params: { id: i.vuelticaId } })} />
+    <ModerationCard key={i.vuelticaId} item={i} voted={voted[i.vuelticaId]?.choice ?? i.myVote} onVote={(ch) => onVote(i, ch)} onUndo={() => onUndo(i.vuelticaId)} onOpen={() => router.push({ pathname: '/vueltica/[id]', params: { id: i.vuelticaId } })} />
   );
 
   return (

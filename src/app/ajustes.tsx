@@ -159,7 +159,8 @@ export default function Ajustes() {
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: c.primaryContainer, alignItems: 'center', justifyContent: 'center' }}><Icon name="bell" size={30} color="onPrimaryContainer" /></View>
             <Text variant="title" align="center">{t.settings.promptHeadline}</Text>
             <Text variant="body" color="labelSecondary" align="center" style={{ lineHeight: 22 }}>{t.settings.promptBody}</Text>
-            <Button testID="settings.promptAccept" label={t.settings.promptAccept} onPress={async () => { setDlg(null); const ok = await ensureNotificationPermission(); update({ notifyReminders: ok || true }); }} />
+            <Button testID="settings.promptAccept" label={t.settings.promptAccept} onPress={async () => { setDlg(null); const ok = await ensureNotificationPermission(); update({ notifyReminders: ok });
+              if (!ok) toast(t.common.notifDenied); }} />
             <Button label={t.settings.promptLater} variant="text" onPress={() => setDlg(null)} />
           </View>
         </View>
