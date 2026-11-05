@@ -1,6 +1,6 @@
 /**
- * The contract the UI talks to. `MockApi` implements it today; a real backend is an
- * `HttpApi` class plus a one-line change in `src/data/index.ts`.
+ * The contract the UI talks to. `MockApi` (offline demo / e2e) and `HttpApi` (mi-vueltica-api) implement it;
+ * `src/data/index.ts` picks one from `EXPO_PUBLIC_API_URL`.
  */
 import type {
   Audience, FreeFor, Filters, LatLng, MaxPrice, ModerationItem, PricePaid, Province, Report, ReportReason, ReputationSummary, Review, Saved,
@@ -31,6 +31,27 @@ export class NotFoundError extends Error {
     this.name = 'NotFoundError';
   }
 }
+/** The connected backend has no endpoint for this yet (see the `mi-vueltica-api` issues labelled in docs/API_INTEGRATION.md). */
+export class NotSupportedError extends Error {
+  constructor(public feature: string) {
+    super(`not-supported:${feature}`);
+    this.name = 'NotSupportedError';
+  }
+}
+/** The user dismissed the Apple / Google sign-in sheet. Not an error to show. */
+export class SignInCancelledError extends Error {
+  constructor() {
+    super('sign-in-cancelled');
+    this.name = 'SignInCancelledError';
+  }
+}
+export class ConflictError extends Error {
+  constructor(message = 'conflict') {
+    super(message);
+    this.name = 'ConflictError';
+  }
+}
+
 export class ValidationError extends Error {
   constructor(public field: string, message: string) {
     super(message);
@@ -203,6 +224,8 @@ export interface MiVuelticaApi {
   undoVote(vuelticaId: string): Promise<ModerationItem>;
   reputationSummary(): Promise<ReputationSummary & { recent: ReputationEvent[] }>;
   signIn(input: { provider: SignInProvider; email?: string }): Promise<User>;
+  /** Providers the connected backend can sign in with (the login screen hides the rest). */
+  readonly signInProviders: SignInProvider[];
   signOut(): Promise<void>;
   currentUser(): Promise<User | null>;
   getSettings(): Promise<Settings>;
