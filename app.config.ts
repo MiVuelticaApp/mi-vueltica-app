@@ -11,6 +11,7 @@ const config: ExpoConfig = {
   ios: {
     bundleIdentifier: 'cr.mivueltica.app',
     supportsTablet: false,
+    usesAppleSignIn: true,
     infoPlist: {
       LSApplicationQueriesSchemes: ['comgooglemaps', 'waze', 'maps'],
       ITSAppUsesNonExemptEncryption: false,
@@ -69,6 +70,12 @@ const config: ExpoConfig = {
       },
     ],
     'expo-notifications',
+    'expo-secure-store',
+    'expo-apple-authentication',
+    // Google sign-in needs the reversed iOS client id as URL scheme; the plugin throws without it, so it is opt-in.
+    ...(process.env.GOOGLE_IOS_URL_SCHEME
+      ? [['@react-native-google-signin/google-signin', { iosUrlScheme: process.env.GOOGLE_IOS_URL_SCHEME }] as [string, object]]
+      : []),
     'expo-sqlite',
     'expo-sharing',
     'expo-font',

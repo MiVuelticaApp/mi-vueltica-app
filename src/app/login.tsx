@@ -10,6 +10,8 @@ import { Group, Row } from '@/components/ui/Section';
 import { Tap } from '@/components/ui/Tap';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
+import { api } from '@/data';
+import { SignInCancelledError } from '@/data/api';
 import { useSignIn } from '@/data/queries';
 import { t } from '@/i18n/es-CR';
 import { useSession } from '@/state/session';
@@ -49,8 +51,9 @@ export default function Login() {
         useSession.getState().setPending(null);
         setTimeout(() => router.push({ pathname: '/vueltica/[id]/escribir-resena', params: { id: p.id } }), 50);
       }
-    } catch {
-      toast(t.common.errorBody);
+    } catch (e) {
+      // Closing the Apple / Google sheet is not an error.
+      if (!(e instanceof SignInCancelledError)) toast(t.common.errorBody);
     }
   };
   const submitEmail = () => {
@@ -87,9 +90,9 @@ export default function Login() {
           </View>
         ) : (
           <View style={{ gap: 12 }}>
-            <Button testID="login.apple" variant="dark" icon="apple" label={t.login.apple} onPress={() => go('apple')} loading={signIn.isPending} />
-            <Button testID="login.google" variant="outline" icon="google" label={t.login.google} onPress={() => go('google')} />
-            <Button testID="login.email.button" variant="glass" full icon="mail" label={t.login.email} onPress={() => setEmailMode(true)} />
+            {api.signInProviders.includes('apple') ? <Button testID="login.apple" variant="dark" icon="apple" label={t.login.apple} onPress={() => go('apple')} loading={signIn.isPending} /> : null}
+            {api.signInProviders.includes('google') ? <Button testID="login.google" variant="outline" icon="google" label={t.login.google} onPress={() => go('google')} /> : null}
+            {api.signInProviders.includes('email') ? <Button testID="login.email.button" variant="glass" full icon="mail" label={t.login.email} onPress={() => setEmailMode(true)} /> : null}
           </View>
         )}
         <Text variant="caption" color="labelSecondary" align="center" style={{ lineHeight: 18 }}>

@@ -9,7 +9,9 @@ export const t = {
     cancel: 'Cancelar', close: 'Cerrar', retry: 'Reintentar', done: 'Listo', clear: 'Limpiar', save: 'Guardar', saved: 'Guardado',
     share: 'Compartir', back: 'Atrás', ok: 'Aceptar', understood: 'Entendido', change: 'Cambiar', send: 'Enviar', publish: 'Publicar',
     optional: 'Opcional', choose: 'Elegir…', photoAdded: '1 foto agregada', notifDenied: 'Activá las notificaciones en los ajustes del sistema para recibir recordatorios', yes: 'Sí', no: 'No', today: 'Hoy', delete: 'Eliminar', confirm: 'Confirmar', loading: 'Cargando…',
-    seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', free: 'Gratis', anonymous: 'Anónimo', km: 'km',
+    seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', free: 'Gratis', anonymous: 'Anónimo', community: 'Comunidad', km: 'km',
+    updateRequired: 'Hay una versión nueva de MiVueltica. Actualizá la app para seguir usándola sin problemas.',
+    notSupported: 'Esta función todavía no está disponible. Estamos trabajando en ella.',
     errorTitle: 'Algo salió mal', errorBody: 'No pudimos cargar esta información. Probá de nuevo.',
   },
   tabs: { map: 'Mapa', list: 'Lista', contribute: 'Aportar', saved: 'Guardados', profile: 'Perfil' },
@@ -173,6 +175,7 @@ export const t = {
     levelPerks: ['Vuelticas con 5 votos', 'Podés verificar precios', 'Vuelticas con 3 votos', 'Tus verificaciones cuentan doble', 'Ayudás a moderar vuelticas'],
   },
   moderation: {
+    defaultRejectReason: 'No cumple con las normas de la comunidad.',
     title: 'Moderación', intro: (n: number, name: string) => `Con tu nivel ${n} · ${name} podés votar vuelticas nuevas y reportes. Cada voto suma +1 a tu confianza.`,
     newHeader: (n: number) => `NUEVAS · ${n} PENDIENTES`, reportedHeader: (n: number) => `REPORTADAS · ${n}`, newTab: (n: number) => `Nuevas (${n})`, reportedTab: (n: number) => `Reportadas (${n})`,
     reject: 'Rechazar', approve: 'Aprobar', keep: 'Sigue igual', hide: 'Ocultar vueltica', by: (a: string, ago: string) => `Vueltica de ${a} · ${ago}`,

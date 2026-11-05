@@ -598,6 +598,8 @@ export class MockApi implements MiVuelticaApi {
 
   /* -------------------------------------------------------------- account */
 
+  readonly signInProviders: User['provider'][] = ['apple', 'google', 'email'];
+
   signIn(input: { provider: User['provider']; email?: string }) {
     return this.write(() => {
       let u = this.db.users.find((x) => x.id === ANA_ID);

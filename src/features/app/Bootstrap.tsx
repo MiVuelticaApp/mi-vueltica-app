@@ -1,7 +1,11 @@
 import * as Network from 'expo-network';
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { api, mockApi } from '@/data';
+import { checkMinFrontendVersion } from '@/data/http/version';
+import { toast } from '@/components/ui/Toast';
+import { t } from '@/i18n/es-CR';
 import { useInvalidateAll } from '@/data/queries';
 import { useResumePending } from '@/features/auth/useResumePending';
 import { syncLocationPermission } from '@/lib/location';
@@ -24,6 +28,7 @@ export function Bootstrap() {
     setupNotificationHandler();
     void api.currentUser().then((u) => useSession.getState().setUser(u));
     void api.getSettings().then(() => {});
+    void checkMinFrontendVersion(Constants.expoConfig?.version).then((outdated) => (outdated ? toast(t.common.updateRequired) : undefined));
     let mounted = true;
     void Network.getNetworkStateAsync().then((s) => mounted && useNetwork.getState().setConnected(s.isConnected !== false)).catch(() => {});
     const sub = Network.addNetworkStateListener((s) => useNetwork.getState().setConnected(s.isConnected !== false));
