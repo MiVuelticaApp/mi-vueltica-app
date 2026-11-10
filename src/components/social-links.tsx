@@ -1,14 +1,15 @@
-import { Pressable, StyleSheet, View } from 'react-native';
-import { SymbolView } from 'expo-symbols';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { ExternalLink } from '@/components/external-link';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { SymbolView } from 'expo-symbols';
 
 const INSTAGRAM_URL = 'https://www.instagram.com/mi_vueltica/';
 const TIKTOK_URL = 'https://www.tiktok.com/@mi_vueltica';
+const EMAIL = 'mailto:mivuelticacr@gmail.com';
 
 type SocialButtonProps = {
   href: string;
@@ -30,6 +31,25 @@ function SocialButton({ href, label, symbolName }: SocialButtonProps) {
   );
 }
 
+function EmailButton() {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={() => Linking.openURL(EMAIL)}
+      style={({ pressed }) => pressed && styles.pressed}
+    >
+      <ThemedView type="backgroundElement" style={styles.button}>
+        <SymbolView
+          name={{ ios: 'envelope', android: 'email', web: 'email' }}
+          tintColor={theme.text}
+          size={16}
+        />
+        <ThemedText type="small">mivuelticacr@gmail.com</ThemedText>
+      </ThemedView>
+    </Pressable>
+  );
+}
+
 export function SocialLinks() {
   return (
     <View style={styles.container}>
@@ -48,6 +68,7 @@ export function SocialLinks() {
           symbolName={{ ios: 'music.note', android: 'music_note', web: 'music_note' }}
         />
       </View>
+      <EmailButton />
     </View>
   );
 }
