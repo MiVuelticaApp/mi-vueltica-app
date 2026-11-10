@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AnimatedIcon } from '@/components/animated-icon';
 import { HintRow } from '@/components/hint-row';
+import { SocialLinks } from '@/components/social-links';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
@@ -55,6 +56,7 @@ export default function HomeScreen() {
           />
         </ThemedView>
 
+        <SocialLinks />
         {Platform.OS === 'web' && <WebBadge />}
       </SafeAreaView>
     </ThemedView>
