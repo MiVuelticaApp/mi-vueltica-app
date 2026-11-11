@@ -1,0 +1,15 @@
+# A1/A2 on device: the system appearance / Dynamic Type must be followed, with the in-app override on top.
+appId: cr.mivueltica.app
+---
+- launchApp
+- tapOn: "Ahora no"
+- tapOn: "Perfil"
+- tapOn:
+    id: "profile.settings"
+- assertVisible: "Sigue al sistema"
+- tapOn:
+    id: "settings.dark"
+- takeScreenshot: dark-settings
+- tapOn:
+    id: "settings.largerButtons"
+- takeScreenshot: larger-buttons
