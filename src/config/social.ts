@@ -5,4 +5,5 @@ export const SOCIAL = {
   tiktok: 'https://www.tiktok.com/@mivueltica',
   facebook: 'https://facebook.com/mivueltica',
   whatsapp: 'https://wa.me/50600000000',
+  email: 'mailto:mivuelticacr@gmail.com',
 } as const;
