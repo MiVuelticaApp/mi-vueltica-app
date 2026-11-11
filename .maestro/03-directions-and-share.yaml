@@ -1,0 +1,31 @@
+# C1/C3/D3: real maps apps and the native share sheet. On iOS Apple Maps is offered; on Android it is not.
+appId: cr.mivueltica.app
+---
+- launchApp
+- openLink: "mivueltica://vueltica/v-sabana"
+- tapOn:
+    id: "detail.directions"
+- assertVisible:
+    id: "directions.sheet"
+- assertVisible: "Google Maps"
+- assertVisible: "Waze"
+- runFlow:
+    when: { platform: Android }
+    commands:
+      - assertNotVisible: "Mapas"
+- runFlow:
+    when: { platform: iOS }
+    commands:
+      - assertVisible: "Mapas"
+- tapOn:
+    id: "directions.remember"
+- tapOn:
+    id: "directions.waze"
+# leaves the app (Waze or browser fallback); come back
+- launchApp
+- openLink: "mivueltica://vueltica/v-sabana"
+- tapOn:
+    id: "detail.share"
+# native share sheet
+- assertVisible:
+    text: "(Copy|Copiar|Messages|Mensajes|Share|Compartir)"

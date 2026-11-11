@@ -1,0 +1,22 @@
+# E1 + FR-3.1: first launch, native location permission dialog, expo-maps with pins and the results card.
+appId: cr.mivueltica.app
+---
+- clearState
+- launchApp:
+    permissions: { location: unset }
+- assertVisible: "Descubrí planes cerca de vos"
+- tapOn: "Permitir ubicación"
+# system dialog (iOS: "Allow While Using App", Android: "While using the app")
+- tapOn:
+    text: "(Allow While Using App|While using the app|Mientras la app está en uso|Al usar la app)"
+    optional: true
+- assertVisible:
+    id: "map.results.title"
+- assertVisible: "20 planes de hasta ₡5.000"
+- assertVisible: "14 gratis"
+# native NativeTabs: five tabs
+- assertVisible: "Mapa"
+- assertVisible: "Lista"
+- assertVisible: "Aportar"
+- assertVisible: "Guardados"
+- assertVisible: "Perfil"

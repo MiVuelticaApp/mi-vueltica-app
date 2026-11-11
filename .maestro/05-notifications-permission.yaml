@@ -1,0 +1,23 @@
+# G2/A: reminder switch in Ajustes shows the pre-prompt, then the real OS notification permission dialog.
+appId: cr.mivueltica.app
+---
+- launchApp:
+    permissions: { notifications: unset }
+- tapOn: "Ahora no"
+- tapOn: "Perfil"
+- tapOn:
+    id: "profile.signIn"
+- tapOn:
+    id: "login.apple"
+- tapOn:
+    id: "profile.settings"
+- tapOn:
+    id: "settings.reminders"
+- assertVisible:
+    id: "settings.promptDialog"
+- tapOn:
+    id: "settings.promptAccept"
+- tapOn:
+    text: "(Allow|Permitir)"
+    optional: true
+- assertVisible: "Recordatorios de eventos guardados"
