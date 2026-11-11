@@ -102,7 +102,8 @@ export default function PerfilScreen() {
           <Row testID="profile.social.instagram" icon="instagram" iconBg="event" title={t.profile.instagram} value={SOCIAL.handle} chevron onPress={() => social(SOCIAL.instagram)} />
           <Row testID="profile.social.tiktok" icon="tiktok" iconBg="onSurface" title={t.profile.tiktok} value={SOCIAL.handle} chevron onPress={() => social(SOCIAL.tiktok)} />
           <Row testID="profile.social.facebook" icon="facebook" iconBg="primary" title={t.profile.facebook} value={SOCIAL.handle} chevron onPress={() => social(SOCIAL.facebook)} />
-          <Row testID="profile.social.whatsapp" icon="whatsapp" iconBg="place" title={t.profile.whatsapp} value={SOCIAL.handle} chevron last onPress={() => social(SOCIAL.whatsapp)} />
+          <Row testID="profile.social.whatsapp" icon="whatsapp" iconBg="place" title={t.profile.whatsapp} value={SOCIAL.handle} chevron onPress={() => social(SOCIAL.whatsapp)} />
+          <Row testID="profile.social.email" icon="mail" iconBg="onSurfaceVariant" title={t.profile.email} value="mivuelticacr@gmail.com" chevron last onPress={() => social(SOCIAL.email)} />
         </Group>
         <View style={{ height: 8 }} />
         <Group>
