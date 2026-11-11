@@ -166,7 +166,7 @@ export const t = {
     moderation: 'Moderación', review: (n: number) => `Revisar vuelticas · ${n} pendientes`, mine: 'Mis vuelticas', social: 'Seguinos', rules: 'Normas de la comunidad',
     settings: 'Ajustes', signOut: 'Cerrar sesión', signOutTitle: '¿Cerrar sesión?', signOutBody: 'Podés volver a entrar cuando quieras.', info: 'Cómo funciona la confianza',
     signedOutTitle: 'Tu perfil', signedOutBody: 'Iniciá sesión para ver tu nivel, tus vuelticas y tu reputación.', signIn: 'Iniciar sesión',
-    instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', whatsapp: 'WhatsApp',
+    instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', whatsapp: 'WhatsApp', email: 'Correo',
   },
   trust: {
     title: 'Confianza en tus vuelticas', intro: 'Tu nivel muestra qué tan útiles y precisas han sido tus vuelticas para la comunidad.',
