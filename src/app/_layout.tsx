@@ -56,6 +56,7 @@ function Navigator() {
           <Stack.Screen name="mis-vuelticas" options={{ headerShown: true, title: t.mine.title, headerBackTitle: t.profile.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
           <Stack.Screen name="moderacion" options={{ headerShown: true, title: t.moderation.title, headerBackTitle: t.profile.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
           <Stack.Screen name="ajustes" options={{ headerShown: true, title: t.settings.title, headerBackTitle: t.profile.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
+          <Stack.Screen name="bloqueados" options={{ headerShown: true, title: t.blocks.title, headerBackTitle: t.settings.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
           <Stack.Screen name="normas" options={{ headerShown: true, title: t.rules.title, headerBackTitle: t.profile.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
           <Stack.Screen name="legal/[doc]" options={{ headerShown: true, title: '', headerBackTitle: t.common.back, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary }} />
         </Stack.Protected>

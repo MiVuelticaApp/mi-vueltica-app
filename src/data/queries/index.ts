@@ -176,6 +176,21 @@ export function useDecideSubmission() {
   return useMutation({ mutationFn: (i: DecideInput) => api.decideSubmission(i), onSuccess: () => invalidate() });
 }
 
+export function useBlocks() {
+  const userId = useSession((s) => s.user?.id ?? null);
+  return useQuery({ queryKey: ['blocks', userId], queryFn: () => api.listBlocks(), enabled: !!userId, retry: false });
+}
+
+export function useBlockAuthor() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: (target: { kind: 'vueltica' | 'review'; id: string }) => api.blockAuthor(target), onSuccess: () => invalidate() });
+}
+
+export function useUnblock() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: (id: string) => api.unblock(id), onSuccess: () => invalidate() });
+}
+
 export function useCreateVueltica() {
   const invalidate = useInvalidateAll();
   const refresh = useRefreshUser();

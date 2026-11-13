@@ -93,3 +93,48 @@ test('RV5 reseñas summary shows the average and the 1-5 distribution', async ({
   await expect(page.getByTestId('reviews.summary')).toBeVisible();
   await expect(page.getByTestId('reviews.stars.5')).toBeVisible();
 });
+
+test('RV7 own review: edit it, then delete it', async ({ page }) => {
+  await startSignedIn(page);
+  await reviewsOf(page, 'v-jade');
+  await page.getByTestId('reviews.write').click();
+  await page.getByTestId('compose.stars.2').click();
+  await page.getByTestId('compose.text').fill('Primera versión E2E');
+  await page.getByTestId('compose.publish').click();
+  await expect(page.getByTestId('reviews.count')).toHaveText('127 reseñas');
+  const mine = page.locator('[data-testid^="review.edit."]').first();
+  const rid = (await mine.getAttribute('data-testid'))!.replace('review.edit.', '');
+  await mine.click();
+  await expect(page.getByTestId('compose.header.title')).toHaveText('Editar reseña');
+  await expect(page.getByTestId('compose.text')).toHaveValue('Primera versión E2E');
+  await page.getByTestId('compose.stars.4').click();
+  await page.getByTestId('compose.text').fill('Versión corregida E2E');
+  await page.getByTestId('compose.publish').click();
+  await expect(page.getByTestId('toast')).toContainText('Reseña actualizada');
+  await expect(page.getByTestId(`review.${rid}`)).toContainText('Versión corregida E2E');
+  await page.getByTestId(`review.delete.${rid}`).click();
+  await page.getByTestId('dialog.confirm').click();
+  await expect(page.getByTestId(`review.${rid}`)).toHaveCount(0);
+  await expect(page.getByTestId('reviews.count')).toHaveText('126 reseñas');
+});
+
+test('RV8 block the author of a review: their reviews disappear, unblock in Ajustes', async ({ page }) => {
+  await startSignedIn(page);
+  await reviewsOf(page, 'v-jade');
+  const maria = page.locator('[data-testid^="review.r-"]').filter({ hasText: 'María Rodríguez' }).first();
+  await expect(maria).toBeVisible();
+  const rid = (await maria.getAttribute('data-testid'))!.replace('review.', '');
+  await page.getByTestId(`review.block.${rid}`).click();
+  await expect(page.getByTestId('dialog.title')).toHaveText('¿Bloquear a María Rodríguez?');
+  await page.getByTestId('dialog.confirm').click();
+  await expect(page.getByTestId('toast')).toContainText('Bloqueaste a María Rodríguez');
+  await expect(page.locator('[data-testid^="review.r-"]').filter({ hasText: 'María Rodríguez' })).toHaveCount(0);
+  await page.goto('/bloqueados');
+  await expect(page.getByTestId('blocks.screen')).toBeVisible();
+  const row = page.locator('[data-testid^="blocks.row."]').filter({ hasText: 'María Rodríguez' });
+  await expect(row).toHaveCount(1);
+  const bid = (await row.getAttribute('data-testid'))!.replace('blocks.row.', '');
+  await page.getByTestId(`blocks.unblock.${bid}`).click();
+  await expect(page.getByTestId('blocks.empty')).toBeVisible();
+});
+

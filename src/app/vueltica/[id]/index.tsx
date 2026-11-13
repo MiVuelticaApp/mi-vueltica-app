@@ -23,6 +23,7 @@ import type { VuelticaView } from '@/domain/types';
 import { daysUntil, formatCRC, formatDistance, formatLongDate, formatRating, formatRelative, formatTime } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
 import { errorMessage } from '@/lib/errors';
+import { hasPersonAuthor, useBlock } from '@/features/blocks/useBlock';
 import { availableApps, openDirections } from '@/lib/directions';
 import { now } from '@/lib/clock';
 import { shareVueltica } from '@/lib/share';
@@ -82,6 +83,7 @@ export default function Detalle() {
   const toggle = useToggleSave();
   const verify = useVerify();
   const rev = useReviewActions(`/vueltica/${id}`);
+  const block = useBlock(`/vueltica/${id}`);
   const settings = useSettings((s) => s.settings);
   const offline = useIsOffline();
   const d = q.data;
@@ -197,6 +199,9 @@ export default function Detalle() {
             {`${t.detail.community(v.authorName, d.community.verifiedBy)} · ${t.detail.updated(formatRelative(d.community.updatedAt, now()))}`}
           </Text>
           <Button testID="detail.report" label={t.detail.report} variant="text" icon="flag" disabled={offline} full={false} style={{ alignSelf: 'flex-start' }} onPress={() => router.replace({ pathname: '/vueltica/[id]/reportar', params: { id } })} />
+          {!d.mine && hasPersonAuthor(v) ? (
+            <Button testID="detail.block" label={t.blocks.action} variant="text" icon="block" disabled={offline} full={false} style={{ alignSelf: 'flex-start' }} onPress={() => block({ kind: 'vueltica', id }, v.authorName, () => (router.canGoBack() ? router.back() : router.replace('/')))} />
+          ) : null}
         </View>
 
         {v.status === 'publicada' ? (
@@ -209,7 +214,7 @@ export default function Detalle() {
             </View>
             {d.reviewsPreview.length === 0 ? <Text variant="callout" color="labelSecondary" style={{ paddingHorizontal: 16 }}>{t.detail.noReviews}</Text> : null}
             {d.reviewsPreview.map((r) => (
-              <ReviewItem key={r.id} review={r} mine={rev.isMine(r)} onUseful={() => rev.useful(r)} onReport={rev.report} onEdit={() => rev.edit(r)} onDelete={() => void rev.remove(r)} />
+              <ReviewItem key={r.id} review={r} mine={rev.isMine(r)} onUseful={() => rev.useful(r)} onReport={rev.report} onEdit={() => rev.edit(r)} onDelete={() => void rev.remove(r)} onBlock={() => rev.block(r)} />
             ))}
           </View>
         ) : null}

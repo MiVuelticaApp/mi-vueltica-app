@@ -81,7 +81,7 @@ export const t = {
     apple: 'Continuar con Apple', google: 'Continuar con Google',
     legal: 'Al continuar aceptás los Términos y la Política de privacidad. Podés explorar sin cuenta.',
     terms: 'Términos', privacy: 'Política de privacidad',
-    gate: { save: 'Iniciá sesión para guardar. Guardá tus vuelticas favoritas.', contribute: 'Iniciá sesión para aportar. Sumá una vueltica para la comunidad.', review: 'Iniciá sesión para escribir una reseña. Contá cómo te fue.', moderate: 'Iniciá sesión para moderar. Ayudá a revisar lo que se publica.', useful: 'Iniciá sesión para marcar reseñas útiles.' },
+    gate: { save: 'Iniciá sesión para guardar. Guardá tus vuelticas favoritas.', contribute: 'Iniciá sesión para aportar. Sumá una vueltica para la comunidad.', review: 'Iniciá sesión para escribir una reseña. Contá cómo te fue.', moderate: 'Iniciá sesión para moderar. Ayudá a revisar lo que se publica.', useful: 'Iniciá sesión para marcar reseñas útiles.', block: 'Iniciá sesión para bloquear a una persona.' },
   },
   detail: {
     howToGet: 'Cómo llegar', save: 'Guardar', saved: 'Guardado', share: 'Compartir', close: 'Cerrar',
@@ -95,6 +95,13 @@ export const t = {
     verifiedBy: 'Verificada por la comunidad', priceConditions: 'Precio y condiciones', perks: 'Beneficios', accessibility: 'Accesibilidad',
     copied: 'Enlace copiado', shareMessage: (name: string, url: string) => `${name} en MiVueltica: ${url}`,
     notFound: 'No encontramos este plan', stillThere: 'Sigue igual', alreadyVerified: 'Ya verificaste este plan hoy', thanks: 'Verificación enviada · +2 puntos', thanksGuest: 'Gracias por verificar',
+  },
+  blocks: {
+    action: 'Bloquear a esta persona', title: 'Personas bloqueadas', confirmTitle: (name: string) => `¿Bloquear a ${name}?`,
+    confirmBody: 'Dejás de ver sus vuelticas y reseñas. No le avisamos. Podés desbloquearla en Ajustes.', confirm: 'Bloquear',
+    done: (name: string) => `Bloqueaste a ${name}`, unblock: 'Desbloquear', unblocked: (name: string) => `Desbloqueaste a ${name}`,
+    empty: 'No bloqueaste a nadie', emptyBody: 'Si alguien publica contenido que no querés ver, podés bloquearle desde su vueltica o reseña.',
+    since: (d: string) => `Bloqueada ${d}`, noAuthor: 'Esta vueltica no tiene una persona autora.', self: 'No podés bloquearte.',
   },
   directions: {
     title: 'Cómo llegar', subtitle: (name: string, km: string) => `${name} · a ${km} · Abrir en:`,
@@ -122,7 +129,7 @@ export const t = {
     recent: 'Recientes', withPhotos: 'Con fotos', useful: 'Más útiles', families: 'Familias', students: 'Estudiantes',
     helpful: (n: number) => `Útil · ${n}`, helpfulA11y: 'Marcar como útil', report: 'Reportar', ago: 'Hace',
     edit: 'Editar', delete: 'Eliminar', deleteTitle: '¿Eliminar tu reseña?', deleteBody: 'Ya no se va a mostrar ni contar en la calificación.', deleted: 'Reseña eliminada',
-    editTitle: 'Editar reseña', updated: 'Reseña actualizada', mine: 'Tu reseña',
+    editTitle: 'Editar reseña', updated: 'Reseña actualizada', mine: 'Tu reseña', block: 'Bloquear',
     wentWith: { familia: 'Fue con su familia', amigos: 'Fue con amigos', pareja: 'Fue en pareja', solo: 'Fue solo/a' },
     wentWithShort: { familia: 'En familia', amigos: 'Con amigos', pareja: 'En pareja', solo: 'Solo/a' },
     spent: { nada: 'Nada', menos2500: `Menos de ${c(2500)}`, entre2500y5000: `${c(2500)} – ${c(5000)}` },

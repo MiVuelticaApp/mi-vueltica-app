@@ -162,6 +162,13 @@ export interface FavoriteDto {
 
 /* ------------------------------------------------------------ submissions */
 
+/** `GET /me/blocks` item: the blocked person's display name only (no id of the user). */
+export interface BlockDto {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 export interface ProvinceDto {
   id: number;
   name: string;

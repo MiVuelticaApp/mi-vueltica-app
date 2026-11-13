@@ -4,6 +4,7 @@ import { toast } from '@/components/ui/Toast';
 import { useDeleteReview, useMarkUseful } from '@/data/queries';
 import type { Review } from '@/domain/types';
 import { useRequireAuth } from '@/features/auth/useRequireAuth';
+import { useBlock } from '@/features/blocks/useBlock';
 import { t } from '@/i18n/es-CR';
 import { errorMessage } from '@/lib/errors';
 import { useSession } from '@/state/session';
@@ -13,11 +14,13 @@ export function useReviewActions(next: string) {
   const mark = useMarkUseful();
   const del = useDeleteReview();
   const requireAuth = useRequireAuth();
+  const block = useBlock(next);
   const userId = useSession((s) => s.user?.id ?? null);
   return {
     isMine: (r: Review) => !!userId && r.authorId === userId,
     useful: (r: Review) => requireAuth('useful', { kind: 'useful', reviewId: r.id }, { next }, () => mark.mutate(r.id, { onError: (e) => toast(errorMessage(e)) })),
     report: () => toast(t.report.sent),
+    block: (r: Review) => block({ kind: 'review', id: r.id }, r.authorName),
     edit: (r: Review) => router.push({ pathname: '/vueltica/[id]/escribir-resena', params: { id: r.vuelticaId, reviewId: r.id } }),
     remove: async (r: Review) => {
       const ok = await confirmDialog({ title: t.reviews.deleteTitle, message: t.reviews.deleteBody, confirmLabel: t.reviews.delete, destructive: true });

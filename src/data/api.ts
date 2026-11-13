@@ -3,7 +3,7 @@
  * `src/data/index.ts` picks one from `EXPO_PUBLIC_API_URL`.
  */
 import type {
-  Audience, FreeFor, Filters, LatLng, MaxPrice, ModerationItem, PricePaid, Province, Report, ReportReason, ReputationSummary, Review, Saved,
+  Audience, BlockedUser, FreeFor, Filters, LatLng, MaxPrice, ModerationItem, PricePaid, Province, Report, ReportReason, ReputationSummary, Review, Saved,
   Settings, SignInProvider, SortKey, SpentTier, StillHappening, User, VoteChoice, VuelticaType, VuelticaView, WentWith, ReputationEvent, RejectionCode,
 } from '@/domain/types';
 import type { Canton } from '@/domain/cantons';
@@ -15,7 +15,7 @@ export class OfflineError extends Error {
   }
 }
 export class AuthRequiredError extends Error {
-  constructor(public reason: 'save' | 'contribute' | 'review' | 'moderate' | 'useful') {
+  constructor(public reason: 'save' | 'contribute' | 'review' | 'moderate' | 'useful' | 'block') {
     super('auth-required');
     this.name = 'AuthRequiredError';
   }
@@ -250,6 +250,13 @@ export interface MiVuelticaApi {
   undoVote(vuelticaId: string): Promise<ModerationItem>;
   /** Team roles only: approve or reject a suggestion directly (`ForbiddenError` otherwise). */
   decideSubmission(input: DecideInput): Promise<void>;
+  /**
+   * Block the author of a community plan or a review (responses carry the author's name, not their id). Their plans and
+   * reviews disappear for the caller. Idempotent; `NotFoundError` when the content has no author (curated plans).
+   */
+  blockAuthor(target: { kind: 'vueltica' | 'review'; id: string }): Promise<void>;
+  listBlocks(): Promise<BlockedUser[]>;
+  unblock(blockId: string): Promise<void>;
   reputationSummary(): Promise<ReputationSummary & { recent: ReputationEvent[] }>;
   signIn(input: { provider: SignInProvider }): Promise<User>;
   /** Providers the connected backend can sign in with (the login screen hides the rest). */
