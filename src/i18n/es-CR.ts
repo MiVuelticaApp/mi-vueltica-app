@@ -184,6 +184,7 @@ export const t = {
     footer: 'Las decisiones se toman por mayoría de votos. Si votás seguido en contra de la mayoría, tu confianza baja.',
     locked: 'La moderación se abre en el Nivel 3 · De confianza', lockedBody: 'Seguí verificando y aportando para llegar.', needsReview: 'Necesita revisión',
     voteUndone: 'Voto deshecho', voteAgain: 'Volver a votar',
+    undoDecided: 'Ya se decidió con tu voto: no se puede deshacer.', voteFailed: 'No pudimos registrar tu voto. Probá de nuevo.',
   },
   settings: {
     title: 'Ajustes', appearance: 'Apariencia', dark: 'Modo oscuro', accessibility: 'Accesibilidad', textSize: 'Tamaño del texto', followsSystem: 'Sigue al sistema',

@@ -118,19 +118,7 @@ export function isMinorityVote(choice: VoteChoice, item: Pick<ModerationItem, 'v
 }
 
 export function pointsFor(kind: ReputationKind): number {
-  return POINTS[
-    kind === 'published'
-      ? 'published'
-      : kind === 'verified'
-        ? 'verified'
-        : kind === 'reviewUseful'
-          ? 'reviewUseful'
-          : kind === 'moderationVote'
-            ? 'moderationVote'
-            : kind === 'rejected'
-              ? 'rejected'
-              : 'reported'
-  ];
+  return POINTS[kind];
 }
 
 /** Adds a delta without dropping under zero. */

@@ -82,7 +82,7 @@ export default function PerfilScreen() {
         </View>
         {rep.data ? <ReputationCard summary={rep.data} onInfo={() => setTrust(true)} /> : null}
 
-        {canModerate(level) ? (
+        {(rep.data?.canModerate ?? canModerate(level)) ? (
           <>
             <SectionHeader title={t.profile.moderation} />
             <Group>
