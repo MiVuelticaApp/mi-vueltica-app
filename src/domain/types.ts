@@ -5,7 +5,8 @@ export type Audience = 'todo' | 'familias' | 'estudiantes' | 'ciudadanosOro';
 export type FreeFor = 'estudiantes' | 'ciudadanosOro';
 export type VuelticaStatus = 'pendiente' | 'publicada' | 'rechazada' | 'oculta';
 export type Province = 'San José' | 'Alajuela' | 'Cartago' | 'Heredia' | 'Guanacaste' | 'Puntarenas' | 'Limón';
-export type SignInProvider = 'apple' | 'google' | 'email';
+/** Google and Apple only (product decision on API #35, 2026-11-08: no email sign-in). */
+export type SignInProvider = 'apple' | 'google';
 
 export interface LatLng {
   lat: number;
@@ -21,6 +22,8 @@ export interface Vueltica extends LatLng {
   photos: string[];
   address: string;
   province: Province;
+  /** INEC canton id (see `domain/cantons.ts`). Places and place suggestions; events carry none. */
+  cantonId?: number;
   /** ISO strings, events only. */
   startAt?: string;
   endAt?: string;
@@ -28,6 +31,9 @@ export interface Vueltica extends LatLng {
   openingHours?: string;
   priceTier: PriceTier;
   pricePerPerson: number;
+  /** The API's `pricePerPerson: null` (#36): it costs something but nobody knows how much. `pricePerPerson` then holds
+   *  the tier's cap so filters keep working, and it must not be shown as a price. */
+  priceUnknown?: boolean;
   freeFor: FreeFor[];
   audiences: Audience[];
   wheelchair: boolean;
@@ -39,7 +45,6 @@ export interface Vueltica extends LatLng {
   verificationCount: number;
   ratingAvg: number;
   ratingCount: number;
-  views: number;
   rejectionReason?: string;
   /** Hidden after confirmed reports / verification (reason shown to author). */
   hiddenReason?: string;
@@ -50,6 +55,8 @@ export interface Vueltica extends LatLng {
 export interface VuelticaView extends Vueltica {
   distanceKm: number;
   saved?: boolean;
+  /** A person (not the curated catalogue, not the caller) is behind it, so they can be blocked. */
+  blockable?: boolean;
 }
 
 export type SettingsDirections = 'preguntar' | 'apple' | 'google' | 'waze';
@@ -84,6 +91,15 @@ export interface User {
   email?: string;
   points: number;
   counts: { vuelticas: number; reviews: number; verifications: number };
+  /** Privacy notice version this account accepted (Ley 8968 art. 5); null when it never accepted one. */
+  privacyVersion?: string | null;
+}
+
+/** Someone the user blocked (App Store guideline 1.2). Only the name is shown. */
+export interface BlockedUser {
+  id: string;
+  name: string;
+  blockedAt: string;
 }
 
 export interface Saved {
@@ -129,6 +145,10 @@ export interface Verification {
   createdAt: string;
 }
 
+/** Why a suggestion was rejected (mi-vueltica-api #40). `otro` needs a written note. */
+export type RejectionCode = 'duplicado' | 'masDe5000' | 'eventoPasado' | 'datosIncompletos' | 'ubicacionIncorrecta' | 'noEsPublico' | 'inapropiado' | 'spam' | 'otro';
+export const REJECTION_CODES: RejectionCode[] = ['duplicado', 'masDe5000', 'eventoPasado', 'datosIncompletos', 'ubicacionIncorrecta', 'noEsPublico', 'inapropiado', 'spam', 'otro'];
+
 export type ReportReason = 'cerro' | 'noGratis' | 'masDe5000' | 'horario' | 'inapropiado' | 'spam' | 'otro';
 
 export interface Report {
@@ -157,7 +177,8 @@ export interface ModerationItem {
   myVote?: VoteChoice;
 }
 
-export type ReputationKind = 'published' | 'verified' | 'reviewUseful' | 'moderationVote' | 'rejected' | 'reported';
+/** Same strings as mi-vueltica-api's `REPUTATION_KINDS` (`minorityModerator`: −2 for voting with the losing side). */
+export type ReputationKind = 'published' | 'verified' | 'reviewUseful' | 'moderationVote' | 'rejected' | 'reported' | 'minorityModerator';
 
 export interface ReputationEvent {
   id: string;
@@ -181,6 +202,10 @@ export interface ReputationSummary {
   pointsToNext: number;
   progress: number;
   recent: ReputationEvent[];
+  /** Whether the moderation entry is shown. Defaults to `canModerate(level)`; the API also opens it to team roles. */
+  canModerate?: boolean;
+  /** Team role (moderator / admin): can also approve or reject a suggestion directly, with a reason code. */
+  team?: boolean;
 }
 
 export type DateFilter = 'any' | 'hoy' | 'finDeSemana' | { from: string; to: string };

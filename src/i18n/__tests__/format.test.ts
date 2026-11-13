@@ -38,3 +38,13 @@ describe('misc', () => {
     expect(initialsOf('Pablo')).toBe('P');
   });
 });
+
+describe('Costa Rica time (m17)', () => {
+  it('formats the event hour in Costa Rica whatever the device zone', () => {
+    // 18:00 in Costa Rica = 00:00 UTC next day.
+    const d = new Date('2026-10-25T00:00:00.000Z');
+    expect(formatTime(d)).toBe('6:00 p.m.');
+    expect(formatLongDate(d)).toBe('Sábado 24 de octubre');
+  });
+});
+

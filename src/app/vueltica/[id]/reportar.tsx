@@ -16,8 +16,10 @@ import { useReport, useVuelticaDetail } from '@/data/queries';
 import { DuplicateReportError } from '@/data/api';
 import type { ReportReason } from '@/domain/types';
 import { t } from '@/i18n/es-CR';
+import { errorMessage } from '@/lib/errors';
 import { pickPhotos } from '@/lib/photos';
 import { useIsOffline } from '@/state/network';
+import { useSession } from '@/state/session';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 const REASONS: ReportReason[] = ['cerro', 'noGratis', 'masDe5000', 'horario', 'inapropiado', 'spam', 'otro'];
@@ -30,6 +32,7 @@ export default function Reportar() {
   const q = useVuelticaDetail(id);
   const report = useReport();
   const offline = useIsOffline();
+  const signedIn = useSession((s) => !!s.user);
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
@@ -43,7 +46,7 @@ export default function Reportar() {
           closeSheet();
         },
         onError: (e) => {
-          toast(e instanceof DuplicateReportError ? t.report.dupe : t.common.errorBody);
+          toast(errorMessage(e));
           if (e instanceof DuplicateReportError) closeSheet();
         },
       },
@@ -65,7 +68,8 @@ export default function Reportar() {
             <TextField testID="report.details" accessibilityLabel={t.report.tellUs} value={details} onChangeText={setDetails} placeholder={t.report.placeholder} multiline rows={3} />
           </View>
         </Group>
-        <View style={{ marginTop: 12 }}>
+        {/* The API only takes a photo from signed-in people (uploads need a token), so guests are not offered one. */}
+        {signedIn ? <View style={{ marginTop: 12 }}>
           <Group>
             <Tap testID="report.photo" label={t.report.photo} onPress={async () => { const [p] = await pickPhotos(1); if (p) setPhoto(p); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
               <Icon name="camera" size={22} color="primary" />
@@ -75,7 +79,7 @@ export default function Reportar() {
               </View>
             </Tap>
           </Group>
-        </View>
+        </View> : null}
         <Text variant="caption" color="labelSecondary" style={{ paddingHorizontal: 32, paddingTop: 12, lineHeight: 18 }}>{t.report.footer}</Text>
       </ScrollView>
       {isAndroid ? (

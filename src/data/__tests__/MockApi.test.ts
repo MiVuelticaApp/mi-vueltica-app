@@ -1,6 +1,6 @@
 import { DEFAULT_FILTERS } from '@/domain/filters';
 import { DEFAULT_LOCATION } from '@/domain/geo';
-import { AuthRequiredError, DuplicateReportError, ForbiddenError, OfflineError, ValidationError } from '../api';
+import { AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, OfflineError, ValidationError } from '../api';
 import { MockApi } from '../mock/MockApi';
 import { MemoryKV } from '../storage/types';
 
@@ -51,7 +51,7 @@ describe('auth gates', () => {
   });
   it('saves after sign-in', async () => {
     const api = make();
-    await api.signIn({ provider: 'email', email: 'a@b.c' });
+    await api.signIn({ provider: 'google' });
     await api.saveVueltica('v-sabana');
     const saved = await api.listSaved(loc);
     expect(saved.map((s) => s.vuelticaView.id)).toContain('v-sabana');
@@ -67,6 +67,9 @@ describe('contribute and moderation', () => {
     const ok = await api.createVueltica({ ...base, pricePerPerson: 5000 });
     expect(ok.vueltica.status).toBe('pendiente');
     expect(ok.moderation.votesNeeded).toBe(3);
+    // `null` = it costs something but the price is unknown (#36): filtered as "hasta ₡5.000", flagged for display.
+    const unknown = await api.createVueltica({ ...base, pricePerPerson: null });
+    expect(unknown.vueltica).toMatchObject({ priceTier: 'hasta5000', priceUnknown: true });
   });
   it('shows pending pins only to the author and moderators', async () => {
     const api = make();
@@ -110,7 +113,7 @@ describe('contribute and moderation', () => {
     const api = make();
     await api.signIn({ provider: 'apple' });
     await api.deleteAccount();
-    await api.signIn({ provider: 'email', email: 'nuevo@x.com' });
+    await api.signIn({ provider: 'google' });
     await expect(api.moderationQueue(loc)).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
@@ -241,3 +244,86 @@ describe('review fixes', () => {
     expect(saved.find((s) => s.vuelticaView.id === 'v-plaza')).toBeUndefined();
   });
 });
+
+describe('suggestions (#11)', () => {
+  const input = {
+    type: 'lugar' as const, name: 'Parque de Barva', category: 'Parque', description: '', lat: 10.02, lng: -84.12, address: 'Barva', province: 'Heredia' as const, cantonId: 402,
+    pricePerPerson: 0, freeFor: [], audiences: ['todo' as const], wheelchair: true, photos: [],
+  };
+  it('lists the cantons of a province', async () => {
+    const names = (await make().listCantons('Cartago')).map((c) => c.name);
+    expect(names).toEqual(['Cartago', 'Paraíso', 'La Unión', 'Jiménez', 'Turrialba', 'Alvarado', 'Oreamuno', 'El Guarco']);
+  });
+  it('keeps the canton and edits a pending suggestion, not a decided one', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    const { vueltica } = await api.createVueltica(input);
+    expect(vueltica.cantonId).toBe(402);
+    const edited = await api.updateVueltica(vueltica.id, { ...input, name: 'Parque central de Barva', pricePerPerson: 1000 });
+    expect(edited).toMatchObject({ name: 'Parque central de Barva', priceTier: 'hasta2500', status: 'pendiente' });
+    await expect(api.updateVueltica(vueltica.id, { ...input, type: 'evento' })).rejects.toBeInstanceOf(ValidationError);
+    await expect(api.updateVueltica('v-mirador', input)).rejects.toBeInstanceOf(ConflictError);
+  });
+  it('only the team decides directly; rejections carry the reason text', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    await expect(api.decideSubmission({ vuelticaId: 'v-feria-jose', decision: 'reject', reason: 'duplicado' })).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});
+
+describe('own reviews (#23)', () => {
+  it('edits and deletes the author\'s review, keeping the average and distribution right', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    const before = (await api.listReviews({ vuelticaId: 'v-sabana', sort: 'recientes' })).summary;
+    const r = await api.createReview({ vuelticaId: 'v-sabana', stars: 1, wentWith: 'solo', spent: 'nada', text: 'Malo', photos: [] });
+    const edited = await api.updateReview(r.id, { vuelticaId: 'v-sabana', stars: 5, wentWith: 'familia', spent: 'nada', text: 'Al final, muy bueno', photos: [] });
+    expect(edited).toMatchObject({ stars: 5, text: 'Al final, muy bueno', wentWith: 'familia' });
+    const mid = (await api.listReviews({ vuelticaId: 'v-sabana', sort: 'recientes' })).summary;
+    expect(mid.count).toBe(before.count + 1);
+    expect(mid.distribution[4]).toBe(before.distribution[4] + 1);
+    expect(mid.distribution[0]).toBe(before.distribution[0]);
+    await api.deleteReview(r.id);
+    const after = (await api.listReviews({ vuelticaId: 'v-sabana', sort: 'recientes' })).summary;
+    expect(after.count).toBe(before.count);
+    expect(after.distribution).toEqual(before.distribution);
+  });
+  it('refuses to edit someone else\'s review', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    const other = (await api.listReviews({ vuelticaId: 'v-sabana', sort: 'recientes' })).items.find((x) => x.authorId !== 'u-ana');
+    if (!other) return;
+    await expect(api.deleteReview(other.id)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});
+
+describe('blocking users (#17)', () => {
+  it('hides the blocked person\'s reviews and plans, lists them by name, and unblocks', async () => {
+    const api = make();
+    await expect(api.blockAuthor({ kind: 'review', id: 'r-1' })).rejects.toBeInstanceOf(AuthRequiredError);
+    await api.signIn({ provider: 'apple' });
+    const reviews = (await api.listReviews({ vuelticaId: 'v-jade', sort: 'recientes' })).items;
+    const target = reviews.find((r) => r.authorName === 'María Rodríguez')!;
+    await api.blockAuthor({ kind: 'review', id: target.id });
+    await api.blockAuthor({ kind: 'review', id: target.id }); // idempotent
+    const after = (await api.listReviews({ vuelticaId: 'v-jade', sort: 'recientes' })).items;
+    expect(after.some((r) => r.authorId === target.authorId)).toBe(false);
+    const queueBefore = (await api.moderationQueue(loc)).nuevas.map((i) => i.vuelticaId);
+    expect(queueBefore).toContain('v-feria-jose');
+    await api.blockAuthor({ kind: 'vueltica', id: 'v-feria-jose' });
+    expect((await api.moderationQueue(loc)).nuevas.map((i) => i.vuelticaId)).not.toContain('v-feria-jose');
+    await expect(api.getVueltica('v-feria-jose', loc)).rejects.toBeInstanceOf(NotFoundError);
+    const blocks = await api.listBlocks();
+    expect(blocks.map((b) => b.name)).toEqual(['María Rodríguez', 'José A.']);
+    await api.unblock(blocks[0].id);
+    expect((await api.listReviews({ vuelticaId: 'v-jade', sort: 'recientes' })).items.some((r) => r.authorId === target.authorId)).toBe(true);
+  });
+  it('cannot block yourself or a curated plan', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    await expect(api.blockAuthor({ kind: 'vueltica', id: 'v-mirador' })).rejects.toBeInstanceOf(ValidationError);
+    await expect(api.blockAuthor({ kind: 'vueltica', id: 'v-jade' })).rejects.toBeInstanceOf(NotFoundError);
+    expect((await api.getVueltica('v-jade', loc)).vuelticaView.blockable).toBe(false);
+  });
+});
+

@@ -1,10 +1,11 @@
+import { pinTapsUnsupported } from '@/features/map/pinTaps';
 import { activeFilterCount, applyFilters, DEFAULT_FILTERS, sortVuelticas, summarize, weekendRange } from '../filters';
 import type { VuelticaView } from '../types';
 
 const base: VuelticaView = {
   id: 'a', type: 'lugar', name: 'Parque', category: 'Parque', description: '', photos: [], lat: 0, lng: 0, address: 'San José', province: 'San José',
   priceTier: 'gratis', pricePerPerson: 0, freeFor: [], audiences: ['todo'], wheelchair: false, status: 'publicada', authorId: null, authorName: 'x',
-  createdAt: '2026-01-01T00:00:00Z', verificationCount: 0, ratingAvg: 4, ratingCount: 1, views: 0, distanceKm: 1,
+  createdAt: '2026-01-01T00:00:00Z', verificationCount: 0, ratingAvg: 4, ratingCount: 1, distanceKm: 1,
 };
 const mk = (o: Partial<VuelticaView>): VuelticaView => ({ ...base, ...o });
 const now = new Date('2026-10-20T10:00:00-06:00'); // Tuesday
@@ -52,4 +53,11 @@ describe('filters', () => {
     expect(r.from.getDay()).toBe(6);
     expect(r.to.getDay()).toBe(0);
   });
+});
+
+
+test('M6 the nearby fallback is only for iOS before 18', () => {
+  expect(pinTapsUnsupported('ios', '17.5')).toBe(true);
+  expect(pinTapsUnsupported('ios', '18.0')).toBe(false);
+  expect(pinTapsUnsupported('android', 34)).toBe(false);
 });

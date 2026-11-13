@@ -1,52 +1,84 @@
+import { cantonsOf, type Canton } from '@/domain/cantons';
 import { applyFilters, dateRange, sortVuelticas, summarize } from '@/domain/filters';
 import { haversineKm } from '@/domain/geo';
-import { reputationFor } from '@/domain/rules';
+import { levelForPoints, reputationFor, votesNeeded, tierRank } from '@/domain/rules';
 import type {
-  Filters, LatLng, ModerationItem, Report, Review, Settings, SignInProvider, User, VuelticaView,
+  BlockedUser, Filters, LatLng, MaxPrice, ModerationItem, Province, Report, Review, Settings, SignInProvider, User, VuelticaView,
 } from '@/domain/types';
 import { now as clockNow } from '@/lib/clock';
-import { LEVELS } from '@/config/levels';
 import { t } from '@/i18n/es-CR';
+import { formatTime } from '@/i18n/format';
 import {
-  AuthRequiredError, NotFoundError, NotSupportedError, ValidationError,
-  type CreateReviewInput, type CreateVuelticaInput, type ExportedData, type ListParams, type ListResult, type MiVuelticaApi,
+  AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, NotSupportedError, OfflineError, ValidationError,
+  type CreateReviewInput, type CreateVuelticaInput, type DecideInput, type ExportedData, type ListParams, type ListResult, type MiVuelticaApi,
   type ModerationQueue, type MyVuelticaItem, type ReportInput, type ReviewList, type ReviewListParams, type SavedItem,
   type ScheduledReminder, type SimulateInput, type VerifyInput, type VerifyResult, type VuelticaDetail,
 } from '../api';
 import { defaultSettings } from '../mock/seed';
 import type { KeyValueStore } from '../storage/types';
-import type { HttpClient } from './client';
-import type { AuthDto, CategoryDto, EventDetailDto, EventDto, FavoriteDto, PlaceDetailDto, PlaceDto, SubmissionDto, UserDto } from './dto';
+import type { HttpClient, Query } from './client';
+import type {
+  AuthDto, BlockDto, CategoryDto, ProvinceDto, EventDetailDto, EventDto, FavoriteDto, ModerationQueueDto, ModerationVoteDto, MyProfileDto, PlaceDetailDto, PlaceDto,
+  ReportDto, ReportQueueItemDto, ReputationDto, ReviewDto, ReviewListDto, SubmissionDto, UserDto, VerifyBodyDto, VerifyDto,
+} from './dto';
 import {
-  audienceToApi, defaultCantonOf, eventToView, makeId, parseId, placeToView, submissionToView, userFromApi, type EventPlace,
+  audienceToApi, defaultCantonOf, provinceOfCanton as provinceOfCantonId, eventToView, makeId, moderationFromTally, parseId, parseOpeningHours, placeToView, provinceIdOf,
+  reportFromApi, reputationFromApi, reviewFromApi, submissionToView, userFromApi,
 } from './mappers';
 import { appleAuthorizationCode, appleSignIn, googleSignIn, googleSignOut } from './socialAuth';
 import { tokenStore } from './tokenStore';
+import { uploadPhoto, uploadPhotos } from './uploads';
 import { Platform } from 'react-native';
 
 const KV_USER = 'mv.api.user';
 const KV_SETTINGS = 'mv.api.settings';
 const KV_RECENT = 'mv.api.recent';
-const KV_SINCE = 'mv.api.memberSince';
+const KV_DEVICE = 'mv.api.deviceId';
+const KV_QUEUE = 'mv.api.verifyQueue';
+const KV_PUSH = 'mv.api.pushToken';
 const RECENT_MAX = 20;
+const MAX_PHOTOS = 5;
 const EMPTY_RATING = { avg: 0, count: 0, distribution: [0, 0, 0, 0, 0] };
+const REVIEW_SORT = { recientes: '-createdAt', fotos: '-photoCount', utiles: '-usefulCount' } as const;
+
+type QueueEntry = ModerationQueue['nuevas'][number];
+type CachedUser = { user: User; dto: UserDto };
 
 const unsupported = (feature: string): never => {
   throw new NotSupportedError(feature);
 };
 
 /**
+ * The block routes are not deployed in the API yet (#17). Until they are, the server has no such route (a 404 without
+ * a JSON body): report "not available yet" instead of "this plan has no author". A JSON 404 is still a missing author.
+ */
+async function blockRoute<T>(call: Promise<T>): Promise<T> {
+  try {
+    return await call;
+  } catch (e) {
+    if (e instanceof NotFoundError && e.routeMissing) throw new NotSupportedError('block');
+    throw e;
+  }
+}
+const planPath = (kind: 'p' | 'e', uuid: string) => (kind === 'p' ? `/places/${uuid}` : `/events/${uuid}`);
+const stricter = (a: MaxPrice, b?: MaxPrice): MaxPrice => (!b || tierRank(a) <= tierRank(b) ? a : b);
+
+/**
  * `MiVuelticaApi` over mi-vueltica-api. The app's contract is the source of truth: whatever the API cannot do yet
- * either degrades to an empty/neutral value (reads) or throws `NotSupportedError` (writes). Every such gap is listed
- * in docs/API_INTEGRATION.md with the issue filed on the API repository.
+ * either degrades to an empty/neutral value (reads) or throws `NotSupportedError` (writes). Every remaining gap is
+ * listed in docs/API_INTEGRATION.md.
  */
 export class HttpApi implements MiVuelticaApi {
   readonly signInProviders: SignInProvider[] = Platform.OS === 'ios' ? ['apple', 'google'] : Platform.OS === 'android' ? ['google'] : [];
 
   private categories?: Promise<Map<number, string>>;
-  private places = new Map<string, EventPlace | null>();
   private user: User | null = null;
-  private role: UserDto['role'] = 'USER';
+  private dto: UserDto | null = null;
+  /** Last seen state of each review's "útil" (the contract only passes the id to `markUseful`). */
+  private reviews = new Map<string, ReviewDto>();
+  /** Queue items by app id: community moderators cannot `GET /submissions/:id`, so the detail opens from here. */
+  private queued = new Map<string, QueueEntry>();
+  private deviceId?: Promise<string>;
 
   constructor(private http: HttpClient, private store: KeyValueStore) {}
 
@@ -69,26 +101,24 @@ export class HttpApi implements MiVuelticaApi {
     return hit[0];
   }
 
-  private async placeFor(placeId: string): Promise<EventPlace | null> {
-    if (this.places.has(placeId)) return this.places.get(placeId) ?? null;
-    try {
-      const p = await this.http.get<PlaceDto>(`/places/${placeId}`);
-      const place: EventPlace = { id: p.id, cantonId: p.cantonId, latitude: p.latitude, longitude: p.longitude, address: p.address, name: p.name };
-      this.places.set(placeId, place);
-      return place;
-    } catch (e) {
-      if (e instanceof NotFoundError) {
-        this.places.set(placeId, null);
-        return null;
-      }
-      throw e;
-    }
+  private get role(): UserDto['role'] {
+    return this.dto?.role ?? 'USER';
   }
 
-  private async isPrivileged(): Promise<boolean> {
+  private async signedIn(): Promise<boolean> {
     if (!(await tokenStore.get())) return false;
-    if (!this.user) await this.currentUser();
+    if (!this.user) await this.currentUser().catch(() => null);
+    return !!this.user;
+  }
+
+  private privileged(): boolean {
     return this.role === 'MODERATOR' || this.role === 'ADMIN';
+  }
+
+  /** Community moderation is open from level 3 (#43) and always to team roles. */
+  private async mayModerate(): Promise<boolean> {
+    if (!(await this.signedIn())) return false;
+    return this.privileged() || levelForPoints(this.user?.points ?? 0).number >= 3;
   }
 
   private async readJson<T>(key: string): Promise<T | null> {
@@ -100,6 +130,18 @@ export class HttpApi implements MiVuelticaApi {
     }
   }
 
+  /** Guests verify and report as a device (`X-Device-Id`); a random id kept on the device. */
+  private device(): Promise<string> {
+    this.deviceId ??= (async () => {
+      const saved = await this.store.getItem(KV_DEVICE).catch(() => null);
+      if (saved) return saved;
+      const id = `app.${Date.now().toString(36)}.${Math.random().toString(36).slice(2, 12)}`;
+      await this.store.setItem(KV_DEVICE, id).catch(() => {});
+      return id;
+    })();
+    return this.deviceId;
+  }
+
   private async remember(v: VuelticaView) {
     const list = ((await this.readJson<VuelticaView[]>(KV_RECENT)) ?? []).filter((x) => x.id !== v.id);
     list.unshift({ ...v, distanceKm: 0 });
@@ -108,40 +150,48 @@ export class HttpApi implements MiVuelticaApi {
 
   /* ------------------------------------------------------------------ lists */
 
-  private async fetchPlaces(f: Filters, loc: LatLng, cats: Map<number, string>): Promise<VuelticaView[]> {
-    const near = f.nearMe ? { lat: loc.lat, lng: loc.lng, radiusKm: Math.max(0.1, f.distanceKm) } : {};
-    const rows = await this.http.getAll<PlaceDto>('/places', { ...near, q: f.text.trim() || undefined, sort: 'name' });
+  /** Server-side pre-filter (#36): the same rules run again client-side, so the API only narrows what is downloaded. */
+  private conditionQuery(f: Filters, loc: LatLng, maxPrice?: MaxPrice): Query {
+    return {
+      ...(f.nearMe ? { lat: loc.lat, lng: loc.lng, radiusKm: Math.max(0.1, f.distanceKm) } : {}),
+      q: f.text.trim() || undefined,
+      maxPrice: stricter(f.maxPrice, maxPrice),
+      students: f.students ? 'true' : undefined,
+      seniors: f.seniors ? 'true' : undefined,
+      families: f.families ? 'true' : undefined,
+      wheelchair: f.wheelchair ? 'true' : undefined,
+    };
+  }
+
+  private async fetchPlaces(f: Filters, loc: LatLng, cats: Map<number, string>, maxPrice?: MaxPrice): Promise<VuelticaView[]> {
+    const rows = await this.http.getAll<PlaceDto>('/places', { ...this.conditionQuery(f, loc, maxPrice), sort: 'name' });
     return rows.map((p) => placeToView(p, cats, loc));
   }
 
-  private async fetchEvents(f: Filters, loc: LatLng, cats: Map<number, string>, now: Date): Promise<VuelticaView[]> {
+  private async fetchEvents(f: Filters, loc: LatLng, cats: Map<number, string>, now: Date, maxPrice?: MaxPrice): Promise<VuelticaView[]> {
     const range = dateRange(f.date, now);
     const rows = await this.http.getAll<EventDto>('/events', {
+      ...this.conditionQuery(f, loc, maxPrice),
       from: range?.from.toISOString(),
       to: range?.to.toISOString(),
-      q: f.text.trim() || undefined,
     });
-    const ids = [...new Set(rows.map((e) => e.placeId).filter((x): x is string => !!x))];
-    await Promise.all(ids.map((id) => this.placeFor(id))); // N+1 until GET /events embeds the place (see API_INTEGRATION.md)
-    return rows
-      .map((e) => eventToView(e, e.placeId ? (this.places.get(e.placeId) ?? null) : null, cats, loc))
-      .filter((v): v is VuelticaView => !!v);
+    // Events without any location (allowed by #37) cannot be placed on the map.
+    return rows.map((e) => eventToView(e, cats, loc)).filter((v): v is VuelticaView => !!v);
   }
 
   private async pendingPins(loc: LatLng, cats: Map<number, string>): Promise<ListResult['pending']> {
-    if (!(await tokenStore.get())) return [];
+    if (!(await this.signedIn())) return [];
     const out: ListResult['pending'] = [];
     const seen = new Set<string>();
-    const add = (rows: SubmissionDto[], mine: boolean) => {
-      for (const s of rows) {
-        if (seen.has(s.id)) continue;
-        seen.add(s.id);
-        out.push({ ...submissionToView(s, cats, loc), mine });
-      }
-    };
     try {
-      add(await this.http.getAll<SubmissionDto>('/me/submissions', { status: 'PENDING' }, { auth: 'required' }, 1), true);
-      if (await this.isPrivileged()) add(await this.http.getAll<SubmissionDto>('/submissions', { status: 'PENDING' }, {}, 1), false);
+      for (const s of await this.http.getAll<SubmissionDto>('/me/submissions', { status: 'PENDING' }, { auth: 'required' }, 1)) {
+        seen.add(s.id);
+        out.push({ ...submissionToView(s, cats, loc, this.user?.displayName), mine: true });
+      }
+      if (await this.mayModerate()) {
+        const q = await this.moderationQueue(loc);
+        for (const item of q.nuevas) if (!seen.has(parseId(item.vuelticaId).uuid)) out.push({ ...item.vuelticaView, mine: false });
+      }
     } catch {
       /* pins for pending plans are a nicety; never fail the list because of them */
     }
@@ -151,12 +201,12 @@ export class HttpApi implements MiVuelticaApi {
   async listVuelticas({ filters, location, sort = 'cercanos', maxPrice }: ListParams): Promise<ListResult> {
     const now = clockNow();
     const cats = await this.categoryMap();
-    const [places, events, pending] = await Promise.all([
-      filters.types.includes('lugar') ? this.fetchPlaces(filters, location, cats) : [],
-      filters.types.includes('evento') ? this.fetchEvents(filters, location, cats, now) : [],
+    const [places, events, pending, saved] = await Promise.all([
+      filters.types.includes('lugar') ? this.fetchPlaces(filters, location, cats, maxPrice) : [],
+      filters.types.includes('evento') ? this.fetchEvents(filters, location, cats, now, maxPrice) : [],
       this.pendingPins(location, cats),
+      this.savedIds(),
     ]);
-    const saved = await this.savedIds();
     const items = sortVuelticas(
       applyFilters([...places, ...events], filters, now, maxPrice).map((v) => ({ ...v, saved: v.saved || saved.has(v.id) })),
       sort,
@@ -172,60 +222,88 @@ export class HttpApi implements MiVuelticaApi {
 
   /* ----------------------------------------------------------------- detail */
 
+  private async reviewsPreview(kind: 'p' | 'e', uuid: string): Promise<Review[]> {
+    try {
+      const res = await this.http.get<ReviewListDto>(`${planPath(kind, uuid)}/reviews`, { query: { sort: '-createdAt', pageSize: 3 } });
+      res.data.forEach((r) => this.reviews.set(r.id, r));
+      return res.data.map(reviewFromApi);
+    } catch {
+      return [];
+    }
+  }
+
   async getVueltica(id: string, location: LatLng): Promise<VuelticaDetail> {
     const { kind, uuid } = parseId(id);
     const cats = await this.categoryMap();
-    const base = { rating: EMPTY_RATING, reviewsPreview: [] as Review[] };
 
-    if (kind === 'p') {
-      const p = await this.http.get<PlaceDetailDto>(`/places/${uuid}`);
-      const view = placeToView(p, cats, location);
-      void this.remember(view);
-      return {
-        ...base,
-        vuelticaView: view,
-        saved: !!p.isFavorite,
-        rating: { avg: p.averageRating ?? 0, count: p.reviewCount, distribution: [0, 0, 0, 0, 0] },
-        verification: { lastVerifiedAt: p.verifiedAt ?? undefined, count: 0, myVerifiedToday: false },
-        community: { authorName: view.authorName, verifiedBy: 0, updatedAt: p.verifiedAt ?? p.updatedAt },
-        mine: false,
-      };
-    }
-
-    if (kind === 'e') {
-      const e = await this.http.get<EventDetailDto>(`/events/${uuid}`);
-      const view = eventToView(e, e.place ? { ...e.place } : null, cats, location);
+    if (kind === 'p' || kind === 'e') {
+      // Guests: the device id only fills `myVerifiedToday`. Skipped on web, where the API's CORS does not allow the header yet.
+      const headers = (await tokenStore.get()) || Platform.OS === 'web' ? undefined : { 'X-Device-Id': await this.device() };
+      const [dto, reviewsPreview] = await Promise.all([
+        this.http.get<PlaceDetailDto | EventDetailDto>(planPath(kind, uuid), { headers }),
+        this.reviewsPreview(kind, uuid),
+      ]);
+      const view = kind === 'p' ? placeToView(dto as PlaceDetailDto, cats, location) : eventToView(dto as EventDetailDto, cats, location);
       if (!view) throw new NotFoundError();
-      void this.remember(view);
+      if (view.status === 'publicada') void this.remember(view);
+      const queued = this.queued.get(id);
       return {
-        ...base,
         vuelticaView: view,
-        saved: false,
-        verification: { count: 0, myVerifiedToday: false },
-        community: { authorName: view.authorName, verifiedBy: 0, updatedAt: e.updatedAt },
-        mine: false,
+        saved: !!dto.isFavorite,
+        rating: { avg: dto.averageRating ?? 0, count: dto.reviewCount ?? 0, distribution: dto.ratingDistribution ?? [0, 0, 0, 0, 0] },
+        reviewsPreview,
+        verification: { lastVerifiedAt: dto.lastVerifiedAt ?? undefined, count: dto.verificationCount ?? 0, myVerifiedToday: !!dto.myVerifiedToday },
+        community: { authorName: view.authorName, verifiedBy: dto.verificationCount ?? 0, updatedAt: dto.lastVerifiedAt ?? dto.updatedAt },
+        mine: !!dto.isMine,
+        moderation: queued ? this.stripView(queued) : undefined,
       };
     }
 
-    // Submission (a plan that is not published yet): the author's, or any pending one for moderators.
-    let s: SubmissionDto;
-    try {
-      s = await this.http.get<SubmissionDto>(`/me/submissions/${uuid}`, { auth: 'required' });
-    } catch (err) {
-      if (!(err instanceof NotFoundError) || !(await this.isPrivileged())) throw err;
+    // Submission: the author's own (any status), or one from the community moderation queue.
+    let s: SubmissionDto | null = null;
+    if (await tokenStore.get()) {
+      try {
+        s = await this.http.get<SubmissionDto>(`/me/submissions/${uuid}`, { auth: 'required' });
+      } catch (err) {
+        if (!(err instanceof NotFoundError)) throw err;
+      }
+    }
+    if (!s) {
+      const queued = this.queued.get(id);
+      if (queued) return this.queuedDetail(queued);
+      if (!this.privileged()) throw new NotFoundError();
       s = await this.http.get<SubmissionDto>(`/submissions/${uuid}`);
     }
+    // Approved (#40): open the place / event it became.
+    if (s.status === 'PUBLISHED' && s.created) return this.getVueltica(makeId(s.created.type === 'PLACE' ? 'p' : 'e', s.created.id), location);
     const me = this.user;
-    const view = submissionToView(s, cats, location, me && s.userId === me.id ? me.displayName : undefined);
+    const mine = !!me && s.userId === me.id;
+    const view = submissionToView(s, cats, location, mine ? me.displayName : undefined);
     return {
-      ...base,
+      ...this.emptyDetail(view),
+      mine,
+      moderation: s.status === 'PENDING' ? this.authorModeration(view.id) : undefined,
+    };
+  }
+
+  private emptyDetail(view: VuelticaView): VuelticaDetail {
+    return {
       vuelticaView: view,
       saved: false,
+      rating: EMPTY_RATING,
+      reviewsPreview: [],
       verification: { count: 0, myVerifiedToday: false },
-      community: { authorName: view.authorName, verifiedBy: 0, updatedAt: s.reviewedAt ?? s.createdAt },
-      mine: !!me && s.userId === me.id,
-      moderation: s.status === 'PENDING' ? this.moderationItem(view.id) : undefined,
+      community: { authorName: view.authorName, verifiedBy: 0, updatedAt: view.createdAt },
+      mine: false,
     };
+  }
+
+  private queuedDetail(q: QueueEntry): VuelticaDetail {
+    return { ...this.emptyDetail(q.vuelticaView), moderation: this.stripView(q) };
+  }
+
+  private stripView({ vuelticaView: _v, ...item }: QueueEntry): ModerationItem {
+    return item;
   }
 
   async recentlyViewed(location: LatLng): Promise<VuelticaView[]> {
@@ -235,47 +313,93 @@ export class HttpApi implements MiVuelticaApi {
 
   /* ---------------------------------------------------------- contributions */
 
-  private moderationItem(vuelticaId: string, votesFor = 0, votesAgainst = 0): ModerationItem {
-    // The API has a single moderator decision, not community votes: one approval publishes.
-    return { vuelticaId, kind: 'nueva', votesFor, votesAgainst, votesNeeded: 1 };
+  /**
+   * What the author sees of their own pending suggestion. The API does not expose the tally to the author (#43), only
+   * the threshold is known: 5 votes, 3 when the author is level 3+.
+   */
+  private authorModeration(vuelticaId: string): ModerationItem {
+    return { vuelticaId, kind: 'nueva', votesFor: 0, votesAgainst: 0, votesNeeded: votesNeeded(levelForPoints(this.user?.points ?? 0).number) };
   }
 
-  async createVueltica(input: CreateVuelticaInput) {
-    const me = await this.requireUser('contribute');
-    const [categoryId, cats] = [await this.categoryId(input.category), await this.categoryMap()];
+  /** `POST` / `PUT /me/submissions` body. Photos not on the server yet are uploaded first. */
+  private async submissionBody(input: CreateVuelticaInput) {
+    const categoryId = await this.categoryId(input.category);
+    const photos = await uploadPhotos(this.http, input.photos, MAX_PHOTOS);
+    const address = input.address.trim().slice(0, 191) || undefined;
     const common = {
       categoryId,
       description: input.description.trim().slice(0, 5000) || undefined,
       targetAudience: audienceToApi(input.audiences),
+      pricePerPerson: input.pricePerPerson,
+      freeFor: input.freeFor,
+      audiences: input.audiences.length ? input.audiences : ['todo'],
+      wheelchair: input.wheelchair,
+      photos: photos.length ? photos : undefined,
     };
-    // Price, free-for, wheelchair and photos have no field in the API yet (docs/API_INTEGRATION.md).
     const body =
       input.type === 'lugar'
         ? {
             type: 'PLACE',
             data: {
               ...common,
-              cantonId: defaultCantonOf(input.province),
+              cantonId: input.cantonId ?? defaultCantonOf(input.province),
               name: input.name.trim(),
               latitude: input.lat,
               longitude: input.lng,
-              address: input.address.trim().slice(0, 191) || undefined,
+              address,
+              openingHours: parseOpeningHours(input.openingHours),
             },
           }
         : {
             type: 'EVENT',
-            data: { ...common, placeId: null, title: input.name.trim(), startsAt: input.startAt, endsAt: input.endAt || undefined },
+            // #37: an event without a fixed place carries its own point.
+            data: { ...common, placeId: null, latitude: input.lat, longitude: input.lng, address, title: input.name.trim(), startsAt: input.startAt, endsAt: input.endAt || undefined },
           };
+    return body;
+  }
+
+  async createVueltica(input: CreateVuelticaInput) {
+    const me = await this.requireUser('contribute');
+    const cats = await this.categoryMap();
+    const body = await this.submissionBody(input);
     const s = await this.http.post<SubmissionDto>('/me/submissions', body, { auth: 'required', reason: 'contribute' });
-    const vueltica = { ...submissionToView(s, cats, { lat: input.lat, lng: input.lng }, me.displayName), lat: input.lat, lng: input.lng, address: input.address };
-    return { vueltica, moderation: this.moderationItem(vueltica.id) };
+    const vueltica = { ...submissionToView(s, cats, { lat: input.lat, lng: input.lng }, me.displayName), lat: input.lat, lng: input.lng, address: input.address, province: input.province };
+    return { vueltica, moderation: this.authorModeration(vueltica.id) };
+  }
+
+  /** `PUT /me/submissions/:id` (#57): same body as create; 409 once decided, 422 if the type changes. */
+  async updateVueltica(id: string, input: CreateVuelticaInput): Promise<VuelticaView> {
+    const me = await this.requireUser('contribute');
+    const { kind, uuid } = parseId(id);
+    if (kind !== 's') throw new ConflictError('decided');
+    const cats = await this.categoryMap();
+    const s = await this.http.put<SubmissionDto>(`/me/submissions/${uuid}`, await this.submissionBody(input), { auth: 'required', reason: 'contribute' });
+    return { ...submissionToView(s, cats, { lat: input.lat, lng: input.lng }, me.displayName), address: input.address, province: input.province };
+  }
+
+  private cantons?: Promise<Canton[]>;
+
+  /** `GET /provinces?include=cantons`, cached; the bundled INEC list when the API cannot be reached. */
+  async listCantons(province: Province): Promise<Canton[]> {
+    this.cantons ??= this.http
+      .getAll<ProvinceDto>('/provinces', { include: 'cantons' }, { auth: false })
+      .then((rows) => {
+        return rows.flatMap((p) => (p.cantons ?? []).map((c) => ({ id: c.id, name: c.name, province: provinceOfCantonId(c.id) })));
+      })
+      .catch(() => {
+        this.cantons = undefined;
+        return [];
+      });
+    const list = (await this.cantons).filter((c) => c.province === province);
+    return list.length ? list.sort((a, b) => a.id - b.id) : cantonsOf(province);
   }
 
   async myVuelticas(location: LatLng): Promise<MyVuelticaItem[]> {
     const me = await this.requireUser('contribute');
     const cats = await this.categoryMap();
     const rows = await this.http.getAll<SubmissionDto>('/me/submissions', { sort: '-createdAt' }, { auth: 'required' });
-    return rows.map((s) => ({ vuelticaView: submissionToView(s, cats, location, me.displayName), votesFor: s.status === 'PUBLISHED' ? 1 : 0, votesAgainst: s.status === 'REJECTED' ? 1 : 0, votesNeeded: 1 }));
+    const needed = votesNeeded(levelForPoints(me.points).number);
+    return rows.map((s) => ({ vuelticaView: submissionToView(s, cats, location, me.displayName), votesFor: 0, votesAgainst: 0, votesNeeded: needed }));
   }
 
   async withdrawVueltica(id: string): Promise<void> {
@@ -286,11 +410,20 @@ export class HttpApi implements MiVuelticaApi {
 
   /* ------------------------------------------------------------------ saved */
 
+  private async favorites(): Promise<FavoriteDto[]> {
+    return this.http.getAll<FavoriteDto>('/me/favorites', {}, { auth: 'required' });
+  }
+
+  private static favId(f: FavoriteDto): string | null {
+    if (f.event) return makeId('e', f.event.id);
+    if (f.place) return makeId('p', f.place.id);
+    return null;
+  }
+
   private async savedIds(): Promise<Set<string>> {
     if (!(await tokenStore.get())) return new Set();
     try {
-      const favs = await this.http.getAll<FavoriteDto>('/me/favorites', {}, { auth: 'required' });
-      return new Set(favs.map((f) => makeId('p', f.place.id)));
+      return new Set((await this.favorites()).map(HttpApi.favId).filter((x): x is string => !!x));
     } catch {
       return new Set();
     }
@@ -298,90 +431,292 @@ export class HttpApi implements MiVuelticaApi {
 
   async saveVueltica(id: string): Promise<void> {
     const { kind, uuid } = parseId(id);
-    if (kind !== 'p') return unsupported('favorite-events');
-    await this.http.put(`/places/${uuid}/favorite`, undefined, { auth: 'required', reason: 'save' });
+    if (kind === 's') return unsupported('favorite-pending');
+    await this.http.put(`${planPath(kind, uuid)}/favorite`, undefined, { auth: 'required', reason: 'save' });
   }
 
   async unsaveVueltica(id: string): Promise<void> {
     const { kind, uuid } = parseId(id);
-    if (kind !== 'p') return unsupported('favorite-events');
-    await this.http.del(`/places/${uuid}/favorite`, { auth: 'required', reason: 'save' });
+    if (kind === 's') return;
+    await this.http.del(`${planPath(kind, uuid)}/favorite`, { auth: 'required', reason: 'save' });
   }
 
   async listSaved(location: LatLng): Promise<SavedItem[]> {
     const me = await this.requireUser('save');
     const cats = await this.categoryMap();
     const offset = (await this.getSettings()).reminderOffsetDays;
-    const favs = await this.http.getAll<FavoriteDto>('/me/favorites', {}, { auth: 'required' });
-    return favs.map((f) => ({
-      vuelticaView: { ...placeToView(f.place, cats, location), saved: true },
-      saved: { userId: me.id, vueltica: makeId('p', f.place.id), savedAt: f.createdAt, reminderOffsetDays: offset },
-    }));
+    const out: SavedItem[] = [];
+    for (const f of await this.favorites()) {
+      const view = f.event ? eventToView(f.event, cats, location) : f.place ? placeToView(f.place, cats, location) : null;
+      // Hidden or unpublished plans would open "No encontramos este plan" (review M5): the API filters them too.
+      if (!view || view.status !== 'publicada') continue;
+      out.push({ vuelticaView: { ...view, saved: true }, saved: { userId: me.id, vueltica: view.id, savedAt: f.createdAt, reminderOffsetDays: offset } });
+    }
+    return out;
   }
 
-  /* ---------------------------------------- verification, reports, reviews */
-  // Not in the API yet. Reads degrade to "nothing yet"; writes say so.
+  /* ----------------------------------------------- verification and reports */
 
-  async verify(_input: VerifyInput): Promise<VerifyResult> {
-    return unsupported('verifications');
+  private async personHeaders(): Promise<{ headers?: Record<string, string>; signedIn: boolean }> {
+    if (await tokenStore.get()) return { signedIn: true };
+    return { headers: { 'X-Device-Id': await this.device() }, signedIn: false };
   }
-  async quickConfirm(_vuelticaId: string): Promise<VerifyResult> {
-    return unsupported('verifications');
+
+  private async sendVerification(input: VerifyInput): Promise<VerifyResult> {
+    const { kind, uuid } = parseId(input.vuelticaId);
+    if (kind === 's') return unsupported('verify-pending');
+    const { headers, signedIn } = await this.personHeaders();
+    const body: VerifyBodyDto = {
+      stillHappening: input.stillHappening,
+      pricePaid: input.pricePaid,
+      scheduleCorrect: input.scheduleCorrect,
+      correctedTime: input.correctedTime?.trim() || undefined,
+      // Guests cannot attach photos (uploads need an account).
+      photo: signedIn && input.photo ? await uploadPhoto(this.http, input.photo) : undefined,
+    };
+    return this.http.post<VerifyDto>(`${planPath(kind, uuid)}/verifications`, body, { headers });
   }
+
+  async verify(input: VerifyInput): Promise<VerifyResult> {
+    try {
+      return await this.sendVerification(input);
+    } catch (e) {
+      if (!(e instanceof OfflineError)) throw e;
+      // Same as the mock: answered offline, sent when the connection comes back.
+      const q = (await this.readJson<VerifyInput[]>(KV_QUEUE)) ?? [];
+      q.push(input);
+      await this.store.setItem(KV_QUEUE, JSON.stringify(q));
+      return { queued: true, points: 0, hidden: false };
+    }
+  }
+
+  quickConfirm(vuelticaId: string): Promise<VerifyResult> {
+    return this.verify({ vuelticaId, stillHappening: 'si' });
+  }
+
   async flushQueuedVerifications(): Promise<number> {
-    return 0;
+    const q = (await this.readJson<VerifyInput[]>(KV_QUEUE)) ?? [];
+    if (!q.length) return 0;
+    const left: VerifyInput[] = [];
+    let sent = 0;
+    for (const item of q) {
+      try {
+        await this.sendVerification(item);
+        sent++;
+      } catch (e) {
+        if (e instanceof OfflineError) left.push(item); // still offline: keep it; anything else (plan gone, 4xx) is dropped
+      }
+    }
+    await this.store.setItem(KV_QUEUE, JSON.stringify(left));
+    return sent;
   }
-  async report(_input: ReportInput): Promise<Report> {
-    return unsupported('reports');
+
+  async report(input: ReportInput): Promise<Report> {
+    const { kind, uuid } = parseId(input.vuelticaId);
+    if (kind === 's') return unsupported('report-pending');
+    const { headers, signedIn } = await this.personHeaders();
+    try {
+      const r = await this.http.post<ReportDto>(
+        `${planPath(kind, uuid)}/reports`,
+        { reason: input.reason, details: input.details?.trim() || undefined, photo: signedIn && input.photo ? await uploadPhoto(this.http, input.photo) : undefined },
+        { headers },
+      );
+      return reportFromApi(r);
+    } catch (e) {
+      if (e instanceof ConflictError) throw new DuplicateReportError();
+      throw e;
+    }
   }
-  async listReviews(_p: ReviewListParams): Promise<ReviewList> {
-    return { summary: EMPTY_RATING, items: [] };
+
+  /* ---------------------------------------------------------------- reviews */
+
+  async listReviews(p: ReviewListParams): Promise<ReviewList> {
+    const { kind, uuid } = parseId(p.vuelticaId);
+    if (kind === 's') return { summary: EMPTY_RATING, items: [] };
+    const query = { sort: REVIEW_SORT[p.sort], audience: p.audience, withPhotos: p.sort === 'fotos' ? 'true' : undefined, pageSize: 100 };
+    const res = await this.http.get<ReviewListDto>(`${planPath(kind, uuid)}/reviews`, { query });
+    res.data.forEach((r) => this.reviews.set(r.id, r));
+    return {
+      summary: { avg: res.summary.averageRating ?? 0, count: res.summary.reviewCount, distribution: res.summary.distribution },
+      items: res.data.map(reviewFromApi),
+    };
   }
-  async createReview(_input: CreateReviewInput): Promise<Review> {
-    return unsupported('reviews');
+
+  async createReview(input: CreateReviewInput): Promise<Review> {
+    await this.requireUser('review');
+    const { kind, uuid } = parseId(input.vuelticaId);
+    if (kind === 's') return unsupported('review-pending');
+    const photos = await uploadPhotos(this.http, input.photos, MAX_PHOTOS);
+    const r = await this.http.post<ReviewDto>(
+      `${planPath(kind, uuid)}/reviews`,
+      { rating: input.stars, comment: input.text.trim() || null, wentWith: input.wentWith, spent: input.spent, photos },
+      { auth: 'required', reason: 'review' },
+    );
+    this.reviews.set(r.id, r);
+    return reviewFromApi(r);
   }
-  async markUseful(_reviewId: string): Promise<Review> {
-    return unsupported('reviews');
+
+  async updateReview(reviewId: string, input: CreateReviewInput): Promise<Review> {
+    await this.requireUser('review');
+    const photos = await uploadPhotos(this.http, input.photos, MAX_PHOTOS);
+    const r = await this.http.put<ReviewDto>(
+      `/reviews/${reviewId}`,
+      { rating: input.stars, comment: input.text.trim() || null, wentWith: input.wentWith, spent: input.spent, photos },
+      { auth: 'required', reason: 'review' },
+    );
+    this.reviews.set(r.id, r);
+    return reviewFromApi(r);
+  }
+
+  async deleteReview(reviewId: string): Promise<void> {
+    await this.requireUser('review');
+    await this.http.del(`/reviews/${reviewId}`, { auth: 'required', reason: 'review' });
+    this.reviews.delete(reviewId);
+  }
+
+  /** Toggles "útil" (the app's button is a toggle). */
+  async markUseful(reviewId: string): Promise<Review> {
+    const opts = { auth: 'required' as const, reason: 'useful' as const };
+    const marked = this.reviews.get(reviewId)?.markedUsefulByMe ?? false;
+    const r = marked
+      ? await this.http.del<ReviewDto>(`/reviews/${reviewId}/useful`, opts)
+      : await this.http.post<ReviewDto>(`/reviews/${reviewId}/useful`, undefined, opts);
+    this.reviews.set(r.id, r);
+    return reviewFromApi(r);
   }
 
   /* ------------------------------------------------------------- moderation */
 
+  /** A reported plan as voters see it. Hidden plans are not readable by community moderators: fall back to the queue item. */
+  private async reportedView(r: ReportQueueItemDto, cats: Map<number, string>, loc: LatLng): Promise<VuelticaView> {
+    const kind = r.type === 'PLACE' ? 'p' : 'e';
+    const uuid = (r.type === 'PLACE' ? r.placeId : r.eventId) ?? '';
+    try {
+      const dto = await this.http.get<PlaceDetailDto | EventDetailDto>(planPath(kind, uuid));
+      const view = kind === 'p' ? placeToView(dto as PlaceDetailDto, cats, loc) : eventToView(dto as EventDetailDto, cats, loc);
+      if (view) return view;
+    } catch {
+      /* fall back below */
+    }
+    return {
+      id: makeId(kind, uuid), type: kind === 'p' ? 'lugar' : 'evento', name: r.title, category: '', description: '', photos: [], lat: loc.lat, lng: loc.lng,
+      address: '', province: this.user?.province ?? 'San José', priceTier: 'hasta5000', pricePerPerson: 5000, freeFor: [], audiences: ['todo'], wheelchair: false,
+      status: r.status === 'ARCHIVED' ? 'oculta' : 'publicada', authorId: null, authorName: t.common.community, createdAt: r.firstReportAt, verificationCount: 0,
+      ratingAvg: 0, ratingCount: 0, hiddenReason: r.hiddenReason ?? undefined, reportedAt: r.reportedAt ?? undefined, distanceKm: 0,
+    };
+  }
+
+  /** `GET /moderation/queue` (#43): level 3+ (403 below), the caller's own items left out. */
   async moderationQueue(location: LatLng): Promise<ModerationQueue> {
-    if (!(await this.isPrivileged())) return { nuevas: [], reportadas: [], total: 0 };
+    await this.requireUser('moderate');
     const cats = await this.categoryMap();
-    const rows = await this.http.getAll<SubmissionDto>('/submissions', { status: 'PENDING', sort: 'createdAt' });
-    const nuevas = rows.map((s) => {
-      const vuelticaView = submissionToView(s, cats, location);
-      return { ...this.moderationItem(vuelticaView.id), vuelticaView };
+    const q = await this.http.get<ModerationQueueDto>('/moderation/queue', { auth: 'required', reason: 'moderate' });
+    const nuevas: QueueEntry[] = q.nuevas.map((n) => {
+      const vuelticaView = submissionToView(n.submission, cats, location);
+      return { ...moderationFromTally(vuelticaView.id, 'nueva', n), vuelticaView };
     });
-    return { nuevas, reportadas: [], total: nuevas.length };
+    const reportadas: QueueEntry[] = await Promise.all(
+      q.reportadas.map(async (r) => {
+        const vuelticaView = await this.reportedView(r.report, cats, location);
+        return {
+          ...moderationFromTally(vuelticaView.id, 'reportada', r, {
+            reportCount: r.report.reportCount,
+            topReason: r.report.topReason ?? undefined,
+            lastReportAt: r.report.lastReportAt,
+          }),
+          vuelticaView,
+        };
+      }),
+    );
+    for (const item of [...nuevas, ...reportadas]) this.queued.set(item.vuelticaId, item);
+    return { nuevas, reportadas, total: q.total };
   }
 
   async moderationCount(): Promise<number> {
-    if (!(await this.isPrivileged())) return 0;
-    const res = await this.http.get<{ total: number }>('/submissions', { query: { status: 'PENDING', pageSize: 1 } });
-    return res.total;
+    if (!(await this.mayModerate())) return 0;
+    try {
+      return (await this.http.get<ModerationQueueDto>('/moderation/queue', { auth: 'required' })).total;
+    } catch (e) {
+      if (e instanceof ForbiddenError) return 0;
+      throw e;
+    }
   }
 
-  /** "Aprobar" publishes, "Rechazar" rejects (the API wants a reason; the app has no picker yet). */
-  async vote({ vuelticaId, choice }: { vuelticaId: string; choice: 'for' | 'against' }): Promise<ModerationItem> {
+  private votePath(vuelticaId: string): string {
     const { kind, uuid } = parseId(vuelticaId);
-    if (kind !== 's') return unsupported('moderate-published');
-    if (choice === 'for') await this.http.post(`/submissions/${uuid}/approve`, undefined, { auth: 'required', reason: 'moderate' });
-    else await this.http.post(`/submissions/${uuid}/reject`, { reason: t.moderation.defaultRejectReason }, { auth: 'required', reason: 'moderate' });
-    return { ...this.moderationItem(vuelticaId, choice === 'for' ? 1 : 0, choice === 'against' ? 1 : 0), myVote: choice };
+    return kind === 's' ? `/moderation/submissions/${uuid}/vote` : kind === 'p' ? `/moderation/places/${uuid}/vote` : `/moderation/events/${uuid}/vote`;
   }
 
-  async undoVote(_vuelticaId: string): Promise<ModerationItem> {
-    return unsupported('undo-moderation');
+  private afterVote(vuelticaId: string, res: ModerationVoteDto): ModerationItem {
+    const prev = this.queued.get(vuelticaId);
+    const item = moderationFromTally(vuelticaId, res.kind, res, prev ? { reportCount: prev.reportCount, topReason: prev.topReason, lastReportAt: prev.lastReportAt } : {});
+    if (prev) this.queued.set(vuelticaId, { ...prev, ...item });
+    return item;
   }
 
-  async reputationSummary() {
+  /** "Aprobar" / "Ocultar vueltica" = `for`, "Rechazar" / "Sigue igual" = `against`. Changing the choice is another POST. */
+  async vote({ vuelticaId, choice }: { vuelticaId: string; choice: 'for' | 'against' }): Promise<ModerationItem> {
+    const res = await this.http.post<ModerationVoteDto>(this.votePath(vuelticaId), { choice }, { auth: 'required', reason: 'moderate' });
+    return this.afterVote(vuelticaId, res);
+  }
+
+  /** Only while the item is undecided: 409 (`ConflictError`) once the vote published / rejected / hid it. */
+  async undoVote(vuelticaId: string): Promise<ModerationItem> {
+    const res = await this.http.del<ModerationVoteDto>(this.votePath(vuelticaId), { auth: 'required', reason: 'moderate' });
+    return this.afterVote(vuelticaId, res);
+  }
+
+  /** Team roles: `POST /submissions/:id/approve` or `/reject { reason, note }` (#40 codes). */
+  async decideSubmission(input: DecideInput): Promise<void> {
     await this.requireUser('moderate');
-    // No reputation in the API: moderators/admins get the level that unlocks the moderation entry, everyone else level 1.
-    const points = this.role === 'USER' ? 0 : LEVELS[2].threshold;
-    const summary = reputationFor(points, []);
-    return { ...summary, recent: summary.recent };
+    if (!this.privileged()) throw new ForbiddenError('team');
+    const { kind, uuid } = parseId(input.vuelticaId);
+    if (kind !== 's') throw new ConflictError('decided');
+    if (input.decision === 'approve') {
+      await this.http.post(`/submissions/${uuid}/approve`, {}, { auth: 'required', reason: 'moderate' });
+    } else {
+      const reason = input.reason ?? 'otro';
+      if (reason === 'otro' && !input.note?.trim()) throw new ValidationError('note', t.moderation.decide.needNote);
+      await this.http.post(`/submissions/${uuid}/reject`, { reason, note: input.note?.trim() || undefined }, { auth: 'required', reason: 'moderate' });
+    }
+    this.queued.delete(input.vuelticaId);
+  }
+
+  /* ----------------------------------------------------------------- blocks */
+
+  /** `POST /places|events|reviews/:id/author/block` (API issue: block users, guideline 1.2). 204, idempotent. */
+  async blockAuthor(target: { kind: 'vueltica' | 'review'; id: string }): Promise<void> {
+    await this.requireUser('block');
+    let path: string;
+    if (target.kind === 'review') path = `/reviews/${target.id}/author/block`;
+    else {
+      const { kind, uuid } = parseId(target.id);
+      if (kind === 's') throw new NotFoundError();
+      path = `${planPath(kind, uuid)}/author/block`;
+    }
+    await blockRoute(this.http.post(path, undefined, { auth: 'required', reason: 'block' }));
+  }
+
+  async listBlocks(): Promise<BlockedUser[]> {
+    await this.requireUser('block');
+    const rows = await blockRoute(this.http.getAll<BlockDto>('/me/blocks', {}, { auth: 'required', reason: 'block' }));
+    return rows.map((b) => ({ id: b.id, name: b.name, blockedAt: b.createdAt }));
+  }
+
+  async unblock(blockId: string): Promise<void> {
+    await this.requireUser('block');
+    await blockRoute(this.http.del(`/me/blocks/${blockId}`, { auth: 'required', reason: 'block' }));
+  }
+
+  /** `GET /me/reputation` (#42). Before it is deployed: the points from `/me` (0 when the API has none). */
+  async reputationSummary() {
+    const me = await this.requireUser('moderate');
+    try {
+      return reputationFromApi(await this.http.get<ReputationDto>('/me/reputation', { auth: 'required' }), me.id, this.role);
+    } catch (e) {
+      if (!(e instanceof NotFoundError)) throw e;
+      return { ...reputationFor(me.points, []), canModerate: this.privileged() || undefined, team: this.privileged() || undefined };
+    }
   }
 
   /* ---------------------------------------------------------------- account */
@@ -392,38 +727,70 @@ export class HttpApi implements MiVuelticaApi {
     return u;
   }
 
-  private async loadUser(dto: UserDto, provider: SignInProvider): Promise<User> {
+  private async loadUser(dto: MyProfileDto, provider: SignInProvider): Promise<User> {
     const settings = await this.getSettings();
-    const since = (await this.readJson<Record<string, string>>(KV_SINCE)) ?? {};
-    if (!since[dto.id]) {
-      since[dto.id] = clockNow().toISOString(); // the API does not expose createdAt yet
-      await this.store.setItem(KV_SINCE, JSON.stringify(since));
-    }
-    this.role = dto.role;
-    this.user = userFromApi(dto, provider, settings.province ?? 'San José', since[dto.id]);
-    await this.store.setItem(KV_USER, JSON.stringify({ user: this.user, role: dto.role }));
+    const cached = await this.readJson<CachedUser>(KV_USER);
+    const prev = cached?.user.id === dto.id ? cached.user : null;
+    this.dto = dto;
+    this.user = userFromApi(dto, provider, {
+      province: settings.province ?? prev?.province ?? 'San José',
+      memberSince: prev?.memberSince ?? clockNow().toISOString(),
+      counts: prev?.counts,
+    });
+    await this.store.setItem(KV_USER, JSON.stringify({ user: this.user, dto } satisfies CachedUser));
+    // The API has no province yet but the user picked one on this device: send it (#42).
+    if (dto.province === null && settings.province) void this.pushProvince(settings.province);
     return this.user;
   }
 
-  async signIn(input: { provider: SignInProvider; email?: string }): Promise<User> {
+  /** `PUT /me` is a full replace of name / surnames / ageRange; `provinceId` (#42) is the default map region. */
+  private async pushProvince(province: Province | null): Promise<void> {
+    const dto = this.dto;
+    if (!dto || !(await tokenStore.get())) return;
+    try {
+      const res = await this.http.put<UserDto>(
+        '/me',
+        { name: dto.name, surnames: dto.surnames, ageRange: dto.ageRange, provinceId: province ? provinceIdOf(province) : null },
+        { auth: 'required' },
+      );
+      this.dto = { ...dto, ...res };
+      if (this.user && province) this.user = { ...this.user, province };
+    } catch {
+      /* offline or an older API: the province stays local */
+    }
+  }
+
+  async signIn(input: { provider: SignInProvider; privacyVersion?: string }): Promise<User> {
     let auth: AuthDto;
+    const privacyVersion = input.privacyVersion;
     if (input.provider === 'apple') {
       const a = await appleSignIn();
-      auth = await this.http.post<AuthDto>('/auth/apple', { identityToken: a.identityToken, firstName: a.firstName, lastName: a.lastName }, { auth: false });
-    } else if (input.provider === 'google') {
-      auth = await this.http.post<AuthDto>('/auth/google', { token: await googleSignIn() }, { auth: false });
+      auth = await this.http.post<AuthDto>('/auth/apple', { identityToken: a.identityToken, firstName: a.firstName, lastName: a.lastName, privacyVersion }, { auth: false });
     } else {
-      return unsupported('email-login');
+      auth = await this.http.post<AuthDto>('/auth/google', { token: await googleSignIn(), privacyVersion }, { auth: false });
     }
     await tokenStore.set(auth.token);
     await tokenStore.setProvider(input.provider);
-    return this.loadUser(auth.user, input.provider);
+    // The login answer has no `counts`; `/me` does.
+    const profile = await this.http.get<MyProfileDto>('/me', { auth: 'required' }).catch(() => auth.user);
+    return this.loadUser(profile, input.provider);
+  }
+
+  async acceptPrivacy(version: string): Promise<User> {
+    await this.requireUser('save');
+    const provider = ((await tokenStore.getProvider()) as SignInProvider | null) ?? this.user?.provider ?? 'google';
+    const profile = await this.http.post<MyProfileDto>('/me/privacy-consent', { version }, { auth: 'required' });
+    // The answer may be the profile or just `{ privacyVersion }`: read /me when it is not a profile.
+    const me = profile && 'id' in profile ? profile : await this.http.get<MyProfileDto>('/me', { auth: 'required' });
+    return this.loadUser({ ...me, privacyAccepted: true, privacyVersion: me.privacyVersion ?? version }, provider);
   }
 
   async signOut(): Promise<void> {
     if (await tokenStore.get()) {
       try {
-        await this.http.post('/auth/logout', undefined, { auth: 'required' });
+        // With the token, the API forgets this device so the next person on the phone gets no pushes for this account.
+        const pushToken = (await this.store.getItem(KV_PUSH).catch(() => null)) ?? undefined;
+        await this.http.post('/auth/logout', pushToken ? { pushToken } : undefined, { auth: 'required' });
       } catch {
         /* the token is dropped locally either way */
       }
@@ -436,7 +803,9 @@ export class HttpApi implements MiVuelticaApi {
     await tokenStore.clear();
     await googleSignOut();
     this.user = null;
-    this.role = 'USER';
+    this.dto = null;
+    this.queued.clear();
+    this.reviews.clear();
     await this.store.removeItem(KV_USER);
   }
 
@@ -444,19 +813,25 @@ export class HttpApi implements MiVuelticaApi {
     if (!(await tokenStore.get())) return null;
     const provider = ((await tokenStore.getProvider()) as SignInProvider | null) ?? 'google';
     try {
-      const dto = await this.http.get<UserDto>('/me', { auth: 'required' });
+      const dto = await this.http.get<MyProfileDto>('/me', { auth: 'required' });
       return await this.loadUser(dto, provider);
     } catch (e) {
       if (e instanceof AuthRequiredError) return null;
-      const cached = await this.readJson<{ user: User; role: UserDto['role'] }>(KV_USER);
-      if (cached) {
+      const cached = await this.readJson<CachedUser>(KV_USER);
+      if (cached?.dto) {
         // Offline (or the API is down): keep the user signed in with what we saw last.
         this.user = cached.user;
-        this.role = cached.role;
+        this.dto = cached.dto;
         return cached.user;
       }
       throw e;
     }
+  }
+
+  async registerPushToken(input: { platform: 'ios' | 'android'; pushToken: string }): Promise<void> {
+    if (!(await tokenStore.get())) return;
+    await this.http.post('/me/devices', { platform: input.platform === 'ios' ? 'IOS' : 'ANDROID', pushToken: input.pushToken }, { auth: 'required' });
+    await this.store.setItem(KV_PUSH, input.pushToken).catch(() => {});
   }
 
   async getSettings(): Promise<Settings> {
@@ -464,19 +839,38 @@ export class HttpApi implements MiVuelticaApi {
   }
 
   async updateSettings(patch: Partial<Settings>): Promise<Settings> {
-    const next = { ...(await this.getSettings()), ...patch };
+    const prev = await this.getSettings();
+    const next = { ...prev, ...patch };
     await this.store.setItem(KV_SETTINGS, JSON.stringify(next));
+    if ('province' in patch && patch.province !== undefined && patch.province !== prev.province && this.user) await this.pushProvince(patch.province);
+    const notif = (s: Settings) => `${s.notifyReminders}|${s.notifyNewNearby}|${s.notifyMyStatus}`;
+    if (this.user && notif(prev) !== notif(next)) void this.pushNotificationSettings(next);
     return next;
+  }
+
+  /**
+   * `PUT /me/notification-settings` (API issue: push notifications). The API sends the "planes nuevos cerca" and
+   * "estado de mis vuelticas" pushes; reminders are local. Until it exists (404) the switches stay on the device.
+   */
+  private async pushNotificationSettings(s: Settings): Promise<void> {
+    try {
+      await this.http.put('/me/notification-settings', { reminders: s.notifyReminders, newNearby: s.notifyNewNearby, myStatus: s.notifyMyStatus }, { auth: 'required' });
+    } catch {
+      /* older API or offline: kept locally, sent again on the next change */
+    }
   }
 
   async exportMyData(): Promise<ExportedData> {
     const me = await this.requireUser('save');
-    const [profile, favorites, submissions] = await Promise.all([
+    const opt = <T,>(p: Promise<T>) => p.catch(() => null);
+    const [profile, favorites, submissions, reviews, reputation] = await Promise.all([
       this.http.get<unknown>('/me', { auth: 'required' }),
-      this.http.getAll<FavoriteDto>('/me/favorites', {}, { auth: 'required' }),
+      this.favorites(),
       this.http.getAll<SubmissionDto>('/me/submissions', {}, { auth: 'required' }),
+      opt(this.http.getAll<ReviewDto>('/me/reviews', {}, { auth: 'required' })),
+      opt(this.http.get<ReputationDto>('/me/reputation', { auth: 'required' })),
     ]);
-    const data = { exportedAt: clockNow().toISOString(), user: me, profile, settings: await this.getSettings(), favorites, submissions };
+    const data = { exportedAt: clockNow().toISOString(), user: me, profile, settings: await this.getSettings(), favorites, submissions, reviews, reputation };
     return { filename: 'mivueltica-mis-datos.json', mimeType: 'application/json', content: JSON.stringify(data, null, 2) };
   }
 
@@ -489,9 +883,34 @@ export class HttpApi implements MiVuelticaApi {
     await this.store.removeItem(KV_RECENT);
   }
 
+  /** Local reminders for saved events (#37 made events saveable); push delivery is still #44. */
   async scheduleNotifications(): Promise<ScheduledReminder[]> {
-    return []; // only places can be saved today and they have no date: nothing to remind about
+    if (!(await tokenStore.get())) return [];
+    const settings = await this.getSettings();
+    if (!settings.notifyReminders) return [];
+    const now = clockNow();
+    const out: ScheduledReminder[] = [];
+    let favs: FavoriteDto[];
+    try {
+      favs = await this.http.getAll<FavoriteDto>('/me/favorites', { type: 'EVENT' }, { auth: 'required' });
+    } catch {
+      return [];
+    }
+    for (const f of favs) {
+      if (!f.event) continue;
+      const start = new Date(f.event.startsAt);
+      const fire = new Date(start);
+      fire.setDate(fire.getDate() - settings.reminderOffsetDays);
+      fire.setHours(9, 0, 0, 0);
+      if (fire.getTime() <= now.getTime()) continue;
+      const id = makeId('e', f.event.id);
+      // The start time in Costa Rica time, like everywhere else in the app (not the phone's time zone).
+      const body = t.notifications.eventReminder(f.event.title, formatTime(start), settings.reminderOffsetDays);
+      out.push({ id: `rem-${id}`, vuelticaId: id, title: f.event.title, body, fireAt: fire.toISOString() });
+    }
+    return out;
   }
 
   async simulateCommunity(_input: SimulateInput): Promise<void> {}
 }
+

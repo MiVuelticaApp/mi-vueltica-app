@@ -1,6 +1,6 @@
-import { router } from 'expo-router';
+import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
-import { Linking, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/icons/Icon';
 import MapView from '@/components/map/MapView';
@@ -16,6 +16,8 @@ import { formatCRC } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
 import { describeFilters } from '@/features/map/describe';
 import { FilterChipsRow } from '@/features/map/FilterChipsRow';
+import { NearbyStrip } from '@/features/map/NearbyStrip';
+import { pinTapsUnsupported } from '@/features/map/pinTaps';
 import { requestAndLocate } from '@/lib/location';
 import { useFilters } from '@/state/filters';
 import { useMapSelection } from '@/state/mapSelection';
@@ -24,6 +26,7 @@ import { useSettings } from '@/state/settings';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 const NO_ITEMS: never[] = [];
+const NO_PIN_TAPS = pinTapsUnsupported(Platform.OS, Platform.Version);
 
 /** 01 Mapa / 01b Mapa filtrado. */
 export default function MapaScreen() {
@@ -40,6 +43,14 @@ export default function MapaScreen() {
   const data = query.data;
   const n = activeFilterCount(filters);
   const label = describeFilters(filters);
+  const pathname = usePathname();
+  /** The half-height Detalle leaves the map touchable: another pin replaces the open sheet instead of stacking one. */
+  const open = (id: string) => {
+    useMapSelection.getState().set(id);
+    const href = { pathname: '/vueltica/[id]' as const, params: { id } };
+    if (pathname.startsWith('/vueltica/')) router.replace(href);
+    else router.push(href);
+  };
 
   const card = data
     ? label || n > 0
@@ -62,10 +73,7 @@ export default function MapaScreen() {
           center={center}
           showUser={!!coords}
           recenterToken={recenter}
-          onSelect={(id) => {
-            useMapSelection.getState().set(id);
-            router.push({ pathname: '/vueltica/[id]', params: { id } });
-          }}
+          onSelect={open}
           onSelectPending={(v) => (v.mine ? router.push({ pathname: '/vueltica-enviada/[id]', params: { id: v.id } }) : router.push('/moderacion'))}
         />
       ) : (
@@ -100,7 +108,13 @@ export default function MapaScreen() {
         <OfflineBanner testID="map.offlineBanner" onRetry={() => void query.refetch()} />
       </View>
 
-      <View pointerEvents="box-none" style={{ position: 'absolute', right: 16, bottom: insets.bottom + 192, }}>
+      {NO_PIN_TAPS && data ? (
+        <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 172 }}>
+          <NearbyStrip items={data.items} onOpen={open} />
+        </View>
+      ) : null}
+
+      <View pointerEvents="box-none" style={{ position: 'absolute', right: 16, bottom: insets.bottom + (NO_PIN_TAPS ? 252 : 192) }}>
         <IconButton testID="map.locate" icon="locate" label={t.map.locate} onPress={locate} />
       </View>
 

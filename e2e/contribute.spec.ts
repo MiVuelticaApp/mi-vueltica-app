@@ -1,4 +1,4 @@
-import { expect, test, tab, start, startSignedIn, simulate, type Page } from './helpers';
+import { expect, test, tab, start, startSignedIn, simulate, type Page, signInWith } from './helpers';
 
 const flip = (page: Page, id: string) => page.getByTestId(id).evaluate((el: HTMLInputElement) => el.click());
 
@@ -20,6 +20,7 @@ async function fillPlace(page: Page, name = 'Parque de prueba E2E') {
   await page.getByTestId('location.confirm').click();
   await expect(page.getByTestId('location.sheet')).toHaveCount(0);
   await expect(page.getByTestId('contribute.address')).toContainText('Frente al parque central');
+  await page.getByTestId('contribute.canton').selectOption({ label: 'Montes de Oca' });
 }
 
 test('N0 signed-out Aportar asks to sign in, then shows the form', async ({ page }) => {
@@ -28,7 +29,7 @@ test('N0 signed-out Aportar asks to sign in, then shows the form', async ({ page
   await expect(page.getByTestId('contribute.signedOut')).toBeVisible();
   await page.getByTestId('contribute.signIn').click();
   await expect(page.getByTestId('login.reason')).toContainText('Iniciá sesión para aportar');
-  await page.getByTestId('login.apple').click();
+  await signInWith(page, 'apple');
   await expect(page.getByTestId('contribute.screen')).toBeVisible();
   await expect(page.getByTestId('contribute.info')).toContainText('La comunidad revisa cada vueltica');
 });
@@ -140,7 +141,7 @@ test('N5 Mis vuelticas lists statuses (review / rejected) and lets the author wi
   await expect(page.getByTestId('mine.screen')).toBeVisible();
   await expect(page.getByTestId('mine.status.v-feria-ana').filter({ visible: true })).toContainText('En revisión · 2 de 3 votos');
   await expect(page.getByTestId('mine.status.v-cine-ana').filter({ visible: true })).toContainText('No publicado · costaba ₡6.000');
-  await expect(page.getByTestId('mine.status.v-mirador').filter({ visible: true })).toContainText('Publicado · 1.240 vistas');
+  await expect(page.getByTestId('mine.status.v-mirador').filter({ visible: true })).toHaveText('Publicado en el mapa');
   await page.getByTestId('mine.withdraw.v-feria-ana').filter({ visible: true }).click();
   await page.getByTestId('dialog.confirm').click();
   await expect(page.getByTestId('mine.row.v-feria-ana').filter({ visible: true })).toHaveCount(0);
@@ -185,3 +186,34 @@ test('N4b three community votes publish the submission: +10 points, published st
   await tab(page, 'profile').click();
   await expect(page.getByTestId('profile.points')).toContainText('182 puntos');
 });
+
+test('N7 a place needs its canton; the list follows the province', async ({ page }) => {
+  await openForm(page);
+  await fillPlace(page, 'Parque con cantón E2E');
+  await page.getByTestId('contribute.province').selectOption({ label: 'Cartago' });
+  await expect(page.getByTestId('contribute.missing')).toContainText('Elegí el cantón');
+  await expect(page.getByTestId('contribute.canton').locator('option')).toHaveCount(9); // "Elegir…" + 8 cantons
+  await page.getByTestId('contribute.canton').selectOption({ label: 'Paraíso' });
+  await flip(page, 'contribute.confirm');
+  await expect(page.getByTestId('contribute.submit')).toHaveCSS('opacity', '1');
+});
+
+test('N8 a pending suggestion can be edited from Mis vuelticas', async ({ page }) => {
+  await openForm(page);
+  await fillPlace(page, 'Parque para editar E2E');
+  await flip(page, 'contribute.confirm');
+  await page.getByTestId('contribute.submit').click();
+  await page.getByTestId('sent.mine').click();
+  await expect(page.getByTestId('mine.screen')).toBeVisible();
+  const row = page.locator('[data-testid^="mine.row."]').filter({ hasText: 'Parque para editar E2E' }).first();
+  const id = (await row.getAttribute('data-testid'))!.replace('mine.row.', '');
+  await page.getByTestId(`mine.edit.${id}`).click();
+  await expect(page.getByTestId('contribute.title')).toHaveText('Editar vueltica');
+  await expect(page.getByTestId('contribute.name')).toHaveValue('Parque para editar E2E');
+  await expect(page.getByTestId('contribute.type.lugar')).toHaveCount(0);
+  await page.getByTestId('contribute.name').fill('Parque editado E2E');
+  await page.getByTestId('contribute.submit').click();
+  await expect(page.getByTestId('mine.screen').filter({ visible: true })).toBeVisible();
+  await expect(page.getByTestId(`mine.row.${id}`).filter({ visible: true })).toContainText('Parque editado E2E');
+});
+

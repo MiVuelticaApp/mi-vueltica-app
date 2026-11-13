@@ -1,10 +1,9 @@
 import { Image } from 'expo-image';
-import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapPreview } from '@/components/map/MapPreview';
-import { TextField } from '@/components/system/TextField';
 import { Button } from '@/components/ui/Button';
 import { Group, Row } from '@/components/ui/Section';
 import { Tap } from '@/components/ui/Tap';
@@ -14,20 +13,19 @@ import { api } from '@/data';
 import { SignInCancelledError } from '@/data/api';
 import { useSignIn } from '@/data/queries';
 import { t } from '@/i18n/es-CR';
+import { PRIVACY_VERSION } from '@/config/legal';
+import { PrivacyNotice } from '@/features/legal/PrivacyNotice';
 import { useSession } from '@/state/session';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 const REASONS = t.login.gate;
 
-/** 05 Iniciar sesión: optional sign-in (Apple, Google, email). Mock: always succeeds. `?next=` is restored afterwards. */
+/** 05 Iniciar sesión: optional sign-in with Apple or Google (no email sign-in, API #35). Mock: always succeeds. `?next=` is restored afterwards. */
 export default function Login() {
   const { c } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { next, reason } = useLocalSearchParams<{ next?: string; reason?: keyof typeof REASONS }>();
   const signIn = useSignIn();
-  const [emailMode, setEmailMode] = useState(false);
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState<string | null>(null);
 
   const isTab = !!next && ['/perfil', '/aportar', '/guardados', '/lista'].includes(next);
   const leave = () => {
@@ -42,10 +40,16 @@ export default function Login() {
     else if (router.canGoBack()) router.back();
     else router.replace('/');
   };
-  const go = async (provider: 'apple' | 'google' | 'email', mail?: string) => {
+  const [notice, setNotice] = useState<'apple' | 'google' | null>(null);
+  /** The privacy notice comes first (Ley 8968 art. 5); the accepted version goes with the login. */
+  const start = (provider: 'apple' | 'google') => {
+    if (useSession.getState().privacyAccepted === PRIVACY_VERSION) void go(provider);
+    else setNotice(provider);
+  };
+  const go = async (provider: 'apple' | 'google') => {
     const p = useSession.getState().pending;
     try {
-      await signIn.mutateAsync({ provider, email: mail });
+      await signIn.mutateAsync({ provider, privacyVersion: PRIVACY_VERSION });
       leave();
       if (p?.kind === 'review') {
         useSession.getState().setPending(null);
@@ -55,14 +59,6 @@ export default function Login() {
       // Closing the Apple / Google sheet is not an error.
       if (!(e instanceof SignInCancelledError)) toast(t.common.errorBody);
     }
-  };
-  const submitEmail = () => {
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-      setError(t.login.emailInvalid);
-      return;
-    }
-    setError(null);
-    void go('email', email.trim());
   };
 
   return (
@@ -80,21 +76,10 @@ export default function Login() {
           <Row icon="add" iconBg="event" title={t.login.perk2} />
           <Row icon="star" iconBg="senior" iconColor="#ffffff" title={t.login.perk3} last />
         </Group>
-        {emailMode ? (
-          <View style={{ gap: 12 }}>
-            <View style={{ backgroundColor: c.groupedSecondary, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14 }}>
-              <TextField testID="login.email" accessibilityLabel={t.login.emailTitle} value={email} onChangeText={setEmail} placeholder={t.login.emailPlaceholder} keyboardType="email-address" autoCapitalize="none" autoFocus onSubmitEditing={submitEmail} returnKeyType="go" />
-            </View>
-            {error ? <Text testID="login.emailError" variant="callout" color="danger">{error}</Text> : null}
-            <Button testID="login.emailSubmit" label={t.login.emailSubmit} onPress={submitEmail} loading={signIn.isPending} />
-          </View>
-        ) : (
-          <View style={{ gap: 12 }}>
-            {api.signInProviders.includes('apple') ? <Button testID="login.apple" variant="dark" icon="apple" label={t.login.apple} onPress={() => go('apple')} loading={signIn.isPending} /> : null}
-            {api.signInProviders.includes('google') ? <Button testID="login.google" variant="outline" icon="google" label={t.login.google} onPress={() => go('google')} /> : null}
-            {api.signInProviders.includes('email') ? <Button testID="login.email.button" variant="glass" full icon="mail" label={t.login.email} onPress={() => setEmailMode(true)} /> : null}
-          </View>
-        )}
+        <View style={{ gap: 12 }}>
+          {api.signInProviders.includes('apple') ? <Button testID="login.apple" variant="dark" icon="apple" label={t.login.apple} onPress={() => start('apple')} loading={signIn.isPending} /> : null}
+          {api.signInProviders.includes('google') ? <Button testID="login.google" variant="outline" icon="google" label={t.login.google} onPress={() => start('google')} /> : null}
+        </View>
         <Text variant="caption" color="labelSecondary" align="center" style={{ lineHeight: 18 }}>
           {t.login.legal}
         </Text>
@@ -103,6 +88,16 @@ export default function Login() {
           <Tap testID="login.privacy" label={t.login.privacy} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'privacidad' } })}><Text variant="caption" color="primary">{t.login.privacy}</Text></Tap>
         </View>
       </ScrollView>
+      <PrivacyNotice
+        visible={!!notice}
+        onAccept={() => {
+          const provider = notice!;
+          useSession.getState().setPrivacyAccepted(PRIVACY_VERSION);
+          setNotice(null);
+          void go(provider);
+        }}
+        onDecline={() => setNotice(null)}
+      />
     </View>
   );
 }

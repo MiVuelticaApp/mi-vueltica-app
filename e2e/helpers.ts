@@ -43,10 +43,21 @@ export async function startSkip(page: Page) {
   await expect(page.getByTestId('map.results')).toBeVisible();
 }
 
+/**
+ * Tap a sign-in button and accept the privacy notice (Ley 8968) when it appears: it is shown before the first
+ * sign-in on the device, so later sign-ins in the same test go straight through.
+ */
+export async function signInWith(page: Page, provider: 'apple' | 'google') {
+  await page.getByTestId(`login.${provider}`).click();
+  const accept = page.getByTestId('privacy.accept');
+  const shown = await accept.waitFor({ state: 'visible', timeout: 2500 }).then(() => true, () => false);
+  if (shown) await accept.click();
+}
+
 /** Complete the login screen with Apple (Ana Mora, level 3). */
 export async function loginApple(page: Page) {
   await expect(page.getByTestId('login.screen')).toBeVisible();
-  await page.getByTestId('login.apple').click();
+  await signInWith(page, 'apple');
   await expect(page.getByTestId('login.screen')).toBeHidden();
 }
 

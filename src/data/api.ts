@@ -3,9 +3,10 @@
  * `src/data/index.ts` picks one from `EXPO_PUBLIC_API_URL`.
  */
 import type {
-  Audience, FreeFor, Filters, LatLng, MaxPrice, ModerationItem, PricePaid, Province, Report, ReportReason, ReputationSummary, Review, Saved,
-  Settings, SignInProvider, SortKey, SpentTier, StillHappening, User, VoteChoice, VuelticaType, VuelticaView, WentWith, ReputationEvent,
+  Audience, BlockedUser, FreeFor, Filters, LatLng, MaxPrice, ModerationItem, PricePaid, Province, Report, ReportReason, ReputationSummary, Review, Saved,
+  Settings, SignInProvider, SortKey, SpentTier, StillHappening, User, VoteChoice, VuelticaType, VuelticaView, WentWith, ReputationEvent, RejectionCode,
 } from '@/domain/types';
+import type { Canton } from '@/domain/cantons';
 
 export class OfflineError extends Error {
   constructor() {
@@ -14,7 +15,7 @@ export class OfflineError extends Error {
   }
 }
 export class AuthRequiredError extends Error {
-  constructor(public reason: 'save' | 'contribute' | 'review' | 'moderate' | 'useful') {
+  constructor(public reason: 'save' | 'contribute' | 'review' | 'moderate' | 'useful' | 'block') {
     super('auth-required');
     this.name = 'AuthRequiredError';
   }
@@ -26,7 +27,8 @@ export class ForbiddenError extends Error {
   }
 }
 export class NotFoundError extends Error {
-  constructor() {
+  /** `routeMissing`: the 404 had no JSON body, i.e. the server has no such route (not deployed yet), not a missing record. */
+  constructor(public routeMissing = false) {
     super('not-found');
     this.name = 'NotFoundError';
   }
@@ -56,6 +58,13 @@ export class ValidationError extends Error {
   constructor(public field: string, message: string) {
     super(message);
     this.name = 'ValidationError';
+  }
+}
+/** 429: the API's per-person / per-IP rate limit (reports 10 / 15 min, verifications 30 / 15 min, uploads 60 / 15 min). */
+export class RateLimitError extends Error {
+  constructor() {
+    super('rate-limited');
+    this.name = 'RateLimitError';
   }
 }
 export class DuplicateReportError extends Error {
@@ -106,10 +115,13 @@ export interface CreateVuelticaInput {
   lng: number;
   address: string;
   province: Province;
+  /** Required for places (the API needs the canton); events have their own point and no canton. */
+  cantonId?: number;
   startAt?: string;
   endAt?: string;
   openingHours?: string;
-  pricePerPerson: number;
+  /** `0` = free, `null` = it costs something but the author does not know how much (#36). */
+  pricePerPerson: number | null;
   freeFor: FreeFor[];
   audiences: Audience[];
   wheelchair: boolean;
@@ -190,6 +202,14 @@ export interface ExportedData {
   content: string;
 }
 
+export interface DecideInput {
+  vuelticaId: string;
+  decision: 'approve' | 'reject';
+  reason?: RejectionCode;
+  /** Required with `otro`; optional extra text for the other codes. */
+  note?: string;
+}
+
 export interface SimulateInput {
   kind: 'votes' | 'verifications' | 'reports';
   vuelticaId?: string;
@@ -206,7 +226,11 @@ export interface MiVuelticaApi {
   getVueltica(id: string, location: LatLng): Promise<VuelticaDetail>;
   recentlyViewed(location: LatLng): Promise<VuelticaView[]>;
   createVueltica(input: CreateVuelticaInput): Promise<{ vueltica: VuelticaView; moderation: ModerationItem }>;
+  /** Edit a pending suggestion (same body as create). `ConflictError` once it was decided. */
+  updateVueltica(id: string, input: CreateVuelticaInput): Promise<VuelticaView>;
   myVuelticas(location: LatLng): Promise<MyVuelticaItem[]>;
+  /** Cantons of a province, for the suggestion form. */
+  listCantons(province: Province): Promise<Canton[]>;
   withdrawVueltica(id: string): Promise<void>;
   saveVueltica(id: string): Promise<void>;
   unsaveVueltica(id: string): Promise<void>;
@@ -218,12 +242,28 @@ export interface MiVuelticaApi {
   listReviews(p: ReviewListParams): Promise<ReviewList>;
   createReview(input: CreateReviewInput): Promise<Review>;
   markUseful(reviewId: string): Promise<Review>;
+  /** Own reviews only (`PUT /reviews/:id`). */
+  updateReview(reviewId: string, input: CreateReviewInput): Promise<Review>;
+  /** Own reviews only (`DELETE /reviews/:id`). */
+  deleteReview(reviewId: string): Promise<void>;
   moderationQueue(location: LatLng): Promise<ModerationQueue>;
   moderationCount(): Promise<number>;
   vote(input: { vuelticaId: string; choice: VoteChoice }): Promise<ModerationItem>;
   undoVote(vuelticaId: string): Promise<ModerationItem>;
+  /** Team roles only: approve or reject a suggestion directly (`ForbiddenError` otherwise). */
+  decideSubmission(input: DecideInput): Promise<void>;
+  /**
+   * Block the author of a community plan or a review (responses carry the author's name, not their id). Their plans and
+   * reviews disappear for the caller. Idempotent; `NotFoundError` when the content has no author (curated plans).
+   */
+  blockAuthor(target: { kind: 'vueltica' | 'review'; id: string }): Promise<void>;
+  listBlocks(): Promise<BlockedUser[]>;
+  unblock(blockId: string): Promise<void>;
   reputationSummary(): Promise<ReputationSummary & { recent: ReputationEvent[] }>;
-  signIn(input: { provider: SignInProvider; email?: string }): Promise<User>;
+  /** `privacyVersion`: the notice the person just accepted; the API requires it to create a new account. */
+  signIn(input: { provider: SignInProvider; privacyVersion?: string }): Promise<User>;
+  /** Accept a (newer) privacy notice: `POST /me/privacy-consent { version }`. */
+  acceptPrivacy(version: string): Promise<User>;
   /** Providers the connected backend can sign in with (the login screen hides the rest). */
   readonly signInProviders: SignInProvider[];
   signOut(): Promise<void>;
@@ -232,6 +272,8 @@ export interface MiVuelticaApi {
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
   exportMyData(): Promise<ExportedData>;
   deleteAccount(): Promise<void>;
+  /** Register this device's Expo push token for the signed-in user (`POST /me/devices`, idempotent). */
+  registerPushToken(input: { platform: 'ios' | 'android'; pushToken: string }): Promise<void>;
   scheduleNotifications(): Promise<ScheduledReminder[]>;
   /** Dev only: act as the rest of the community. */
   simulateCommunity(input: SimulateInput): Promise<void>;
