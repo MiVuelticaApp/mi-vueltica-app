@@ -10,7 +10,7 @@ The app talks to the backend only through `MiVuelticaApi` (`src/data/api.ts`). T
 Copy `.env.example` to `.env`. Google/Apple sign-in need a **development build** (`npx expo prebuild`, `npx expo run:ios|android`); they do not run in Expo Go. `GOOGLE_IOS_URL_SCHEME` must be set when prebuilding so the Google plugin is added.
 
 ## Code map (`src/data/http/`)
-- `client.ts` fetch wrapper: bearer token, extra headers (`X-Device-Id`), multipart bodies, 15 s timeout, `{ message }` errors mapped to the app's error classes (network → `OfflineError`, 401 → `AuthRequiredError` + sign-out, 403 `ForbiddenError`, 404 `NotFoundError`, 409 `ConflictError`, 400/413/415/422 `ValidationError`), `getAll` follows pagination.
+- `client.ts` fetch wrapper: bearer token, extra headers (`X-Device-Id`), multipart bodies, 15 s timeout, `{ message }` errors mapped to the app's error classes (network → `OfflineError`, 401 → `AuthRequiredError` + sign-out, 403 `ForbiddenError`, 404 `NotFoundError`, 409 `ConflictError`, 400/413/415/422 `ValidationError`, 429 `RateLimitError`; `lib/errors.ts` turns them into the toast text), `getAll` follows pagination.
 - `tokenStore.ts` JWT in Keychain/Keystore (`expo-secure-store`); the sign-in provider is stored too because Apple account deletion needs it.
 - `socialAuth.ts` native Sign in with Apple (`expo-apple-authentication`, iOS) and Google (`@react-native-google-signin/google-signin`, lazy-loaded).
 - `uploads.ts` `POST /uploads` (multipart `file`; React Native streams the picked URI, web sends a Blob). Returns the durable URL the other bodies take.
@@ -21,16 +21,20 @@ Copy `.env.example` to `.env`. Google/Apple sign-in need a **development build**
 ## What is connected
 | Area | Endpoints |
 |---|---|
-| Sign-in, session, sign-out, delete account | `POST /auth/apple\|google`, `GET /me` (cached for offline), `POST /auth/logout`, `POST /me` (fresh Apple code for revocation) |
+| Sign-in, session, sign-out, delete account | Google and Apple only (#14). `POST /auth/apple\|google` with `privacyVersion`, `GET /me` (cached for offline), `POST /auth/logout` with the device's `pushToken`, `POST /me` (fresh Apple code for revocation) |
+| Privacy consent (#18) | The notice (`config/legal.ts`, `PRIVACY_VERSION`) is accepted before the first sign-in and sent as `privacyVersion`; `/me` `privacyAccepted` / `privacyVersion` → asked again when missing or older, `POST /me/privacy-consent { version }`. An API without these fields asks nobody |
 | Profile (#42) | `GET /me`: `province`, `createdAt` (Miembro desde), `points`, `counts`. Picking a province (Bienvenida) → `PUT /me` `provinceId` (INEC 1-7, same order as `PROVINCES` in `mappers.ts`); if the account has none yet, the device's choice is sent on login |
 | Reputation (#42) | `GET /me/reputation` → level / next level / progress / `recent` (names and perk texts stay in `config/levels.ts`); `minorityModerator` is a `ReputationKind` |
 | Lists and detail | `GET /places`, `GET /events` (radius, `q`, `maxPrice` / `students` / `seniors` / `families` / `wheelchair` sent as a server-side pre-filter; the app re-applies its rules), `GET /places\|events/:id` (rating distribution, verification summary, `isFavorite`, `isMine`, gallery) |
 | Price, free-for, audiences, accessibility (#36) | read from every place/event; sent on suggestions. An unknown price (`null`) is shown as the "hasta ₡5.000" tier |
 | Events (#37) | own location or the place's (resolved `latitude`/`longitude`); no N+1; saveable (`PUT/DELETE /events/:id/favorite`); local reminders for saved events |
 | Saved | `GET /me/favorites` (places and events), `PUT/DELETE /places\|events/:id/favorite` |
-| Reviews (#38) | `GET /places\|events/:id/reviews` (`recientes` → `-createdAt`, `fotos` → `withPhotos` + `-photoCount`, `utiles` → `-usefulCount`, `audience`), `POST` (photos uploaded first), "útil" toggle `POST/DELETE /reviews/:id/useful` |
+| Reviews (#38) | `GET /places\|events/:id/reviews` (`recientes` → `-createdAt`, `fotos` → `withPhotos` + `-photoCount`, `utiles` → `-usefulCount`, `audience`), `POST` (photos uploaded first), own review `PUT` / `DELETE /reviews/:id` (#23), "útil" toggle `POST/DELETE /reviews/:id/useful` |
 | Verifications and reports (#39) | `POST /places\|events/:id/verifications` and `/reports`; guests send `X-Device-Id` (random id kept on the device); verifications answered offline are queued and sent when back online; a second report → `DuplicateReportError` |
-| Suggestions (#40, #41) | `POST /me/submissions` with price fields, photos (`POST /uploads`), the event's own location and the opening hours parsed from the form's text (`parseOpeningHours`; omitted when it cannot be read). An approved one opens the place/event it became (`created`). Rejections show `rejectionMessage` |
+| Suggestions (#40, #41, #57) | `POST /me/submissions` with price fields, accessibility, photos (`POST /uploads`, iOS asked for JPEG since HEIC is 415), the place's canton (picker from `GET /provinces?include=cantons`, bundled INEC list offline), the event's own location and the opening hours parsed from the form's text. Pending ones are edited with `PUT /me/submissions/:id` (409 → message). An approved one opens the place/event it became (`created`). Rejections show `rejectionMessage` |
+| Team decisions (#40) | MODERATOR / ADMIN: "Decidir como equipo" → `POST /submissions/:id/approve` or `/reject { reason, note? }` with the API's codes (`otro` needs a note) |
+| Block users (#17) | `POST /places\|events\|reviews/:id/author/block`, `GET /me/blocks`, `DELETE /me/blocks/:id`. **Not deployed in the API yet** (API issue "Block users"): until then blocking answers 404 and shows "no tiene una persona autora" |
+| Push (#22) | `POST /me/devices { platform, pushToken }` after sign-in (development build + `EAS_PROJECT_ID`), token sent on logout; taps open the plan; `PUT /me/notification-settings` when a switch changes (404 until the API has it) |
 | Community moderation (#43) | `GET /moderation/queue` (Nuevas + Reportadas, opened by level 3+ or team role; 403 → "locked" screen), `POST/DELETE /moderation/submissions\|places\|events/:id/vote` (Deshacer while pending; 409 after a decision → toast). Team roles see the entry at any level. Pending pins for moderators come from the queue |
 | Data export | assembled client-side from `/me`, `/me/favorites`, `/me/submissions`, `/me/reviews`, `/me/reputation` |
 
@@ -38,11 +42,12 @@ Copy `.env.example` to `.env`. Google/Apple sign-in need a **development build**
 | Area | App behaviour today | Where |
 |---|---|---|
 | Email sign-in | Hidden (product decision on API #35: Google/Apple only) | — |
-| Canton of a suggested place | The form collects a province; the app sends its central canton (`x01`). A canton picker (`GET /provinces?include=cantons`) is still to do | API #40 note |
 | Author's vote tally | `GET /me/submissions` has no votes, so "Mis vuelticas" shows 0 of N (N = 5, or 3 from level 3) until it is decided | API #43 |
-| Edit a pending suggestion | `PUT /me/submissions/:id` exists; the app has no edit screen yet | — |
 | Withdraw a published plan | `NotSupportedError` (no API route) | — |
-| Export, settings sync, push | Export assembled client-side; settings local; no push token registered (`POST /me/devices` exists, needs an EAS project id + FCM/APNs) | [API #44](https://github.com/MiVuelticaApp/mi-vueltica-api/issues/44) |
+| Export | Assembled client-side | — |
+| Report a review | No API route: "Reportar" on a review only confirms with a toast | — |
+| Blocks, privacy consent, notification settings | The app follows the contracts of the API issues; the endpoints are not deployed yet | API issues (moved to this repo as #6, #7, #10) |
+| Push delivery | The API registers devices but sends no pushes yet; the app needs an EAS project id, an APNs key and an FCM v1 service account in EAS | #10 / #24 |
 
 #42 (reputation) and #43 (community moderation) need the API's PRs #61 and #62 deployed. Against an older API, `GET /me/reputation` (404) falls back to the points on `/me` (or 0) and moderation calls fail.
 

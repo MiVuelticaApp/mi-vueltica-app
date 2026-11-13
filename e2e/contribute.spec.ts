@@ -213,7 +213,7 @@ test('N8 a pending suggestion can be edited from Mis vuelticas', async ({ page }
   await expect(page.getByTestId('contribute.type.lugar')).toHaveCount(0);
   await page.getByTestId('contribute.name').fill('Parque editado E2E');
   await page.getByTestId('contribute.submit').click();
-  await expect(page.getByTestId('mine.screen')).toBeVisible();
-  await expect(page.getByTestId(`mine.row.${id}`)).toContainText('Parque editado E2E');
+  await expect(page.getByTestId('mine.screen').filter({ visible: true })).toBeVisible();
+  await expect(page.getByTestId(`mine.row.${id}`).filter({ visible: true })).toContainText('Parque editado E2E');
 });
 
