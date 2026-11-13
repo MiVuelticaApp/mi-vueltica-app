@@ -3,7 +3,7 @@
  * `src/data/index.ts` picks one from `EXPO_PUBLIC_API_URL`.
  */
 import type {
-  Audience, BlockedUser, FreeFor, Filters, LatLng, MaxPrice, ModerationItem, PricePaid, Province, Report, ReportReason, ReputationSummary, Review, Saved,
+  Audience, BlockedUser, FreeFor, Filters, LatLng, MaxPrice, ModerationItem, MyReview, PricePaid, Province, Report, ReportReason, ReputationSummary, Review, Saved,
   Settings, SignInProvider, SortKey, SpentTier, StillHappening, User, VoteChoice, VuelticaType, VuelticaView, WentWith, ReputationEvent, RejectionCode,
 } from '@/domain/types';
 import type { Canton } from '@/domain/cantons';
@@ -246,6 +246,8 @@ export interface MiVuelticaApi {
   updateReview(reviewId: string, input: CreateReviewInput): Promise<Review>;
   /** Own reviews only (`DELETE /reviews/:id`). */
   deleteReview(reviewId: string): Promise<void>;
+  /** "Mis reseñas": the caller's reviews, newest first (`GET /me/reviews`, #23). */
+  myReviews(): Promise<MyReview[]>;
   moderationQueue(location: LatLng): Promise<ModerationQueue>;
   moderationCount(): Promise<number>;
   vote(input: { vuelticaId: string; choice: VoteChoice }): Promise<ModerationItem>;

@@ -53,8 +53,13 @@ function InfoRows({ v }: { v: VuelticaView }) {
   } else if (v.openingHours) {
     rows.push({ icon: 'clock', title: t.detail.openingHours, sub: v.openingHours, testID: 'detail.row.hours' });
   }
-  const [placeTitle, placeSub] = v.address.includes(' · ') ? v.address.split(' · ') : [v.address, v.province];
-  rows.push({ icon: 'pin', title: placeTitle, sub: placeSub, chevron: true, testID: 'detail.row.place', onPress: () => router.replace({ pathname: '/vueltica/[id]/como-llegar', params: { id: v.id } }) });
+  if (v.noLocation) {
+    // An event with neither a place nor its own point (#37): nothing to open in a maps app.
+    rows.push({ icon: 'pin', title: t.common.locationUnknown, sub: v.address || undefined, testID: 'detail.row.place' });
+  } else {
+    const [placeTitle, placeSub] = v.address.includes(' · ') ? v.address.split(' · ') : [v.address, v.province];
+    rows.push({ icon: 'pin', title: placeTitle, sub: placeSub, chevron: true, testID: 'detail.row.place', onPress: () => router.replace({ pathname: '/vueltica/[id]/como-llegar', params: { id: v.id } }) });
+  }
   rows.push({
     icon: 'ticket',
     title: v.priceTier === 'gratis' ? t.detail.freeEntry : v.priceUnknown ? t.common.priceUnknown : t.detail.perPerson(formatCRC(v.pricePerPerson)),
@@ -105,7 +110,7 @@ export default function Detalle() {
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const howToGet = async () => {
-    if (!v) return;
+    if (!v || v.noLocation) return;
     const pick = settings.directionsApp !== 'preguntar' ? settings.directionsApp : settings.rememberedDirections;
     if (pick && pick !== 'preguntar' && availableApps().includes(pick)) {
       const ok = await openDirections(pick, v);
@@ -148,7 +153,7 @@ export default function Detalle() {
           <Text testID="detail.title" variant="title" accessibilityRole="header" style={{ paddingRight: 56 }}>{v.name}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             {v.ratingCount > 0 ? <><Icon name="star" size={14} color="#f5a623" /><Text testID="detail.rating" variant="callout" color="labelSecondary">{`${formatRating(v.ratingAvg)} (${v.ratingCount}) · `}</Text></> : null}
-            <Text variant="callout" color="labelSecondary">{`${v.type === 'evento' ? t.common.event : v.category} · ${t.detail.away(formatDistance(v.distanceKm))}`}</Text>
+            <Text variant="callout" color="labelSecondary">{`${v.type === 'evento' ? t.common.event : v.category} · ${v.noLocation ? t.common.locationUnknown : t.detail.away(formatDistance(v.distanceKm))}`}</Text>
           </View>
         </View>
 
@@ -180,7 +185,7 @@ export default function Detalle() {
         </ScrollView>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 }}>
-          <Button testID="detail.directions" label={t.detail.howToGet} icon="directions" onPress={howToGet} style={{ flex: 1 }} full={false} />
+          <Button testID="detail.directions" label={t.detail.howToGet} icon="directions" onPress={howToGet} disabled={!!v.noLocation} style={{ flex: 1 }} full={false} />
           <Button testID="detail.save" label={d.saved ? t.detail.saved : t.detail.save} icon={d.saved ? 'bookmarkFilled' : 'bookmark'} variant="glass" onPress={save} disabled={offline} full={false} accessibilityLabel={d.saved ? t.card.unsave : t.detail.save} />
           <IconButton testID="detail.share" icon="share" label={t.detail.share} onPress={() => void shareVueltica(v.id, v.name)} />
         </View>

@@ -11,7 +11,8 @@ export function useClusters(items: VuelticaView[], pending: PendingView[], bound
   const index = useMemo(() => {
     const sc = new Supercluster<Props>({ radius: 56, maxZoom: 16, minPoints: 2 });
     sc.load(
-      items.map((v) => ({
+      // Events with no location (#37) have nowhere to go on the map; they are only listed.
+      items.filter((v) => !v.noLocation).map((v) => ({
         type: 'Feature' as const,
         properties: { id: v.id, pending: false },
         geometry: { type: 'Point' as const, coordinates: [v.lng, v.lat] },

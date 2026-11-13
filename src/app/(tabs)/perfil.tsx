@@ -96,6 +96,10 @@ export default function PerfilScreen() {
           {(mine.data ?? []).slice(0, 3).map((i) => <MyVuelticaRow key={i.vuelticaView.id} item={i} />)}
           {mine.data && mine.data.length === 0 ? <Text variant="callout" color="labelSecondary" style={{ paddingHorizontal: 32 }}>{t.empty.myVuelticas}</Text> : null}
         </View>
+        <View style={{ height: 8 }} />
+        <Group>
+          <Row testID="profile.myReviews" icon="star" iconBg="event" title={t.myReviews.title} chevron last onPress={() => router.push('/mis-resenas')} />
+        </Group>
 
         <SectionHeader title={t.profile.social} />
         <Group>

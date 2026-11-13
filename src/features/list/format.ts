@@ -1,5 +1,5 @@
 import type { VuelticaView } from '@/domain/types';
-import { formatCRC, formatEventShort } from '@/i18n/format';
+import { formatCRC, formatDistance, formatEventShort } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
 import { now } from '@/lib/clock';
 
@@ -13,6 +13,11 @@ export function scheduleLine(v: VuelticaView): string {
 /** "Parque · 1,2 km" */
 export function typeLine(v: VuelticaView, distance: string): string {
   return `${v.type === 'evento' ? t.common.event : v.category} · ${distance}`;
+}
+
+/** "1,2 km", or "Ubicación por confirmar" for an event with no location (#37). */
+export function distanceLabel(v: Pick<VuelticaView, 'distanceKm' | 'noLocation'>): string {
+  return v.noLocation || !Number.isFinite(v.distanceKm) ? t.common.locationUnknown : formatDistance(v.distanceKm);
 }
 
 export function daysSince(iso: string | undefined): number | null {

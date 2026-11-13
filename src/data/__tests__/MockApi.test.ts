@@ -159,6 +159,19 @@ describe('reviews', () => {
     const counts = r.items.map((i) => i.usefulCount);
     expect(counts).toEqual([...counts].sort((a, b) => b - a));
   });
+  it('lists my reviews with the plan name, newest first (#23)', async () => {
+    const api = make();
+    await expect(api.myReviews()).rejects.toBeInstanceOf(AuthRequiredError);
+    await api.signIn({ provider: 'apple' });
+    const before = (await api.myReviews()).length;
+    const r = await api.createReview({ vuelticaId: 'v-jade', stars: 4, wentWith: 'amigos', spent: 'nada', text: 'Bonito', photos: [] });
+    const mine = await api.myReviews();
+    expect(mine).toHaveLength(before + 1);
+    expect(mine[0]).toMatchObject({ review: { id: r.id, vuelticaId: 'v-jade' }, pending: false });
+    expect(mine[0].planName).toBeTruthy();
+    await api.deleteReview(r.id);
+    expect(await api.myReviews()).toHaveLength(before);
+  });
   it('toggles useful', async () => {
     const api = make();
     await api.signIn({ provider: 'apple' });

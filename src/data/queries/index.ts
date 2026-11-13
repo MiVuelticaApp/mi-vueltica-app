@@ -113,6 +113,12 @@ export function useMyVuelticas(enabled = true) {
   return useQuery({ queryKey: [...qk.mine, locKey(location), userId], queryFn: () => api.myVuelticas(location), enabled: enabled && !!userId, retry: false });
 }
 
+/** "Mis reseñas" (#23). Under `['reviews', …]`, so writing / editing / deleting a review refreshes it. */
+export function useMyReviews(enabled = true) {
+  const userId = useSession((s) => s.user?.id ?? null);
+  return useQuery({ queryKey: ['reviews', 'mine', userId], queryFn: () => api.myReviews(), enabled: enabled && !!userId, retry: false });
+}
+
 export function useReviews(p: ReviewListParams) {
   return useQuery({ queryKey: [...qk.reviews(p.vuelticaId), p.sort, p.audience ?? null], queryFn: () => api.listReviews(p), placeholderData: keepPreviousData, retry: false });
 }

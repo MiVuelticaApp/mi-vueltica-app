@@ -20,6 +20,9 @@ export interface Vueltica extends LatLng {
   category: string;
   description: string;
   photos: string[];
+  /** An event with neither a place nor its own point (#37 allows it). `lat`/`lng` then hold the viewer's location only
+   *  so nothing breaks; it is kept off the map, shown as "Ubicación por confirmar" and has no directions. */
+  noLocation?: boolean;
   address: string;
   province: Province;
   /** INEC canton id (see `domain/cantons.ts`). Places and place suggestions; events carry none. */
@@ -126,6 +129,15 @@ export interface Review {
   photos: string[];
   usefulCount: number;
   markedUsefulByMe: boolean;
+}
+
+/** One of the caller's own reviews, for "Mis reseñas" (`GET /me/reviews`, #23). */
+export interface MyReview {
+  review: Review;
+  /** The place's name or the event's title. */
+  planName: string;
+  /** Still waiting for moderation (only the author sees it). */
+  pending: boolean;
 }
 
 export type StillHappening = 'si' | 'no' | 'nose';
