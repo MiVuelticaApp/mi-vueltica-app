@@ -7,7 +7,7 @@ import { ModerationCard } from '@/components/ui/ModerationCard';
 import { ListSkeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
-import { ForbiddenError } from '@/data/api';
+import { ConflictError, ForbiddenError } from '@/data/api';
 import type { ModerationQueue } from '@/data/api';
 import { useModerationQueue, useReputation, useUndoVote, useVote } from '@/data/queries';
 import { useSession } from '@/state/session';
@@ -51,13 +51,18 @@ export default function Moderacion() {
   const reportadas = data ? merge(data.reportadas) : [];
 
   const onVote = (item: Item, choice: 'for' | 'against') =>
-    vote.mutate({ vuelticaId: item.vuelticaId, choice }, { onSuccess: () => setVoted((s) => ({ ...s, [item.vuelticaId]: { item, choice } })) });
+    vote.mutate(
+      { vuelticaId: item.vuelticaId, choice },
+      { onSuccess: () => setVoted((s) => ({ ...s, [item.vuelticaId]: { item, choice } })), onError: () => toast(t.moderation.voteFailed) },
+    );
   const onUndo = (id: string) =>
     undo.mutate(id, {
       onSuccess: () => {
         setVoted(({ [id]: _removed, ...rest }) => rest);
         toast(t.moderation.voteUndone);
       },
+      // The vote already decided it (published / rejected / hidden): the API keeps it (409).
+      onError: (e) => toast(e instanceof ConflictError ? t.moderation.undoDecided : t.moderation.voteFailed),
     });
   const card = (i: Item) => (
     <ModerationCard key={i.vuelticaId} item={i} voted={voted[i.vuelticaId]?.choice ?? i.myVote} onVote={(ch) => onVote(i, ch)} onUndo={() => onUndo(i.vuelticaId)} onOpen={() => router.push({ pathname: '/vueltica/[id]', params: { id: i.vuelticaId } })} />

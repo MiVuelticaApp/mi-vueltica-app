@@ -157,7 +157,8 @@ export interface ModerationItem {
   myVote?: VoteChoice;
 }
 
-export type ReputationKind = 'published' | 'verified' | 'reviewUseful' | 'moderationVote' | 'rejected' | 'reported';
+/** Same strings as mi-vueltica-api's `REPUTATION_KINDS` (`minorityModerator`: −2 for voting with the losing side). */
+export type ReputationKind = 'published' | 'verified' | 'reviewUseful' | 'moderationVote' | 'rejected' | 'reported' | 'minorityModerator';
 
 export interface ReputationEvent {
   id: string;
@@ -181,6 +182,8 @@ export interface ReputationSummary {
   pointsToNext: number;
   progress: number;
   recent: ReputationEvent[];
+  /** Whether the moderation entry is shown. Defaults to `canModerate(level)`; the API also opens it to team roles. */
+  canModerate?: boolean;
 }
 
 export type DateFilter = 'any' | 'hoy' | 'finDeSemana' | { from: string; to: string };

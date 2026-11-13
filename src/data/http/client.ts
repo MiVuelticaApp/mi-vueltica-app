@@ -10,6 +10,9 @@ export interface RequestOptions {
   /** Send the bearer token when there is one (default). `'required'` throws AuthRequiredError without a token. */
   auth?: boolean | 'required';
   reason?: AuthRequiredError['reason'];
+  headers?: Record<string, string>;
+  /** Multipart body (uploads). Sent as is; `fetch` sets the boundary. */
+  form?: FormData;
 }
 
 export class ApiError extends Error {
@@ -47,9 +50,9 @@ export class HttpClient {
     const token = opts.auth === false ? null : await tokenStore.get();
     if (opts.auth === 'required' && !token) throw new AuthRequiredError(opts.reason ?? 'save');
 
-    const headers: Record<string, string> = { Accept: 'application/json' };
+    const headers: Record<string, string> = { Accept: 'application/json', ...opts.headers };
     if (token) headers.Authorization = `Bearer ${token}`;
-    if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
+    if (opts.body !== undefined && !opts.form) headers['Content-Type'] = 'application/json';
 
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
@@ -58,7 +61,7 @@ export class HttpClient {
       res = await fetch(`${API_BASE}${path}${qs(opts.query)}`, {
         method,
         headers,
-        body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+        body: opts.form ?? (opts.body === undefined ? undefined : JSON.stringify(opts.body)),
         signal: ctrl.signal,
       });
     } catch {
@@ -91,6 +94,8 @@ export class HttpClient {
         throw new NotFoundError();
       case 409:
         throw new ConflictError(message);
+      case 413:
+      case 415:
       case 400:
       case 422:
         throw new ValidationError('', message);
