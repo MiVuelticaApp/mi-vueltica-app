@@ -364,6 +364,18 @@ describe('HttpApi', () => {
     expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual(['PUT /places/aaaa/favorite', 'PUT /events/e1/favorite']);
   });
 
+  it('Guardados leaves out hidden or unpublished plans (M5)', async () => {
+    const { api } = make();
+    mockMem.set('t', 'jwt');
+    routes['GET /categories'] = () => ({ body: CATS });
+    routes['GET /me'] = () => ({ body: { ...USER, interests: [] } });
+    routes['GET /me/favorites'] = () => ({ body: page([
+      { type: 'PLACE', place: PLACE, event: null, createdAt: '2026-10-01T00:00:00.000Z' },
+      { type: 'PLACE', place: { ...PLACE, id: 'bbbb', status: 'HIDDEN' }, event: null, createdAt: '2026-10-01T00:00:00.000Z' },
+    ]) });
+    expect((await api.listSaved(LOC)).map((s) => s.vuelticaView.id)).toEqual(['p-aaaa']);
+  });
+
   it('reviews: lists with the app sorts, creates, and toggles "útil"', async () => {
     const { api } = make();
     mockMem.set('t', 'jwt');

@@ -446,7 +446,7 @@ export class MockApi implements MiVuelticaApi {
     if (res.hide && v.status === 'publicada') {
       v.status = 'oculta';
       v.reportedAt = clockNow().toISOString();
-      v.hiddenReason = 'En revisión por reportes';
+      v.hiddenReason = t.reasons.underReview;
     }
   }
 
@@ -590,7 +590,7 @@ export class MockApi implements MiVuelticaApi {
         }
       } else if (d === 'reject' && v.status !== 'rechazada') {
         v.status = 'rechazada';
-        v.rejectionReason = 'La comunidad no la aprobó';
+        v.rejectionReason = t.reasons.communityRejected;
         if (v.authorId && !this.db.notified.includes(`rej:${v.id}`)) {
           this.db.notified.push(`rej:${v.id}`);
           this.addPoints(v.authorId, 'rejected');
@@ -602,7 +602,7 @@ export class MockApi implements MiVuelticaApi {
       const d = decideReported(item);
       if (d === 'hide') {
         v.status = 'oculta';
-        v.hiddenReason = 'Ocultada por moderación';
+        v.hiddenReason = t.reasons.hiddenByModeration;
         if (v.authorId && !this.db.notified.includes(`hid:${v.id}`)) {
           this.db.notified.push(`hid:${v.id}`);
           this.addPoints(v.authorId, 'reported');

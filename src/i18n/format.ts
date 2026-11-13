@@ -1,5 +1,13 @@
 /** Locale formatting for es-CR. Hand-written: Intl gives "₡5 000" instead of "₡5.000". */
 
+/**
+ * Dates and times are shown in Costa Rica time (America/Costa_Rica, UTC−6 all year, no daylight saving), whatever
+ * the device's time zone: a traveller sees the event's real hours (review m17). `cr(d)` is a Date whose UTC fields are
+ * the Costa Rica wall-clock fields.
+ */
+const CR_OFFSET_MS = -6 * 3600_000;
+const cr = (d: Date) => new Date(d.getTime() + CR_OFFSET_MS);
+
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -10,31 +18,31 @@ export function formatCRC(amount: number): string {
 }
 
 export function formatDistance(km: number): string {
-  if (km < 1) return `${Math.round(km * 1000 / 10) * 10} m`;
+  const m = Math.round((km * 1000) / 10) * 10;
+  if (m < 1000) return `${m} m`;
   return `${km.toFixed(1).replace('.', ',')} km`;
 }
 
-export function formatLongDate(d: Date): string {
-  return `${DAYS[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
+export function formatLongDate(date: Date): string {
+  const d = cr(date);
+  return `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} de ${MONTHS[d.getUTCMonth()]}`;
 }
 
-export function formatShortDate(d: Date): string {
-  const s = `${DAYS[d.getDay()].slice(0, 3)} ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)}`;
-  return s;
+export function formatShortDate(date: Date): string {
+  const d = cr(date);
+  return `${DAYS[d.getUTCDay()].slice(0, 3)} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()].slice(0, 3)}`;
 }
 
-export function formatDayMonth(d: Date): string {
-  return `${d.getDate()} de ${MONTHS[d.getMonth()]}`;
-}
-
-export function formatMonthYear(d: Date): string {
-  return `${MONTHS[d.getMonth()]} de ${d.getFullYear()}`;
+export function formatDayMonth(date: Date): string {
+  const d = cr(date);
+  return `${d.getUTCDate()} de ${MONTHS[d.getUTCMonth()]}`;
 }
 
 /** "6:00 p.m." */
-export function formatTime(d: Date): string {
-  const h = d.getHours();
-  const m = d.getMinutes();
+export function formatTime(date: Date): string {
+  const d = cr(date);
+  const h = d.getUTCHours();
+  const m = d.getUTCMinutes();
   const suffix = h >= 12 ? 'p.m.' : 'a.m.';
   const h12 = h % 12 === 0 ? 12 : h % 12;
   return `${h12}:${String(m).padStart(2, '0')} ${suffix}`;
@@ -43,12 +51,13 @@ export function formatTime(d: Date): string {
 /** "6–10 p.m." or "11:00 a.m.–2:00 p.m." */
 export function formatTimeRange(start: Date, end?: Date): string {
   if (!end) return formatTime(start);
-  const sSuffix = start.getHours() >= 12 ? 'p.m.' : 'a.m.';
-  const eSuffix = end.getHours() >= 12 ? 'p.m.' : 'a.m.';
-  const simple = start.getMinutes() === 0 && end.getMinutes() === 0;
+  const [s, e] = [cr(start), cr(end)];
+  const sSuffix = s.getUTCHours() >= 12 ? 'p.m.' : 'a.m.';
+  const eSuffix = e.getUTCHours() >= 12 ? 'p.m.' : 'a.m.';
+  const simple = s.getUTCMinutes() === 0 && e.getUTCMinutes() === 0;
   if (simple && sSuffix === eSuffix) {
-    const h = (x: Date) => (x.getHours() % 12 === 0 ? 12 : x.getHours() % 12);
-    return `${h(start)}–${h(end)} ${eSuffix}`;
+    const h = (x: Date) => (x.getUTCHours() % 12 === 0 ? 12 : x.getUTCHours() % 12);
+    return `${h(s)}–${h(e)} ${eSuffix}`;
   }
   return `${formatTime(start)}–${formatTime(end)}`;
 }
@@ -104,9 +113,8 @@ export function formatRelative(iso: string, now: Date): string {
   return formatDayMonth(new Date(iso));
 }
 
-/** Calendar days from `from` to `to` (0 = same day). */
+/** Calendar days from `from` to `to` in Costa Rica (0 = same day). */
 export function daysUntil(to: Date, from: Date): number {
-  const a = new Date(from.getFullYear(), from.getMonth(), from.getDate()).getTime();
-  const b = new Date(to.getFullYear(), to.getMonth(), to.getDate()).getTime();
-  return Math.round((b - a) / 86400000);
+  const day = (x: Date) => Math.floor(cr(x).getTime() / 86400000);
+  return day(to) - day(from);
 }

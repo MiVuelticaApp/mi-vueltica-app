@@ -27,7 +27,9 @@ void SplashScreen.preventAutoHideAsync().catch(() => {});
 export const unstable_settings = { initialRouteName: '(tabs)' };
 
 function Navigator() {
-  const { c, dark } = useAppTheme();
+  const { c, dark, reduceMotion } = useAppTheme();
+  // "Reducir movimiento" (Ajustes or the OS setting, NFR-11): no push / fade / slide animations.
+  const anim = <T extends string>(a: T) => (reduceMotion ? ('none' as const) : a);
   const onboarded = useSession((s) => s.onboarded);
   const base = dark ? DarkTheme : DefaultTheme;
   const theme = { ...base, colors: { ...base.colors, background: c.groupedBackground, card: c.groupedBackground, text: c.onSurface, primary: c.primary, border: c.separator } };
@@ -35,24 +37,27 @@ function Navigator() {
     <ThemeProvider value={theme}>
       <StatusBar style={dark ? 'light' : 'dark'} />
       <Bootstrap />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.groupedBackground } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.groupedBackground }, ...(reduceMotion ? { animation: 'none' as const } : null) }}>
         <Stack.Protected guard={!onboarded}>
           <Stack.Screen name="bienvenida" options={{ gestureEnabled: false }} />
         </Stack.Protected>
         <Stack.Protected guard={onboarded}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="__kit" />
-          <Stack.Screen name="buscar" options={{ animation: 'fade' }} />
-          <Stack.Screen name="vueltica/[id]/index" options={sheetOptions([0.5, 1])} />
+          {/* Component kit: development builds only (review m14). */}
+          <Stack.Protected guard={__DEV__ || process.env.EXPO_PUBLIC_E2E === '1'}>
+            <Stack.Screen name="__kit" />
+          </Stack.Protected>
+          <Stack.Screen name="buscar" options={{ animation: anim('fade') }} />
+          <Stack.Screen name="vueltica/[id]/index" options={sheetOptions([0.5, 1], 0, 0)} />
           <Stack.Screen name="vueltica/[id]/resenas" options={{ headerShown: true, title: t.reviews.title, headerBackTitle: t.common.back, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
-          <Stack.Screen name="vueltica/[id]/escribir-resena" options={Platform.OS === 'android' ? { presentation: 'fullScreenModal', animation: 'slide_from_bottom' } : sheetOptions([1])} />
+          <Stack.Screen name="vueltica/[id]/escribir-resena" options={Platform.OS === 'android' ? { presentation: 'fullScreenModal', animation: anim('slide_from_bottom') } : sheetOptions([1])} />
           <Stack.Screen name="vueltica/[id]/verificar" options={sheetOptions([0.5, 1])} />
           <Stack.Screen name="vueltica/[id]/reportar" options={sheetOptions([0.5, 1])} />
           <Stack.Screen name="vueltica/[id]/decidir" options={sheetOptions([1])} />
           <Stack.Screen name="vueltica/[id]/como-llegar" options={sheetOptions([0.5])} />
           <Stack.Screen name="filtros" options={sheetOptions([1])} />
           <Stack.Screen name="elegir-ubicacion" options={sheetOptions([1])} />
-          <Stack.Screen name="login" options={{ presentation: Platform.OS === 'web' ? 'card' : 'fullScreenModal', animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="login" options={{ presentation: Platform.OS === 'web' ? 'card' : 'fullScreenModal', animation: anim('slide_from_bottom') }} />
           <Stack.Screen name="vueltica-enviada/[id]" options={{ gestureEnabled: false }} />
           <Stack.Screen name="mis-vuelticas" options={{ headerShown: true, title: t.mine.title, headerBackTitle: t.profile.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
           <Stack.Screen name="moderacion" options={{ headerShown: true, title: t.moderation.title, headerBackTitle: t.profile.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />

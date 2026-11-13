@@ -433,7 +433,8 @@ export class HttpApi implements MiVuelticaApi {
     const out: SavedItem[] = [];
     for (const f of await this.favorites()) {
       const view = f.event ? eventToView(f.event, cats, location) : f.place ? placeToView(f.place, cats, location) : null;
-      if (!view) continue;
+      // Hidden or unpublished plans would open "No encontramos este plan" (review M5): the API filters them too.
+      if (!view || view.status !== 'publicada') continue;
       out.push({ vuelticaView: { ...view, saved: true }, saved: { userId: me.id, vueltica: view.id, savedAt: f.createdAt, reminderOffsetDays: offset } });
     }
     return out;

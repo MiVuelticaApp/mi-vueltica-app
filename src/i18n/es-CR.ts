@@ -9,7 +9,7 @@ export const t = {
     cancel: 'Cancelar', close: 'Cerrar', retry: 'Reintentar', done: 'Listo', clear: 'Limpiar', save: 'Guardar', saved: 'Guardado',
     share: 'Compartir', back: 'Atrás', ok: 'Aceptar', understood: 'Entendido', change: 'Cambiar', send: 'Enviar', publish: 'Publicar',
     optional: 'Opcional', choose: 'Elegir…', photoAdded: '1 foto agregada', notifDenied: 'Activá las notificaciones en los ajustes del sistema para recibir recordatorios', yes: 'Sí', no: 'No', today: 'Hoy', delete: 'Eliminar', confirm: 'Confirmar', loading: 'Cargando…',
-    seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', selectedSuffix: ', seleccionado', free: 'Gratis', anonymous: 'Anónimo', community: 'Comunidad', km: 'km',
+    seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', selectedSuffix: ', seleccionado', event: 'Evento', place: 'Lugar', free: 'Gratis', anonymous: 'Anónimo', community: 'Comunidad', km: 'km',
     updateRequired: 'Hay una versión nueva de MiVueltica. Actualizá la app para seguir usándola sin problemas.',
     notSupported: 'Esta función todavía no está disponible. Estamos trabajando en ella.',
     errorTitle: 'Algo salió mal', errorBody: 'No pudimos cargar esta información. Probá de nuevo.',
@@ -31,7 +31,7 @@ export const t = {
     students: 'Estudiantes', seniors: 'Ciudadanos de oro', nearMe: 'Cerca de mí',
     resultsCard: (n: number, free: number) => ({ title: `${n} planes de hasta ${c(5000)}`, subtitle: `${free} gratis` }),
     resultsCardFiltered: (n: number, free: number, label: string) => ({ title: `${n} ${n === 1 ? 'plan' : 'planes'} ${label}`, subtitle: `${free} gratis` }),
-    forFree: 'gratis', forAccessible: 'accesibles', upTo: (p: string) => `de hasta ${p}`,
+    forFree: 'gratis', forAccessible: 'accesibles', upTo: (p: string) => `de hasta ${p}`, nearby: 'Planes más cercanos',
     forStudents: 'para estudiantes', forSeniors: 'para ciudadanos de oro', forFamilies: 'para familias',
     locate: 'Mi ubicación', account: 'Perfil', accountA11y: 'Abrir tu perfil', cluster: (n: number) => `${n} planes agrupados`,
     pinPlace: (name: string) => `Lugar: ${name}`, pinEvent: (name: string) => `Evento: ${name}`, pinPending: (name: string) => `Pendiente: ${name}`,
@@ -94,6 +94,8 @@ export const t = {
     description: 'Descripción', hours: 'Horario', openingHours: 'Horario de apertura', pending: 'Pendiente de aprobación', hidden: 'Oculta', rejected: 'No publicada',
     verifiedBy: 'Verificada por la comunidad', priceConditions: 'Precio y condiciones', perks: 'Beneficios', accessibility: 'Accesibilidad',
     copied: 'Enlace copiado', shareMessage: (name: string, url: string) => `${name} en MiVueltica: ${url}`,
+    preferential: 'Fila preferencial presentando carné', perPerson: (p: string) => `${p} por persona`, limitedSpots: 'cupo limitado',
+    freeFor: (who: ('estudiantes' | 'ciudadanosOro')[]) => `Gratis para ${who.map((x) => (x === 'estudiantes' ? 'estudiantes' : 'ciudadanos de oro')).join(' y ')}`,
     notFound: 'No encontramos este plan', stillThere: 'Sigue igual', alreadyVerified: 'Ya verificaste este plan hoy', thanks: 'Verificación enviada · +2 puntos', thanksGuest: 'Gracias por verificar',
   },
   privacy: {
@@ -232,6 +234,8 @@ export const t = {
     mapNeeds: 'El mapa necesita internet', mapBody: 'Tus guardados y la última lista siguen disponibles. Las verificaciones se envían al reconectar.',
     needsNetwork: 'Necesita conexión', stillOffline: 'Seguís sin conexión', queued: 'Verificación guardada. Se envía al reconectar',
   },
+  /** Reasons the demo backend (MockApi) and the shared rules write on a plan. */
+  reasons: { gone: 'Ya no existe', underReview: 'En revisión por reportes', hiddenByModeration: 'Ocultada por moderación', communityRejected: 'La comunidad no la aprobó' },
   rules: {
     title: 'Normas de la comunidad', draft: 'BORRADOR',
     body: ['Aportá solo actividades gratis o de hasta ₡5.000 por persona y abiertas al público.', 'Verificá con honestidad: tu reputación depende de la precisión.', 'Respetá a las demás personas: no se permite contenido inapropiado ni publicidad.', 'Los reportes son anónimos; usalos con criterio.'],

@@ -40,7 +40,7 @@ function audienceLines(v: VuelticaView): { title: string; sub: string } {
   if (v.audiences.includes('familias')) names.push(t.contribute.families);
   if (names.length === 0) return { title: t.contribute.everyone, sub: '' };
   const title = names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names[names.length - 1].toLowerCase()}` : names[0];
-  return { title, sub: v.freeFor.length > 0 ? 'Fila preferencial presentando carné' : t.contribute.everyone };
+  return { title, sub: v.freeFor.length > 0 ? t.detail.preferential : t.contribute.everyone };
 }
 
 function InfoRows({ v }: { v: VuelticaView }) {
@@ -57,8 +57,8 @@ function InfoRows({ v }: { v: VuelticaView }) {
   rows.push({ icon: 'pin', title: placeTitle, sub: placeSub, chevron: true, testID: 'detail.row.place', onPress: () => router.replace({ pathname: '/vueltica/[id]/como-llegar', params: { id: v.id } }) });
   rows.push({
     icon: 'ticket',
-    title: v.priceTier === 'gratis' ? t.detail.freeEntry : `${formatCRC(v.pricePerPerson)} por persona`,
-    sub: v.priceTier === 'gratis' ? (v.type === 'evento' ? `${t.detail.noReservation} · cupo limitado` : t.detail.noReservation) : v.freeFor.length ? `Gratis para ${v.freeFor.map((x) => (x === 'estudiantes' ? 'estudiantes' : 'ciudadanos de oro')).join(' y ')}` : undefined,
+    title: v.priceTier === 'gratis' ? t.detail.freeEntry : t.detail.perPerson(formatCRC(v.pricePerPerson)),
+    sub: v.priceTier === 'gratis' ? (v.type === 'evento' ? `${t.detail.noReservation} · ${t.detail.limitedSpots}` : t.detail.noReservation) : v.freeFor.length ? t.detail.freeFor(v.freeFor) : undefined,
     testID: 'detail.row.price',
   });
   const aud = audienceLines(v);
@@ -141,7 +141,7 @@ export default function Detalle() {
           <Text testID="detail.title" variant="title" accessibilityRole="header" style={{ paddingRight: 56 }}>{v.name}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             {v.ratingCount > 0 ? <><Icon name="star" size={14} color="#f5a623" /><Text testID="detail.rating" variant="callout" color="labelSecondary">{`${formatRating(v.ratingAvg)} (${v.ratingCount}) · `}</Text></> : null}
-            <Text variant="callout" color="labelSecondary">{`${v.type === 'evento' ? 'Evento' : v.category} · ${t.detail.away(formatDistance(v.distanceKm))}`}</Text>
+            <Text variant="callout" color="labelSecondary">{`${v.type === 'evento' ? t.common.event : v.category} · ${t.detail.away(formatDistance(v.distanceKm))}`}</Text>
           </View>
         </View>
 
