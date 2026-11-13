@@ -11,7 +11,7 @@ const MAP = {
   search: 'magnify', filter: 'tune-variant', locate: 'navigation-variant-outline', bench: 'table-furniture', ticket: 'ticket-confirmation-outline', check: 'check',
   close: 'close', chevronRight: 'chevron-right', chevronLeft: 'chevron-left', chevronDown: 'chevron-down', calendar: 'calendar-blank-outline', pin: 'map-marker-outline',
   share: 'export-variant', directions: 'directions', star: 'star', starOutline: 'star-outline', info: 'information-outline', clock: 'clock-outline', school: 'school-outline',
-  medal: 'medal-outline', people: 'account-multiple-outline', wheelchair: 'wheelchair-accessibility', camera: 'camera-outline', flag: 'flag-outline', thumb: 'thumb-up-outline',
+  medal: 'medal-outline', people: 'account-multiple-outline', wheelchair: 'wheelchair-accessibility', camera: 'camera-outline', flag: 'flag-outline', block: 'account-cancel-outline', thumb: 'thumb-up-outline',
   mail: 'email-outline', apple: 'apple', google: 'google', settings: 'cog-outline', trash: 'trash-can-outline', download: 'download-outline', bell: 'bell-outline',
   image: 'image-outline', alert: 'alert-circle-outline', wifiOff: 'wifi-off', undo: 'undo', moon: 'weather-night', lock: 'lock-outline', plus: 'plus', minus: 'minus',
   heart: 'heart-outline', museum: 'bank-outline', park: 'tree-outline', arrowLeft: 'arrow-left', verified: 'check-decagram-outline', shield: 'shield-check-outline',

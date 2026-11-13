@@ -1,12 +1,13 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { DEFAULT_LOCATION, PROVINCE_CENTERS } from '@/domain/geo';
-import type { Filters, LatLng, SortKey, VuelticaView } from '@/domain/types';
+import type { Filters, LatLng, Province, SortKey, VuelticaView } from '@/domain/types';
 import { useSession } from '@/state/session';
 import { useSettings } from '@/state/settings';
+import { queryClient, queryPersister } from '@/lib/queryClient';
 import { api } from '..';
 import type {
-  CreateReviewInput, CreateVuelticaInput, ReportInput, ReviewListParams, SimulateInput, VerifyInput, VuelticaDetail,
+  CreateReviewInput, CreateVuelticaInput, DecideInput, ReportInput, ReviewListParams, SimulateInput, VerifyInput, VuelticaDetail,
 } from '../api';
 
 /** Effective location: GPS if allowed, else the chosen province's center, else downtown San José. */
@@ -135,7 +136,7 @@ export function useReputation() {
 /** Everything that depends on server state; used after any write. */
 export function useInvalidateAll() {
   const qc = useQueryClient();
-  return () => Promise.all([qc.invalidateQueries({ queryKey: qk.list }), qc.invalidateQueries({ queryKey: ['detail'] }), qc.invalidateQueries({ queryKey: qk.saved }), qc.invalidateQueries({ queryKey: qk.mine }), qc.invalidateQueries({ queryKey: qk.moderation }), qc.invalidateQueries({ queryKey: qk.reputation }), qc.invalidateQueries({ queryKey: ['reviews'] }), qc.invalidateQueries({ queryKey: qk.recent })]);
+  return () => Promise.all([qc.invalidateQueries({ queryKey: qk.list }), qc.invalidateQueries({ queryKey: ['detail'] }), qc.invalidateQueries({ queryKey: qk.saved }), qc.invalidateQueries({ queryKey: qk.mine }), qc.invalidateQueries({ queryKey: qk.moderation }), qc.invalidateQueries({ queryKey: qk.reputation }), qc.invalidateQueries({ queryKey: ['reviews'] }), qc.invalidateQueries({ queryKey: qk.recent }), qc.invalidateQueries({ queryKey: ['blocks'] })]);
 }
 
 function useRefreshUser() {
@@ -162,10 +163,50 @@ export function useReport() {
   return useMutation({ mutationFn: (i: ReportInput) => api.report(i), onSuccess: () => invalidate() });
 }
 
+export function useCantons(province: Province) {
+  return useQuery({ queryKey: ['cantons', province], queryFn: () => api.listCantons(province), staleTime: Infinity, gcTime: Infinity });
+}
+
+export function useUpdateVueltica() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: ({ id, input }: { id: string; input: CreateVuelticaInput }) => api.updateVueltica(id, input), onSuccess: () => invalidate() });
+}
+
+export function useDecideSubmission() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: (i: DecideInput) => api.decideSubmission(i), onSuccess: () => invalidate() });
+}
+
+export function useBlocks() {
+  const userId = useSession((s) => s.user?.id ?? null);
+  return useQuery({ queryKey: ['blocks', userId], queryFn: () => api.listBlocks(), enabled: !!userId, retry: false });
+}
+
+export function useBlockAuthor() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: (target: { kind: 'vueltica' | 'review'; id: string }) => api.blockAuthor(target), onSuccess: () => invalidate() });
+}
+
+export function useUnblock() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: (id: string) => api.unblock(id), onSuccess: () => invalidate() });
+}
+
 export function useCreateVueltica() {
   const invalidate = useInvalidateAll();
   const refresh = useRefreshUser();
   return useMutation({ mutationFn: (i: CreateVuelticaInput) => api.createVueltica(i), onSuccess: async () => { await refresh(); await invalidate(); } });
+}
+
+export function useUpdateReview() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: ({ id, input }: { id: string; input: CreateReviewInput }) => api.updateReview(id, input), onSuccess: () => invalidate() });
+}
+
+export function useDeleteReview() {
+  const invalidate = useInvalidateAll();
+  const refresh = useRefreshUser();
+  return useMutation({ mutationFn: (id: string) => api.deleteReview(id), onSuccess: async () => { await refresh(); await invalidate(); } });
 }
 
 export function useCreateReview() {
@@ -209,19 +250,33 @@ export function useSignIn() {
   const setUser = useSession((s) => s.setUser);
   const invalidate = useInvalidateAll();
   return useMutation({
-    mutationFn: (i: { provider: 'apple' | 'google' | 'email'; email?: string }) => api.signIn(i),
+    mutationFn: (i: { provider: 'apple' | 'google'; privacyVersion?: string }) => api.signIn(i),
     onSuccess: async (u) => { setUser(u); await invalidate(); },
   });
+}
+
+/**
+ * Signing out or deleting the account drops the persisted query cache: it holds account data (own pending plans,
+ * saved items, moderation info) that must not stay on the device (review m8, NFR-16).
+ */
+async function forgetCachedData() {
+  queryClient.clear();
+  try {
+    await queryPersister.removeClient();
+  } catch {
+    /* nothing persisted */
+  }
 }
 
 export function useSignOut() {
   const setUser = useSession((s) => s.setUser);
   const invalidate = useInvalidateAll();
-  return useMutation({ mutationFn: () => api.signOut(), onSuccess: async () => { setUser(null); await invalidate(); } });
+  return useMutation({ mutationFn: () => api.signOut(), onSuccess: async () => { setUser(null); await forgetCachedData(); await invalidate(); } });
 }
 
 export function useDeleteAccount() {
   const setUser = useSession((s) => s.setUser);
   const invalidate = useInvalidateAll();
-  return useMutation({ mutationFn: () => api.deleteAccount(), onSuccess: async () => { setUser(null); await invalidate(); } });
+  // Deleting the account is how consent is revoked (Ley 8968): the next account is asked again.
+  return useMutation({ mutationFn: () => api.deleteAccount(), onSuccess: async () => { setUser(null); useSession.getState().setPrivacyAccepted(null); await forgetCachedData(); await invalidate(); } });
 }

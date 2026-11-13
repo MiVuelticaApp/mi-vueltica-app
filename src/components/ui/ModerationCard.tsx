@@ -1,7 +1,8 @@
 import { View } from 'react-native';
 import { Icon } from '@/components/icons/Icon';
 import type { ModerationQueue } from '@/data/api';
-import { formatCRC, formatEventShort, formatRelative } from '@/i18n/format';
+import { priceLabel } from '@/features/list/format';
+import { formatEventShort, formatRelative } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
 import { now } from '@/lib/clock';
 import { useAppTheme } from '@/theme/useAppTheme';
@@ -13,13 +14,14 @@ import { Text } from './Text';
 type Item = ModerationQueue['nuevas'][number];
 
 /** Figma "Moderation Card": new (Rechazar / Aprobar) and reported (Sigue igual / Ocultar vueltica) variants. */
-export function ModerationCard({ item, voted, onVote, onUndo, onOpen }: { item: Item; voted?: 'for' | 'against'; onVote: (c: 'for' | 'against') => void; onUndo: () => void; onOpen: () => void }) {
+/** `onDecide` (team roles, new suggestions only) adds "Decidir como equipo": publish or reject with a reason code. */
+export function ModerationCard({ item, voted, onVote, onUndo, onOpen, onDecide }: { item: Item; voted?: 'for' | 'against'; onVote: (c: 'for' | 'against') => void; onUndo: () => void; onOpen: () => void; onDecide?: () => void }) {
   const { c } = useAppTheme();
   const v = item.vuelticaView;
   const isNew = item.kind === 'nueva';
   const total = item.votesFor + item.votesAgainst;
   const progress = Math.min(1, total / Math.max(1, item.votesNeeded));
-  const meta = [v.type === 'evento' ? 'Evento' : 'Lugar', v.address.split(',')[0].split(' · ')[0], v.startAt ? formatEventShort(v.startAt).split(' · ')[0] : null, v.priceTier === 'gratis' ? 'Gratis' : formatCRC(v.pricePerPerson)].filter(Boolean).join(' · ');
+  const meta = [v.type === 'evento' ? t.common.event : t.common.place, v.address.split(',')[0].split(' · ')[0], v.startAt ? formatEventShort(v.startAt).split(' · ')[0] : null, v.priceTier === 'gratis' ? t.common.free : priceLabel(v)].filter(Boolean).join(' · ');
   const ago = (iso?: string) => (iso ? formatRelative(iso, now()) : '');
   return (
     <View testID={`mod.card.${v.id}`} style={{ marginHorizontal: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: c.lineStrong, backgroundColor: c.surface, gap: 12 }}>
@@ -61,6 +63,11 @@ export function ModerationCard({ item, voted, onVote, onUndo, onOpen }: { item: 
           <Button testID={`mod.for.${v.id}`} label={isNew ? t.moderation.approve : t.moderation.hide} full={false} style={{ flex: 1 }} size="compact" onPress={() => onVote('for')} />
         </View>
       )}
+      {isNew && onDecide ? (
+        <Tap testID={`mod.decide.${v.id}`} label={t.moderation.decide.open} onPress={onDecide} style={{ alignSelf: 'flex-start', minHeight: 32, justifyContent: 'center' }}>
+          <Text variant="callout" bold color="primary">{t.moderation.decide.open}</Text>
+        </Tap>
+      ) : null}
     </View>
   );
 }

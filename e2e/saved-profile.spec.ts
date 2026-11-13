@@ -1,4 +1,4 @@
-import { expect, test, tab, start, startSignedIn, openMap, simulate } from './helpers';
+import { expect, test, tab, start, startSignedIn, openMap, simulate, signInWith } from './helpers';
 
 test('G1 Guardados: groups, segmented control and unsave', async ({ page }) => {
   await startSignedIn(page);
@@ -26,7 +26,7 @@ test('G1b signed-out Guardados invites to sign in and returns after login', asyn
   await tab(page, 'saved').click();
   await expect(page.getByTestId('saved.signedOut')).toBeVisible();
   await page.getByTestId('saved.signIn').click();
-  await page.getByTestId('login.apple').click();
+  await signInWith(page, 'apple');
   await expect(page.getByTestId('saved.screen')).toBeVisible();
 });
 

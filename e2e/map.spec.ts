@@ -1,4 +1,4 @@
-import { expect, test, tab, start, startSignedIn, openMap } from './helpers';
+import { expect, test, tab, start, startSignedIn, openMap, signInWith } from './helpers';
 
 test('E1 first launch -> welcome -> "Permitir ubicación" -> map with user location', async ({ page }) => {
   await page.goto('/');
@@ -86,7 +86,7 @@ test('M6 Pendiente pins: none for guests; own pending + moderation queue for a l
   await expect(page.locator('[data-testid^="map.pin.pending."]')).toHaveCount(0);
   await tab(page, 'profile').click();
   await page.getByTestId('profile.signIn').click();
-  await page.getByTestId('login.apple').click();
+  await signInWith(page, 'apple');
   await expect(page.getByTestId('profile.levelBadge')).toBeVisible();
   await openMap(page);
   // Ana is the author of "Feria de emprendedores UCR" and a moderator (queue items show as Pendiente too)
@@ -112,7 +112,7 @@ test('M7 account button opens Perfil', async ({ page }) => {
   await expect(page).toHaveURL(/\/perfil$/);
   await expect(page.getByTestId('profile.signedOut')).toBeVisible(); // guest
   await page.getByTestId('profile.signIn').click();
-  await page.getByTestId('login.apple').click();
+  await signInWith(page, 'apple');
   await openMap(page);
   await page.getByTestId('map.account').click();
   await expect(page.getByTestId('profile.screen')).toBeVisible(); // signed in

@@ -16,12 +16,14 @@ import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
 import { useToggleSave, useVerify, useVuelticaDetail } from '@/data/queries';
 import { useRequireAuth } from '@/features/auth/useRequireAuth';
-import { daysSince } from '@/features/list/format';
+import { daysSince, priceLabel } from '@/features/list/format';
 import { useReviewActions } from '@/features/detail/useReviewActions';
 import { needsReview } from '@/domain/rules';
 import type { VuelticaView } from '@/domain/types';
 import { daysUntil, formatCRC, formatDistance, formatLongDate, formatRating, formatRelative, formatTime } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
+import { errorMessage } from '@/lib/errors';
+import { hasPersonAuthor, useBlock } from '@/features/blocks/useBlock';
 import { availableApps, openDirections } from '@/lib/directions';
 import { now } from '@/lib/clock';
 import { shareVueltica } from '@/lib/share';
@@ -38,7 +40,7 @@ function audienceLines(v: VuelticaView): { title: string; sub: string } {
   if (v.audiences.includes('familias')) names.push(t.contribute.families);
   if (names.length === 0) return { title: t.contribute.everyone, sub: '' };
   const title = names.length > 1 ? `${names.slice(0, -1).join(', ')} y ${names[names.length - 1].toLowerCase()}` : names[0];
-  return { title, sub: v.freeFor.length > 0 ? 'Fila preferencial presentando carné' : t.contribute.everyone };
+  return { title, sub: v.freeFor.length > 0 ? t.detail.preferential : t.contribute.everyone };
 }
 
 function InfoRows({ v }: { v: VuelticaView }) {
@@ -55,8 +57,8 @@ function InfoRows({ v }: { v: VuelticaView }) {
   rows.push({ icon: 'pin', title: placeTitle, sub: placeSub, chevron: true, testID: 'detail.row.place', onPress: () => router.replace({ pathname: '/vueltica/[id]/como-llegar', params: { id: v.id } }) });
   rows.push({
     icon: 'ticket',
-    title: v.priceTier === 'gratis' ? t.detail.freeEntry : `${formatCRC(v.pricePerPerson)} por persona`,
-    sub: v.priceTier === 'gratis' ? (v.type === 'evento' ? `${t.detail.noReservation} · cupo limitado` : t.detail.noReservation) : v.freeFor.length ? `Gratis para ${v.freeFor.map((x) => (x === 'estudiantes' ? 'estudiantes' : 'ciudadanos de oro')).join(' y ')}` : undefined,
+    title: v.priceTier === 'gratis' ? t.detail.freeEntry : v.priceUnknown ? t.common.priceUnknown : t.detail.perPerson(formatCRC(v.pricePerPerson)),
+    sub: v.priceTier === 'gratis' ? (v.type === 'evento' ? `${t.detail.noReservation} · ${t.detail.limitedSpots}` : t.detail.noReservation) : v.freeFor.length ? t.detail.freeFor(v.freeFor) : undefined,
     testID: 'detail.row.price',
   });
   const aud = audienceLines(v);
@@ -81,6 +83,7 @@ export default function Detalle() {
   const toggle = useToggleSave();
   const verify = useVerify();
   const rev = useReviewActions(`/vueltica/${id}`);
+  const block = useBlock(`/vueltica/${id}`);
   const settings = useSettings((s) => s.settings);
   const offline = useIsOffline();
   const d = q.data;
@@ -92,6 +95,13 @@ export default function Detalle() {
       if (useMapSelection.getState().id === id) useMapSelection.getState().set(null);
     };
   }, [id]);
+
+  // An approved suggestion (`s-…`) loads as the place / event it became: switch the route to that id so every action
+  // below (save, verify, report, reviews, block) targets the published plan.
+  const resolvedId = v?.id;
+  useEffect(() => {
+    if (resolvedId && resolvedId !== id) router.setParams({ id: resolvedId });
+  }, [resolvedId, id]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const howToGet = async () => {
@@ -107,11 +117,11 @@ export default function Detalle() {
   const save = () => {
     if (!v) return;
     requireAuth('save', { kind: 'save', id }, { next: `/vueltica/${id}`, replace: true }, () =>
-      toggle.mutate({ id, saved: !!d?.saved }, { onSuccess: () => toast(d?.saved ? t.saved.removedToast : t.saved.savedToast, { label: t.common.undo, run: () => toggle.mutate({ id, saved: !d?.saved }) }) }),
+      toggle.mutate({ id, saved: !!d?.saved }, { onSuccess: () => toast(d?.saved ? t.saved.removedToast : t.saved.savedToast, { label: t.common.undo, run: () => toggle.mutate({ id, saved: !d?.saved }) }), onError: (e) => toast(errorMessage(e)) }),
     );
   };
   const confirm = () =>
-    verify.mutate({ vuelticaId: id, stillHappening: 'si' }, { onSuccess: (r) => toast(r.queued ? t.offline.queued : r.points > 0 ? t.detail.thanks : t.detail.thanksGuest) });
+    verify.mutate({ vuelticaId: id, stillHappening: 'si' }, { onSuccess: (r) => toast(r.queued ? t.offline.queued : r.points > 0 ? t.detail.thanks : t.detail.thanksGuest), onError: (e) => toast(errorMessage(e)) });
 
   let body;
   if (q.isPending) {
@@ -138,7 +148,7 @@ export default function Detalle() {
           <Text testID="detail.title" variant="title" accessibilityRole="header" style={{ paddingRight: 56 }}>{v.name}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             {v.ratingCount > 0 ? <><Icon name="star" size={14} color="#f5a623" /><Text testID="detail.rating" variant="callout" color="labelSecondary">{`${formatRating(v.ratingAvg)} (${v.ratingCount}) · `}</Text></> : null}
-            <Text variant="callout" color="labelSecondary">{`${v.type === 'evento' ? 'Evento' : v.category} · ${t.detail.away(formatDistance(v.distanceKm))}`}</Text>
+            <Text variant="callout" color="labelSecondary">{`${v.type === 'evento' ? t.common.event : v.category} · ${t.detail.away(formatDistance(v.distanceKm))}`}</Text>
           </View>
         </View>
 
@@ -154,7 +164,7 @@ export default function Detalle() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
           {v.type === 'evento' ? <Badge kind="event" label={t.card.event} /> : null}
-          {v.priceTier === 'gratis' ? <Badge kind="free" label={t.card.free} /> : <Badge kind="price" label={formatCRC(v.pricePerPerson)} icon={null} />}
+          {v.priceTier === 'gratis' ? <Badge kind="free" label={t.card.free} /> : <Badge kind="price" label={priceLabel(v)} icon={null} />}
           {studentElig ? <Badge kind="student" label={t.card.students} /> : null}
           {seniorElig ? <Badge kind="senior" label={t.card.seniors} /> : null}
           {v.audiences.includes('familias') ? <Badge kind="family" label={t.card.families} /> : null}
@@ -196,6 +206,9 @@ export default function Detalle() {
             {`${t.detail.community(v.authorName, d.community.verifiedBy)} · ${t.detail.updated(formatRelative(d.community.updatedAt, now()))}`}
           </Text>
           <Button testID="detail.report" label={t.detail.report} variant="text" icon="flag" disabled={offline} full={false} style={{ alignSelf: 'flex-start' }} onPress={() => router.replace({ pathname: '/vueltica/[id]/reportar', params: { id } })} />
+          {!d.mine && hasPersonAuthor(v) ? (
+            <Button testID="detail.block" label={t.blocks.action} variant="text" icon="block" disabled={offline} full={false} style={{ alignSelf: 'flex-start' }} onPress={() => block({ kind: 'vueltica', id }, v.authorName, () => (router.canGoBack() ? router.back() : router.replace('/')))} />
+          ) : null}
         </View>
 
         {v.status === 'publicada' ? (
@@ -208,7 +221,7 @@ export default function Detalle() {
             </View>
             {d.reviewsPreview.length === 0 ? <Text variant="callout" color="labelSecondary" style={{ paddingHorizontal: 16 }}>{t.detail.noReviews}</Text> : null}
             {d.reviewsPreview.map((r) => (
-              <ReviewItem key={r.id} review={r} onUseful={() => rev.useful(r)} onReport={rev.report} />
+              <ReviewItem key={r.id} review={r} mine={rev.isMine(r)} onUseful={() => rev.useful(r)} onReport={rev.report} onEdit={() => rev.edit(r)} onDelete={() => void rev.remove(r)} onBlock={() => rev.block(r)} />
             ))}
           </View>
         ) : null}

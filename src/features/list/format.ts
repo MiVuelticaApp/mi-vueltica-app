@@ -12,7 +12,7 @@ export function scheduleLine(v: VuelticaView): string {
 
 /** "Parque · 1,2 km" */
 export function typeLine(v: VuelticaView, distance: string): string {
-  return `${v.type === 'evento' ? 'Evento' : v.category} · ${distance}`;
+  return `${v.type === 'evento' ? t.common.event : v.category} · ${distance}`;
 }
 
 export function daysSince(iso: string | undefined): number | null {
@@ -24,10 +24,15 @@ export function daysSince(iso: string | undefined): number | null {
   return Math.round((sb - sa) / 86400000);
 }
 
+/** The price to show for a paid plan: the amount, or "Precio por confirmar" when the API has none (`null`). */
+export function priceLabel(v: Pick<VuelticaView, 'pricePerPerson' | 'priceUnknown'>): string {
+  return v.priceUnknown ? t.common.priceUnknown : formatCRC(v.pricePerPerson);
+}
+
 export function priceBadge(v: VuelticaView): string | null {
   if (v.priceTier === 'gratis') return null;
   const sundays = /Gratis los domingos/i.test(v.openingHours ?? '');
-  return `${formatCRC(v.pricePerPerson)}${sundays ? ' · domingos gratis' : ''}`;
+  return `${priceLabel(v)}${sundays ? ' · domingos gratis' : ''}`;
 }
 
 export const stale = (v: VuelticaView) => {

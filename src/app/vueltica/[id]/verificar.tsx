@@ -17,6 +17,7 @@ import { canVerifyPrice, levelForPoints } from '@/domain/rules';
 import type { PricePaid, StillHappening } from '@/domain/types';
 import { formatTime } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
+import { errorMessage } from '@/lib/errors';
 import { now } from '@/lib/clock';
 import { pickPhotos } from '@/lib/photos';
 import { useSession } from '@/state/session';
@@ -47,6 +48,7 @@ export default function Verificar() {
           toast(r.queued ? t.offline.queued : user ? t.verify.sent : t.verify.sentGuest);
           closeSheet();
         },
+        onError: (e) => toast(errorMessage(e)),
       },
     );
 
@@ -89,7 +91,8 @@ export default function Verificar() {
             </Group>
           </View>
         ) : null}
-        <View style={{ marginTop: 16 }}>
+        {/* The API only takes a photo from signed-in people (uploads need a token), so guests are not offered one. */}
+        {user ? <View style={{ marginTop: 16 }}>
           <Group>
             <Tap testID="verify.photo" label={t.verify.photo} onPress={async () => { const [p] = await pickPhotos(1); if (p) setPhoto(p); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
               <Icon name="camera" size={22} color="primary" />
@@ -99,7 +102,7 @@ export default function Verificar() {
               </View>
             </Tap>
           </Group>
-        </View>
+        </View> : null}
         <Text variant="caption" color="labelSecondary" style={{ paddingHorizontal: 32, paddingTop: 12, lineHeight: 18 }}>{t.verify.footer}</Text>
       </ScrollView>
       {isAndroid ? (

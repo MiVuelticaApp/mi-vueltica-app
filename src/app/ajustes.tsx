@@ -18,7 +18,7 @@ import type { MaxPrice, SettingsDirections } from '@/domain/types';
 import { ReminderPicker } from '@/features/saved/ReminderPicker';
 import { formatCRC } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
-import { ensureNotificationPermission } from '@/lib/notifications';
+import { ensureNotificationPermission, registerForPush } from '@/lib/notifications';
 import { requestAndLocate } from '@/lib/location';
 import { availableApps } from '@/lib/directions';
 import { useNetwork } from '@/state/network';
@@ -81,6 +81,14 @@ export default function Ajustes() {
     }
     if (exported.uri && (await Sharing.isAvailableAsync())) await Sharing.shareAsync(exported.uri, { mimeType: 'application/json' });
     else await ClipboardApi.setStringAsync(exported.content);
+    // Personal data must not stay in the cache once it was handed over (review m8).
+    if (exported.uri) {
+      try {
+        new File(exported.uri).delete();
+      } catch {
+        /* already gone */
+      }
+    }
   };
   const remove = async () => {
     const ok = await confirmDialog({ title: t.settings.deleteTitle, message: t.settings.deleteBody, confirmLabel: t.settings.deleteConfirm, destructive: true });
@@ -128,6 +136,7 @@ export default function Ajustes() {
       <Group>
         <Row testID="settings.location" title={t.settings.location} value={s.locationPermission === 'granted' ? t.settings.whileUsing : s.locationPermission === 'denied' ? t.settings.denied : t.settings.whileUsing} chevron onPress={async () => { if (s.locationPermission !== 'granted') { const r = await requestAndLocate(); if (r === 'denied') void Linking.openSettings().catch(() => {}); } else void Linking.openSettings().catch(() => {}); }} />
         <Row testID="settings.export" title={t.settings.download} chevron last={!user} onPress={() => (user ? void exportData() : router.push({ pathname: '/login', params: { next: '/ajustes' } }))} />
+        {user ? <Row testID="settings.blocks" title={t.blocks.title} chevron last onPress={() => router.push('/bloqueados')} /> : null}
       </Group>
       {user ? (
         <>
@@ -159,7 +168,7 @@ export default function Ajustes() {
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: c.primaryContainer, alignItems: 'center', justifyContent: 'center' }}><Icon name="bell" size={30} color="onPrimaryContainer" /></View>
             <Text variant="title" align="center">{t.settings.promptHeadline}</Text>
             <Text variant="body" color="labelSecondary" align="center" style={{ lineHeight: 22 }}>{t.settings.promptBody}</Text>
-            <Button testID="settings.promptAccept" label={t.settings.promptAccept} onPress={async () => { setDlg(null); const ok = await ensureNotificationPermission(); update({ notifyReminders: ok });
+            <Button testID="settings.promptAccept" label={t.settings.promptAccept} onPress={async () => { setDlg(null); const ok = await ensureNotificationPermission(); update({ notifyReminders: ok }); if (ok) void registerForPush();
               if (!ok) toast(t.common.notifDenied); }} />
             <Button label={t.settings.promptLater} variant="text" onPress={() => setDlg(null)} />
           </View>

@@ -10,6 +10,7 @@ import type { Province } from '@/domain/types';
 import { t } from '@/i18n/es-CR';
 import { requestAndLocate } from '@/lib/location';
 import { useSession } from '@/state/session';
+import { useSettings } from '@/state/settings';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 /** 08 Bienvenida y ubicación: explain location use, ask permission, or pick a province / skip (FR-2.x). */
@@ -21,6 +22,8 @@ export default function Bienvenida() {
 
   const finish = (province: Province | null) => {
     useSession.getState().setProvince(province);
+    // Settings carry it to the account (`PUT /me` provinceId) when signed in.
+    if (province) useSettings.getState().update({ province });
     useSession.getState().setOnboarded(true);
     router.replace('/');
   };

@@ -33,11 +33,6 @@ export function confirmDialog(o: ConfirmOptions): Promise<boolean> {
   return new Promise((resolve) => useDialog.getState().set({ ...o, resolve }));
 }
 
-/** Info-only dialog with a single OK button. */
-export function infoDialog(title: string, message: string, ok = t.common.ok): Promise<void> {
-  return confirmDialog({ title, message, confirmLabel: ok, cancelLabel: undefined }).then(() => undefined);
-}
-
 export function DialogHost() {
   const { c } = useAppTheme();
   const open = useDialog((s) => s.open);

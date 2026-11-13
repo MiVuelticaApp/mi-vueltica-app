@@ -29,25 +29,6 @@ export interface Bounds {
   west: number;
 }
 
-/** Bounding box (degrees) that contains a radius around a center. */
-export function boundsAround(c: LatLng, km: number): Bounds {
-  const dLat = km / 111.32;
-  const dLng = km / (111.32 * Math.cos(toRad(c.lat)));
-  return { north: c.lat + dLat, south: c.lat - dLat, east: c.lng + dLng, west: c.lng - dLng };
-}
-
-/** Equirectangular projection of a coordinate into a w×h box covering `b`. */
-export function project(p: LatLng, b: Bounds, w: number, h: number): { x: number; y: number } {
-  return {
-    x: ((p.lng - b.west) / (b.east - b.west)) * w,
-    y: ((b.north - p.lat) / (b.north - b.south)) * h,
-  };
-}
-
-export function unproject(x: number, y: number, b: Bounds, w: number, h: number): LatLng {
-  return { lng: b.west + (x / w) * (b.east - b.west), lat: b.north - (y / h) * (b.north - b.south) };
-}
-
 /** Zoom level ↔ degrees span helper (web-mercator-ish) for supercluster. */
 export function zoomForLatDelta(latDelta: number): number {
   return Math.max(0, Math.min(20, Math.round(Math.log2(360 / Math.max(latDelta, 1e-6)))));
