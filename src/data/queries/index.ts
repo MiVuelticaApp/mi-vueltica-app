@@ -182,6 +182,17 @@ export function useCreateVueltica() {
   return useMutation({ mutationFn: (i: CreateVuelticaInput) => api.createVueltica(i), onSuccess: async () => { await refresh(); await invalidate(); } });
 }
 
+export function useUpdateReview() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: ({ id, input }: { id: string; input: CreateReviewInput }) => api.updateReview(id, input), onSuccess: () => invalidate() });
+}
+
+export function useDeleteReview() {
+  const invalidate = useInvalidateAll();
+  const refresh = useRefreshUser();
+  return useMutation({ mutationFn: (id: string) => api.deleteReview(id), onSuccess: async () => { await refresh(); await invalidate(); } });
+}
+
 export function useCreateReview() {
   const invalidate = useInvalidateAll();
   const refresh = useRefreshUser();

@@ -16,6 +16,7 @@ import { useReport, useVuelticaDetail } from '@/data/queries';
 import { DuplicateReportError } from '@/data/api';
 import type { ReportReason } from '@/domain/types';
 import { t } from '@/i18n/es-CR';
+import { errorMessage } from '@/lib/errors';
 import { pickPhotos } from '@/lib/photos';
 import { useIsOffline } from '@/state/network';
 import { useAppTheme } from '@/theme/useAppTheme';
@@ -43,7 +44,7 @@ export default function Reportar() {
           closeSheet();
         },
         onError: (e) => {
-          toast(e instanceof DuplicateReportError ? t.report.dupe : t.common.errorBody);
+          toast(errorMessage(e));
           if (e instanceof DuplicateReportError) closeSheet();
         },
       },

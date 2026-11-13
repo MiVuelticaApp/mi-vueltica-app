@@ -17,6 +17,7 @@ import { canVerifyPrice, levelForPoints } from '@/domain/rules';
 import type { PricePaid, StillHappening } from '@/domain/types';
 import { formatTime } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
+import { errorMessage } from '@/lib/errors';
 import { now } from '@/lib/clock';
 import { pickPhotos } from '@/lib/photos';
 import { useSession } from '@/state/session';
@@ -47,6 +48,7 @@ export default function Verificar() {
           toast(r.queued ? t.offline.queued : user ? t.verify.sent : t.verify.sentGuest);
           closeSheet();
         },
+        onError: (e) => toast(errorMessage(e)),
       },
     );
 

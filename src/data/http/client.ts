@@ -1,4 +1,4 @@
-import { AuthRequiredError, ConflictError, ForbiddenError, NotFoundError, OfflineError, ValidationError } from '../api';
+import { AuthRequiredError, ConflictError, ForbiddenError, NotFoundError, OfflineError, RateLimitError, ValidationError } from '../api';
 import { API_BASE, REQUEST_TIMEOUT_MS } from './config';
 import { tokenStore } from './tokenStore';
 
@@ -94,6 +94,8 @@ export class HttpClient {
         throw new NotFoundError();
       case 409:
         throw new ConflictError(message);
+      case 429:
+        throw new RateLimitError();
       case 413:
       case 415:
       case 400:

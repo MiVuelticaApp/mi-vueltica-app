@@ -369,6 +369,19 @@ describe('HttpApi', () => {
     expect(r).toMatchObject({ id: 'r2', stars: 5 });
   });
 
+  it('reviews (#23): edits with PUT and deletes the caller\'s review', async () => {
+    const { api } = make();
+    mockMem.set('t', 'jwt');
+    routes['GET /me'] = () => ({ body: { ...USER, interests: [] } });
+    routes['PUT /reviews/r1'] = (_u, init) => ({ body: { ...REVIEW, ...JSON.parse(String(init.body)) } });
+    routes['DELETE /reviews/r1'] = () => ({ status: 204 });
+    const r = await api.updateReview('r1', { vuelticaId: 'p-aaaa', stars: 5, wentWith: 'pareja', spent: 'nada', text: ' Mejor ', photos: [] });
+    expect(calls.find((c) => c.method === 'PUT')!.body).toEqual({ rating: 5, comment: 'Mejor', wentWith: 'pareja', spent: 'nada', photos: [] });
+    expect(r).toMatchObject({ stars: 5, text: 'Mejor' });
+    await api.deleteReview('r1');
+    expect(calls.some((c) => c.method === 'DELETE' && c.path === '/reviews/r1')).toBe(true);
+  });
+
   it('verifications: guests send X-Device-Id, offline answers are queued and flushed later', async () => {
     const { api } = make();
     const seen: (string | undefined)[] = [];

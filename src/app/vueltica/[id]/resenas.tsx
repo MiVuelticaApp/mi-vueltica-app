@@ -88,7 +88,7 @@ export default function Resenas() {
         ListHeaderComponent={header}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         contentContainerStyle={{ paddingTop: 8, paddingBottom: 48 }}
-        renderItem={({ item }) => <ReviewItem review={item} onUseful={() => rev.useful(item)} onReport={rev.report} />}
+        renderItem={({ item }) => <ReviewItem review={item} mine={rev.isMine(item)} onUseful={() => rev.useful(item)} onReport={rev.report} onEdit={() => rev.edit(item)} onDelete={() => void rev.remove(item)} />}
         ListEmptyComponent={q.isPending ? <ListSkeleton count={3} /> : q.isError ? <EmptyState icon="alert" title={t.common.errorTitle} body={t.common.errorBody}><Button label={t.common.retry} onPress={() => void q.refetch()} /></EmptyState> : <EmptyState testID="reviews.empty" icon="star" title={t.empty.reviews} body={t.empty.reviewsBody} />}
       />
     </View>

@@ -22,6 +22,7 @@ import { needsReview } from '@/domain/rules';
 import type { VuelticaView } from '@/domain/types';
 import { daysUntil, formatCRC, formatDistance, formatLongDate, formatRating, formatRelative, formatTime } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
+import { errorMessage } from '@/lib/errors';
 import { availableApps, openDirections } from '@/lib/directions';
 import { now } from '@/lib/clock';
 import { shareVueltica } from '@/lib/share';
@@ -107,11 +108,11 @@ export default function Detalle() {
   const save = () => {
     if (!v) return;
     requireAuth('save', { kind: 'save', id }, { next: `/vueltica/${id}`, replace: true }, () =>
-      toggle.mutate({ id, saved: !!d?.saved }, { onSuccess: () => toast(d?.saved ? t.saved.removedToast : t.saved.savedToast, { label: t.common.undo, run: () => toggle.mutate({ id, saved: !d?.saved }) }) }),
+      toggle.mutate({ id, saved: !!d?.saved }, { onSuccess: () => toast(d?.saved ? t.saved.removedToast : t.saved.savedToast, { label: t.common.undo, run: () => toggle.mutate({ id, saved: !d?.saved }) }), onError: (e) => toast(errorMessage(e)) }),
     );
   };
   const confirm = () =>
-    verify.mutate({ vuelticaId: id, stillHappening: 'si' }, { onSuccess: (r) => toast(r.queued ? t.offline.queued : r.points > 0 ? t.detail.thanks : t.detail.thanksGuest) });
+    verify.mutate({ vuelticaId: id, stillHappening: 'si' }, { onSuccess: (r) => toast(r.queued ? t.offline.queued : r.points > 0 ? t.detail.thanks : t.detail.thanksGuest), onError: (e) => toast(errorMessage(e)) });
 
   let body;
   if (q.isPending) {
@@ -208,7 +209,7 @@ export default function Detalle() {
             </View>
             {d.reviewsPreview.length === 0 ? <Text variant="callout" color="labelSecondary" style={{ paddingHorizontal: 16 }}>{t.detail.noReviews}</Text> : null}
             {d.reviewsPreview.map((r) => (
-              <ReviewItem key={r.id} review={r} onUseful={() => rev.useful(r)} onReport={rev.report} />
+              <ReviewItem key={r.id} review={r} mine={rev.isMine(r)} onUseful={() => rev.useful(r)} onReport={rev.report} onEdit={() => rev.edit(r)} onDelete={() => void rev.remove(r)} />
             ))}
           </View>
         ) : null}

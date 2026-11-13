@@ -59,6 +59,13 @@ export class ValidationError extends Error {
     this.name = 'ValidationError';
   }
 }
+/** 429: the API's per-person / per-IP rate limit (reports 10 / 15 min, verifications 30 / 15 min, uploads 60 / 15 min). */
+export class RateLimitError extends Error {
+  constructor() {
+    super('rate-limited');
+    this.name = 'RateLimitError';
+  }
+}
 export class DuplicateReportError extends Error {
   constructor() {
     super('duplicate-report');
@@ -233,6 +240,10 @@ export interface MiVuelticaApi {
   listReviews(p: ReviewListParams): Promise<ReviewList>;
   createReview(input: CreateReviewInput): Promise<Review>;
   markUseful(reviewId: string): Promise<Review>;
+  /** Own reviews only (`PUT /reviews/:id`). */
+  updateReview(reviewId: string, input: CreateReviewInput): Promise<Review>;
+  /** Own reviews only (`DELETE /reviews/:id`). */
+  deleteReview(reviewId: string): Promise<void>;
   moderationQueue(location: LatLng): Promise<ModerationQueue>;
   moderationCount(): Promise<number>;
   vote(input: { vuelticaId: string; choice: VoteChoice }): Promise<ModerationItem>;
