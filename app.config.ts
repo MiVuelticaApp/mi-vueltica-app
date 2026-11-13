@@ -81,6 +81,8 @@ const config: ExpoConfig = {
     'expo-font',
   ],
   experiments: { typedRoutes: true },
+  // Push (#22): getExpoPushTokenAsync needs the EAS project id. Set EAS_PROJECT_ID (from `eas init`) when building.
+  ...(process.env.EAS_PROJECT_ID ? { extra: { eas: { projectId: process.env.EAS_PROJECT_ID } } } : null),
 };
 
 export default config;
