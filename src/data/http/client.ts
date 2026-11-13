@@ -13,6 +13,8 @@ export interface RequestOptions {
   headers?: Record<string, string>;
   /** Multipart body (uploads). Sent as is; `fetch` sets the boundary. */
   form?: FormData;
+  /** Overrides `REQUEST_TIMEOUT_MS` (uploads need longer). */
+  timeoutMs?: number;
 }
 
 export class ApiError extends Error {
@@ -55,7 +57,7 @@ export class HttpClient {
     if (opts.body !== undefined && !opts.form) headers['Content-Type'] = 'application/json';
 
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+    const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs ?? REQUEST_TIMEOUT_MS);
     let res: Response;
     try {
       res = await fetch(`${API_BASE}${path}${qs(opts.query)}`, {

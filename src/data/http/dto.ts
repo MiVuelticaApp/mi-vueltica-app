@@ -221,6 +221,9 @@ export interface ReviewDto {
   status: ContentStatus;
   createdAt: string;
   author: { id: string | null; name: string; initials: string };
+  /** The reviewed plan (exactly one is set); used by "Mis reseñas". */
+  place?: { id: string; name: string } | null;
+  event?: { id: string; title: string } | null;
 }
 export interface ReviewListDto {
   data: ReviewDto[];

@@ -22,6 +22,11 @@ export function haversineKm(a: LatLng, b: LatLng): number {
   return 2 * R * Math.asin(Math.sqrt(s));
 }
 
+/** Distance from `from` to a plan; `Infinity` for an event with no location, so it sorts last and is never "near". */
+export function distanceTo(from: LatLng, v: LatLng & { noLocation?: boolean }): number {
+  return v.noLocation ? Infinity : haversineKm(from, v);
+}
+
 export interface Bounds {
   north: number;
   south: number;

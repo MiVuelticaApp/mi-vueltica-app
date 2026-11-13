@@ -4,7 +4,7 @@ import type { ColorTokens } from '@/theme/tokens';
 import { useAppTheme } from '@/theme/useAppTheme';
 import { Text } from './Text';
 
-export type BadgeKind = 'free' | 'event' | 'place' | 'student' | 'senior' | 'verified' | 'stale' | 'price' | 'family' | 'pending' | 'danger' | 'info';
+export type BadgeKind = 'free' | 'event' | 'place' | 'student' | 'senior' | 'verified' | 'stale' | 'price' | 'family' | 'access' | 'pending' | 'danger' | 'info';
 
 const KINDS: Record<BadgeKind, { fg: keyof ColorTokens; bg: keyof ColorTokens; icon?: IconName }> = {
   free: { fg: 'free', bg: 'freeContainer', icon: 'check' },
@@ -16,6 +16,7 @@ const KINDS: Record<BadgeKind, { fg: keyof ColorTokens; bg: keyof ColorTokens; i
   stale: { fg: 'stale', bg: 'staleContainer', icon: 'clock' },
   price: { fg: 'onPriceContainer', bg: 'priceContainer' },
   family: { fg: 'onPriceContainer', bg: 'priceContainer', icon: 'people' },
+  access: { fg: 'onPrimaryContainer', bg: 'primaryContainer', icon: 'wheelchair' },
   pending: { fg: 'stale', bg: 'staleContainer', icon: 'clock' },
   danger: { fg: 'danger', bg: 'priceContainer', icon: 'alert' },
   info: { fg: 'onPrimaryContainer', bg: 'primaryContainer', icon: 'info' },

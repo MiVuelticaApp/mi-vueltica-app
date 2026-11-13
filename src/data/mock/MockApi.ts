@@ -6,7 +6,7 @@ import {
   outcomeOfVerifications, pointsFor, reportsHide, reputationFor, tierForPrice, voteWeight, votesNeeded, isMinorityVote,
 } from '@/domain/rules';
 import type {
-  BlockedUser, LatLng, ModerationItem, ModerationKind, Province, Report, Review, Saved, Settings, User, Verification, Vueltica, VuelticaView, ReputationKind, ReputationEvent,
+  BlockedUser, LatLng, ModerationItem, ModerationKind, MyReview, Province, Report, Review, Saved, Settings, User, Verification, Vueltica, VuelticaView, ReputationKind, ReputationEvent,
 } from '@/domain/types';
 import { now as clockNow } from '@/lib/clock';
 import { formatTime, initialsOf } from '@/i18n/format';
@@ -526,6 +526,16 @@ export class MockApi implements MiVuelticaApi {
       const v = this.db.vuelticas.find((x) => x.id === r.vuelticaId);
       if (v) this.moveRating(v, r.stars, 0);
       me.counts.reviews = Math.max(0, me.counts.reviews - 1);
+    });
+  }
+
+  myReviews(): Promise<MyReview[]> {
+    return this.read(() => {
+      const me = this.requireMe('review');
+      return this.db.reviews
+        .filter((r) => r.authorId === me.id)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map((r) => ({ review: r, planName: this.db.vuelticas.find((v) => v.id === r.vuelticaId)?.name ?? '', pending: false }));
     });
   }
 

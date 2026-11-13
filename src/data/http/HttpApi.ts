@@ -1,9 +1,9 @@
 import { cantonsOf, type Canton } from '@/domain/cantons';
 import { applyFilters, dateRange, sortVuelticas, summarize } from '@/domain/filters';
-import { haversineKm } from '@/domain/geo';
+import { distanceTo } from '@/domain/geo';
 import { levelForPoints, reputationFor, votesNeeded, tierRank } from '@/domain/rules';
 import type {
-  BlockedUser, Filters, LatLng, MaxPrice, ModerationItem, Province, Report, Review, Settings, SignInProvider, User, VuelticaView,
+  BlockedUser, Filters, LatLng, MaxPrice, ModerationItem, MyReview, Province, Report, Review, Settings, SignInProvider, User, VuelticaView,
 } from '@/domain/types';
 import { now as clockNow } from '@/lib/clock';
 import { t } from '@/i18n/es-CR';
@@ -175,8 +175,8 @@ export class HttpApi implements MiVuelticaApi {
       from: range?.from.toISOString(),
       to: range?.to.toISOString(),
     });
-    // Events without any location (allowed by #37) cannot be placed on the map.
-    return rows.map((e) => eventToView(e, cats, loc)).filter((v): v is VuelticaView => !!v);
+    // Events without any location (allowed by #37) are kept with `noLocation`: listed, but never pinned on the map.
+    return rows.map((e) => eventToView(e, cats, loc));
   }
 
   private async pendingPins(loc: LatLng, cats: Map<number, string>): Promise<ListResult['pending']> {
@@ -244,7 +244,6 @@ export class HttpApi implements MiVuelticaApi {
         this.reviewsPreview(kind, uuid),
       ]);
       const view = kind === 'p' ? placeToView(dto as PlaceDetailDto, cats, location) : eventToView(dto as EventDetailDto, cats, location);
-      if (!view) throw new NotFoundError();
       if (view.status === 'publicada') void this.remember(view);
       const queued = this.queued.get(id);
       return {
@@ -308,7 +307,7 @@ export class HttpApi implements MiVuelticaApi {
 
   async recentlyViewed(location: LatLng): Promise<VuelticaView[]> {
     const list = (await this.readJson<VuelticaView[]>(KV_RECENT)) ?? [];
-    return list.map((v) => ({ ...v, distanceKm: haversineKm(location, v) }));
+    return list.map((v) => ({ ...v, distanceKm: distanceTo(location, v) }));
   }
 
   /* ---------------------------------------------------------- contributions */
@@ -572,6 +571,16 @@ export class HttpApi implements MiVuelticaApi {
     await this.requireUser('review');
     await this.http.del(`/reviews/${reviewId}`, { auth: 'required', reason: 'review' });
     this.reviews.delete(reviewId);
+  }
+
+  /** "Mis reseñas" (#23): `GET /me/reviews`, published and pending, with the plan's name; newest first. */
+  async myReviews(): Promise<MyReview[]> {
+    await this.requireUser('review');
+    const rows = await this.http.getAll<ReviewDto>('/me/reviews', {}, { auth: 'required', reason: 'review' });
+    rows.forEach((r) => this.reviews.set(r.id, r));
+    return rows
+      .map((r) => ({ review: reviewFromApi(r), planName: r.place?.name ?? r.event?.title ?? '', pending: r.status === 'PENDING' }))
+      .sort((a, b) => b.review.createdAt.localeCompare(a.review.createdAt));
   }
 
   /** Toggles "útil" (the app's button is a toggle). */
