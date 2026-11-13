@@ -5,7 +5,8 @@ export type Audience = 'todo' | 'familias' | 'estudiantes' | 'ciudadanosOro';
 export type FreeFor = 'estudiantes' | 'ciudadanosOro';
 export type VuelticaStatus = 'pendiente' | 'publicada' | 'rechazada' | 'oculta';
 export type Province = 'San José' | 'Alajuela' | 'Cartago' | 'Heredia' | 'Guanacaste' | 'Puntarenas' | 'Limón';
-export type SignInProvider = 'apple' | 'google' | 'email';
+/** Google and Apple only (product decision on API #35, 2026-11-08: no email sign-in). */
+export type SignInProvider = 'apple' | 'google';
 
 export interface LatLng {
   lat: number;
@@ -39,7 +40,6 @@ export interface Vueltica extends LatLng {
   verificationCount: number;
   ratingAvg: number;
   ratingCount: number;
-  views: number;
   rejectionReason?: string;
   /** Hidden after confirmed reports / verification (reason shown to author). */
   hiddenReason?: string;

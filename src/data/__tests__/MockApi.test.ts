@@ -51,7 +51,7 @@ describe('auth gates', () => {
   });
   it('saves after sign-in', async () => {
     const api = make();
-    await api.signIn({ provider: 'email', email: 'a@b.c' });
+    await api.signIn({ provider: 'google' });
     await api.saveVueltica('v-sabana');
     const saved = await api.listSaved(loc);
     expect(saved.map((s) => s.vuelticaView.id)).toContain('v-sabana');
@@ -110,7 +110,7 @@ describe('contribute and moderation', () => {
     const api = make();
     await api.signIn({ provider: 'apple' });
     await api.deleteAccount();
-    await api.signIn({ provider: 'email', email: 'nuevo@x.com' });
+    await api.signIn({ provider: 'google' });
     await expect(api.moderationQueue(loc)).rejects.toBeInstanceOf(ForbiddenError);
   });
 });

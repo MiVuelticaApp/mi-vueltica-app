@@ -223,7 +223,7 @@ export interface MiVuelticaApi {
   vote(input: { vuelticaId: string; choice: VoteChoice }): Promise<ModerationItem>;
   undoVote(vuelticaId: string): Promise<ModerationItem>;
   reputationSummary(): Promise<ReputationSummary & { recent: ReputationEvent[] }>;
-  signIn(input: { provider: SignInProvider; email?: string }): Promise<User>;
+  signIn(input: { provider: SignInProvider }): Promise<User>;
   /** Providers the connected backend can sign in with (the login screen hides the rest). */
   readonly signInProviders: SignInProvider[];
   signOut(): Promise<void>;

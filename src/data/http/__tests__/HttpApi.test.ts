@@ -1,5 +1,5 @@
 import { DEFAULT_FILTERS } from '@/domain/filters';
-import { AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, NotSupportedError, OfflineError } from '../../api';
+import { AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, OfflineError } from '../../api';
 import { MemoryKV } from '../../storage/types';
 import { HttpApi } from '../HttpApi';
 import { HttpClient } from '../client';
@@ -200,10 +200,6 @@ describe('HttpApi', () => {
     routes['POST /auth/apple'] = () => ({ body: { user: USER, token: 'jwt', expiresIn: '7d' } });
     await api.signIn({ provider: 'apple' });
     expect(calls[0].body).toEqual({ identityToken: 'apple-id-token', firstName: 'Ana', lastName: 'Mora' });
-  });
-
-  it('refuses email sign-in (no such endpoint)', async () => {
-    await expect(make().api.signIn({ provider: 'email', email: 'a@b.cr' })).rejects.toBeInstanceOf(NotSupportedError);
   });
 
   it('keeps the user signed in from cache when offline, and signs out on 401', async () => {

@@ -8,15 +8,13 @@ import { formatCRC } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-export const formatInt = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-/** One row of "Mis vuelticas" with its status line (En revisión · 3 de 5 votos / Publicado · views / No publicado · reason). */
+/** One row of "Mis vuelticas" with its status line (En revisión · 3 de 5 votos / Publicado / No publicado · reason). */
 export function MyVuelticaRow({ item, onWithdraw, compact }: { item: MyVuelticaItem; onWithdraw?: () => void; compact?: boolean }) {
   const { c } = useAppTheme();
   const v = item.vuelticaView;
   const status =
     v.status === 'pendiente' ? t.mine.review(item.votesFor + item.votesAgainst, item.votesNeeded)
-    : v.status === 'publicada' ? t.mine.published(v.views).replace(String(v.views), formatInt(v.views))
+    : v.status === 'publicada' ? t.mine.published
     : v.status === 'oculta' ? t.mine.hidden
     : t.mine.rejected(v.rejectionReason ?? (v.pricePerPerson > 5000 ? t.mine.reasonPrice(formatCRC(v.pricePerPerson)) : ''));
   const tile = v.status === 'pendiente' ? { bg: c.event, icon: 'clock' as const } : v.status === 'publicada' ? { bg: c.primary, icon: 'check' as const } : { bg: c.danger, icon: 'close' as const };
