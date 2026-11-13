@@ -136,7 +136,7 @@ export function useReputation() {
 /** Everything that depends on server state; used after any write. */
 export function useInvalidateAll() {
   const qc = useQueryClient();
-  return () => Promise.all([qc.invalidateQueries({ queryKey: qk.list }), qc.invalidateQueries({ queryKey: ['detail'] }), qc.invalidateQueries({ queryKey: qk.saved }), qc.invalidateQueries({ queryKey: qk.mine }), qc.invalidateQueries({ queryKey: qk.moderation }), qc.invalidateQueries({ queryKey: qk.reputation }), qc.invalidateQueries({ queryKey: ['reviews'] }), qc.invalidateQueries({ queryKey: qk.recent })]);
+  return () => Promise.all([qc.invalidateQueries({ queryKey: qk.list }), qc.invalidateQueries({ queryKey: ['detail'] }), qc.invalidateQueries({ queryKey: qk.saved }), qc.invalidateQueries({ queryKey: qk.mine }), qc.invalidateQueries({ queryKey: qk.moderation }), qc.invalidateQueries({ queryKey: qk.reputation }), qc.invalidateQueries({ queryKey: ['reviews'] }), qc.invalidateQueries({ queryKey: qk.recent }), qc.invalidateQueries({ queryKey: ['blocks'] })]);
 }
 
 function useRefreshUser() {
