@@ -1,12 +1,12 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { DEFAULT_LOCATION, PROVINCE_CENTERS } from '@/domain/geo';
-import type { Filters, LatLng, SortKey, VuelticaView } from '@/domain/types';
+import type { Filters, LatLng, Province, SortKey, VuelticaView } from '@/domain/types';
 import { useSession } from '@/state/session';
 import { useSettings } from '@/state/settings';
 import { api } from '..';
 import type {
-  CreateReviewInput, CreateVuelticaInput, ReportInput, ReviewListParams, SimulateInput, VerifyInput, VuelticaDetail,
+  CreateReviewInput, CreateVuelticaInput, DecideInput, ReportInput, ReviewListParams, SimulateInput, VerifyInput, VuelticaDetail,
 } from '../api';
 
 /** Effective location: GPS if allowed, else the chosen province's center, else downtown San José. */
@@ -160,6 +160,20 @@ export function useVerify() {
 export function useReport() {
   const invalidate = useInvalidateAll();
   return useMutation({ mutationFn: (i: ReportInput) => api.report(i), onSuccess: () => invalidate() });
+}
+
+export function useCantons(province: Province) {
+  return useQuery({ queryKey: ['cantons', province], queryFn: () => api.listCantons(province), staleTime: Infinity, gcTime: Infinity });
+}
+
+export function useUpdateVueltica() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: ({ id, input }: { id: string; input: CreateVuelticaInput }) => api.updateVueltica(id, input), onSuccess: () => invalidate() });
+}
+
+export function useDecideSubmission() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: (i: DecideInput) => api.decideSubmission(i), onSuccess: () => invalidate() });
 }
 
 export function useCreateVueltica() {

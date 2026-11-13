@@ -162,6 +162,13 @@ export interface FavoriteDto {
 
 /* ------------------------------------------------------------ submissions */
 
+export interface ProvinceDto {
+  id: number;
+  name: string;
+  /** Only with `?include=cantons`. */
+  cantons?: { id: number; name: string }[];
+}
+
 export interface SubmissionDto {
   id: string;
   /** Absent in the community moderation queue (voters do not see the author). */

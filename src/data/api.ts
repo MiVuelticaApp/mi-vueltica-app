@@ -4,8 +4,9 @@
  */
 import type {
   Audience, FreeFor, Filters, LatLng, MaxPrice, ModerationItem, PricePaid, Province, Report, ReportReason, ReputationSummary, Review, Saved,
-  Settings, SignInProvider, SortKey, SpentTier, StillHappening, User, VoteChoice, VuelticaType, VuelticaView, WentWith, ReputationEvent,
+  Settings, SignInProvider, SortKey, SpentTier, StillHappening, User, VoteChoice, VuelticaType, VuelticaView, WentWith, ReputationEvent, RejectionCode,
 } from '@/domain/types';
+import type { Canton } from '@/domain/cantons';
 
 export class OfflineError extends Error {
   constructor() {
@@ -106,6 +107,8 @@ export interface CreateVuelticaInput {
   lng: number;
   address: string;
   province: Province;
+  /** Required for places (the API needs the canton); events have their own point and no canton. */
+  cantonId?: number;
   startAt?: string;
   endAt?: string;
   openingHours?: string;
@@ -190,6 +193,14 @@ export interface ExportedData {
   content: string;
 }
 
+export interface DecideInput {
+  vuelticaId: string;
+  decision: 'approve' | 'reject';
+  reason?: RejectionCode;
+  /** Required with `otro`; optional extra text for the other codes. */
+  note?: string;
+}
+
 export interface SimulateInput {
   kind: 'votes' | 'verifications' | 'reports';
   vuelticaId?: string;
@@ -206,7 +217,11 @@ export interface MiVuelticaApi {
   getVueltica(id: string, location: LatLng): Promise<VuelticaDetail>;
   recentlyViewed(location: LatLng): Promise<VuelticaView[]>;
   createVueltica(input: CreateVuelticaInput): Promise<{ vueltica: VuelticaView; moderation: ModerationItem }>;
+  /** Edit a pending suggestion (same body as create). `ConflictError` once it was decided. */
+  updateVueltica(id: string, input: CreateVuelticaInput): Promise<VuelticaView>;
   myVuelticas(location: LatLng): Promise<MyVuelticaItem[]>;
+  /** Cantons of a province, for the suggestion form. */
+  listCantons(province: Province): Promise<Canton[]>;
   withdrawVueltica(id: string): Promise<void>;
   saveVueltica(id: string): Promise<void>;
   unsaveVueltica(id: string): Promise<void>;
@@ -222,6 +237,8 @@ export interface MiVuelticaApi {
   moderationCount(): Promise<number>;
   vote(input: { vuelticaId: string; choice: VoteChoice }): Promise<ModerationItem>;
   undoVote(vuelticaId: string): Promise<ModerationItem>;
+  /** Team roles only: approve or reject a suggestion directly (`ForbiddenError` otherwise). */
+  decideSubmission(input: DecideInput): Promise<void>;
   reputationSummary(): Promise<ReputationSummary & { recent: ReputationEvent[] }>;
   signIn(input: { provider: SignInProvider }): Promise<User>;
   /** Providers the connected backend can sign in with (the login screen hides the rest). */

@@ -13,7 +13,8 @@ import { Text } from './Text';
 type Item = ModerationQueue['nuevas'][number];
 
 /** Figma "Moderation Card": new (Rechazar / Aprobar) and reported (Sigue igual / Ocultar vueltica) variants. */
-export function ModerationCard({ item, voted, onVote, onUndo, onOpen }: { item: Item; voted?: 'for' | 'against'; onVote: (c: 'for' | 'against') => void; onUndo: () => void; onOpen: () => void }) {
+/** `onDecide` (team roles, new suggestions only) adds "Decidir como equipo": publish or reject with a reason code. */
+export function ModerationCard({ item, voted, onVote, onUndo, onOpen, onDecide }: { item: Item; voted?: 'for' | 'against'; onVote: (c: 'for' | 'against') => void; onUndo: () => void; onOpen: () => void; onDecide?: () => void }) {
   const { c } = useAppTheme();
   const v = item.vuelticaView;
   const isNew = item.kind === 'nueva';
@@ -61,6 +62,11 @@ export function ModerationCard({ item, voted, onVote, onUndo, onOpen }: { item: 
           <Button testID={`mod.for.${v.id}`} label={isNew ? t.moderation.approve : t.moderation.hide} full={false} style={{ flex: 1 }} size="compact" onPress={() => onVote('for')} />
         </View>
       )}
+      {isNew && onDecide ? (
+        <Tap testID={`mod.decide.${v.id}`} label={t.moderation.decide.open} onPress={onDecide} style={{ alignSelf: 'flex-start', minHeight: 32, justifyContent: 'center' }}>
+          <Text variant="callout" bold color="primary">{t.moderation.decide.open}</Text>
+        </Tap>
+      ) : null}
     </View>
   );
 }

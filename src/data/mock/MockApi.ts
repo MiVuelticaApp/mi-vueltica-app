@@ -1,3 +1,4 @@
+import { cantonsOf, type Canton } from '@/domain/cantons';
 import { haversineKm } from '@/domain/geo';
 import { applyFilters, sortVuelticas, summarize } from '@/domain/filters';
 import {
@@ -5,14 +6,14 @@ import {
   outcomeOfVerifications, pointsFor, reportsHide, reputationFor, tierForPrice, voteWeight, votesNeeded, isMinorityVote,
 } from '@/domain/rules';
 import type {
-  LatLng, ModerationItem, ModerationKind, Report, Review, Saved, Settings, User, Verification, Vueltica, VuelticaView, ReputationKind, ReputationEvent,
+  LatLng, ModerationItem, ModerationKind, Province, Report, Review, Saved, Settings, User, Verification, Vueltica, VuelticaView, ReputationKind, ReputationEvent,
 } from '@/domain/types';
 import { now as clockNow } from '@/lib/clock';
 import { initialsOf } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
 import {
-  AuthRequiredError, DuplicateReportError, ForbiddenError, NotFoundError, OfflineError, ValidationError,
-  type CreateReviewInput, type CreateVuelticaInput, type ExportedData, type ListParams, type ListResult, type MiVuelticaApi, type ModerationQueue,
+  AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, OfflineError, ValidationError,
+  type CreateReviewInput, type CreateVuelticaInput, type DecideInput, type ExportedData, type ListParams, type ListResult, type MiVuelticaApi, type ModerationQueue,
   type MyVuelticaItem, type RatingSummary, type ReportInput, type ReviewList, type ReviewListParams, type SavedItem, type ScheduledReminder, type SimulateInput,
   type VerifyInput, type VerifyResult, type VuelticaDetail,
 } from '../api';
@@ -239,7 +240,7 @@ export class MockApi implements MiVuelticaApi {
       if (!tier || !isPublishablePrice(input.pricePerPerson)) throw new ValidationError('price', t.contribute.priceError);
       const v: Vueltica = {
         id: this.id('v'), type: input.type, name: input.name.trim(), category: input.category, description: input.description, photos: input.photos,
-        lat: input.lat, lng: input.lng, address: input.address, province: input.province, startAt: input.startAt, endAt: input.endAt, openingHours: input.openingHours,
+        lat: input.lat, lng: input.lng, address: input.address, province: input.province, cantonId: input.type === 'lugar' ? input.cantonId : undefined, startAt: input.startAt, endAt: input.endAt, openingHours: input.openingHours,
         priceTier: tier, pricePerPerson: input.pricePerPerson, freeFor: input.freeFor, audiences: input.audiences, wheelchair: input.wheelchair, status: 'pendiente',
         authorId: me.id, authorName: `${me.displayName.split(' ')[0]} ${me.displayName.split(' ')[1]?.[0] ?? ''}.`.trim(), createdAt: clockNow().toISOString(),
         verificationCount: 0, ratingAvg: 0, ratingCount: 0,
@@ -249,6 +250,29 @@ export class MockApi implements MiVuelticaApi {
       me.counts.vuelticas += 1;
       return { vueltica: this.view(v, input), moderation: this.moderationItem(v)! };
     });
+  }
+
+  updateVueltica(id: string, input: CreateVuelticaInput): Promise<VuelticaView> {
+    return this.write(() => {
+      const me = this.requireMe('contribute');
+      const v = this.db.vuelticas.find((x) => x.id === id && x.authorId === me.id);
+      if (!v) throw new NotFoundError();
+      if (v.status !== 'pendiente') throw new ConflictError('decided');
+      if (v.type !== input.type) throw new ValidationError('type', 'type');
+      if (!input.name.trim()) throw new ValidationError('name', t.contribute.needName);
+      const tier = tierForPrice(input.pricePerPerson);
+      if (!tier || !isPublishablePrice(input.pricePerPerson)) throw new ValidationError('price', t.contribute.priceError);
+      Object.assign(v, {
+        name: input.name.trim(), category: input.category, description: input.description, photos: input.photos, lat: input.lat, lng: input.lng,
+        address: input.address, province: input.province, cantonId: input.type === 'lugar' ? input.cantonId : undefined, startAt: input.startAt, endAt: input.endAt,
+        openingHours: input.openingHours, priceTier: tier, pricePerPerson: input.pricePerPerson, freeFor: input.freeFor, audiences: input.audiences, wheelchair: input.wheelchair,
+      });
+      return this.view(v, input);
+    });
+  }
+
+  listCantons(province: Province): Promise<Canton[]> {
+    return Promise.resolve(cantonsOf(province));
   }
 
   myVuelticas(location: LatLng): Promise<MyVuelticaItem[]> {
@@ -587,11 +611,44 @@ export class MockApi implements MiVuelticaApi {
     });
   }
 
+  /** The demo has no team roles: level 5 (Embajadora) stands in for a moderator of the team. */
+  private isTeam(me: User) {
+    return levelForPoints(me.points).number >= 5;
+  }
+
+  decideSubmission(input: DecideInput): Promise<void> {
+    return this.write(() => {
+      const me = this.requireMe('moderate');
+      if (!this.isTeam(me)) throw new ForbiddenError('team');
+      const v = this.db.vuelticas.find((x) => x.id === input.vuelticaId);
+      if (!v) throw new NotFoundError();
+      if (v.status !== 'pendiente') throw new ConflictError('decided');
+      if (input.decision === 'approve') {
+        v.status = 'publicada';
+        v.lastVerifiedAt = clockNow().toISOString();
+        if (v.authorId && !this.db.notified.includes(`pub:${v.id}`)) {
+          this.db.notified.push(`pub:${v.id}`);
+          this.addPoints(v.authorId, 'published');
+        }
+      } else {
+        const reason = input.reason ?? 'otro';
+        if (reason === 'otro' && !input.note?.trim()) throw new ValidationError('note', t.moderation.decide.needNote);
+        v.status = 'rechazada';
+        v.rejectionReason = reason === 'otro' ? input.note!.trim() : t.moderation.decide.codes[reason];
+        if (v.authorId && !this.db.notified.includes(`rej:${v.id}`)) {
+          this.db.notified.push(`rej:${v.id}`);
+          this.addPoints(v.authorId, 'rejected');
+        }
+      }
+      delete this.db.community[v.id];
+    });
+  }
+
   reputationSummary() {
     return this.read(() => {
       const me = this.requireMe('moderate');
       const recent = this.db.events.filter((e) => e.userId === me.id).slice(-5).reverse();
-      return { ...reputationFor(me.points, recent), recent };
+      return { ...reputationFor(me.points, recent), recent, team: this.isTeam(me) || undefined };
     });
   }
 

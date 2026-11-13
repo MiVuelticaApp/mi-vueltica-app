@@ -1,6 +1,6 @@
 import { DEFAULT_FILTERS } from '@/domain/filters';
 import { DEFAULT_LOCATION } from '@/domain/geo';
-import { AuthRequiredError, DuplicateReportError, ForbiddenError, OfflineError, ValidationError } from '../api';
+import { AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, OfflineError, ValidationError } from '../api';
 import { MockApi } from '../mock/MockApi';
 import { MemoryKV } from '../storage/types';
 
@@ -241,3 +241,30 @@ describe('review fixes', () => {
     expect(saved.find((s) => s.vuelticaView.id === 'v-plaza')).toBeUndefined();
   });
 });
+
+describe('suggestions (#11)', () => {
+  const input = {
+    type: 'lugar' as const, name: 'Parque de Barva', category: 'Parque', description: '', lat: 10.02, lng: -84.12, address: 'Barva', province: 'Heredia' as const, cantonId: 402,
+    pricePerPerson: 0, freeFor: [], audiences: ['todo' as const], wheelchair: true, photos: [],
+  };
+  it('lists the cantons of a province', async () => {
+    const names = (await make().listCantons('Cartago')).map((c) => c.name);
+    expect(names).toEqual(['Cartago', 'Paraíso', 'La Unión', 'Jiménez', 'Turrialba', 'Alvarado', 'Oreamuno', 'El Guarco']);
+  });
+  it('keeps the canton and edits a pending suggestion, not a decided one', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    const { vueltica } = await api.createVueltica(input);
+    expect(vueltica.cantonId).toBe(402);
+    const edited = await api.updateVueltica(vueltica.id, { ...input, name: 'Parque central de Barva', pricePerPerson: 1000 });
+    expect(edited).toMatchObject({ name: 'Parque central de Barva', priceTier: 'hasta2500', status: 'pendiente' });
+    await expect(api.updateVueltica(vueltica.id, { ...input, type: 'evento' })).rejects.toBeInstanceOf(ValidationError);
+    await expect(api.updateVueltica('v-mirador', input)).rejects.toBeInstanceOf(ConflictError);
+  });
+  it('only the team decides directly; rejections carry the reason text', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    await expect(api.decideSubmission({ vuelticaId: 'v-feria-jose', decision: 'reject', reason: 'duplicado' })).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});
+

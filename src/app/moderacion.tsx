@@ -65,7 +65,15 @@ export default function Moderacion() {
       onError: (e) => toast(e instanceof ConflictError ? t.moderation.undoDecided : t.moderation.voteFailed),
     });
   const card = (i: Item) => (
-    <ModerationCard key={i.vuelticaId} item={i} voted={voted[i.vuelticaId]?.choice ?? i.myVote} onVote={(ch) => onVote(i, ch)} onUndo={() => onUndo(i.vuelticaId)} onOpen={() => router.push({ pathname: '/vueltica/[id]', params: { id: i.vuelticaId } })} />
+    <ModerationCard
+      key={i.vuelticaId}
+      item={i}
+      voted={voted[i.vuelticaId]?.choice ?? i.myVote}
+      onVote={(ch) => onVote(i, ch)}
+      onUndo={() => onUndo(i.vuelticaId)}
+      onOpen={() => router.push({ pathname: '/vueltica/[id]', params: { id: i.vuelticaId } })}
+      onDecide={rep.data?.team ? () => router.push({ pathname: '/vueltica/[id]/decidir', params: { id: i.vuelticaId } }) : undefined}
+    />
   );
 
   return (
