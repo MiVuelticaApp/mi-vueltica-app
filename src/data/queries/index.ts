@@ -209,7 +209,7 @@ export function useSignIn() {
   const setUser = useSession((s) => s.setUser);
   const invalidate = useInvalidateAll();
   return useMutation({
-    mutationFn: (i: { provider: 'apple' | 'google' | 'email'; email?: string }) => api.signIn(i),
+    mutationFn: (i: { provider: 'apple' | 'google' }) => api.signIn(i),
     onSuccess: async (u) => { setUser(u); await invalidate(); },
   });
 }

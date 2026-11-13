@@ -533,7 +533,7 @@ export class HttpApi implements MiVuelticaApi {
       id: makeId(kind, uuid), type: kind === 'p' ? 'lugar' : 'evento', name: r.title, category: '', description: '', photos: [], lat: loc.lat, lng: loc.lng,
       address: '', province: this.user?.province ?? 'San José', priceTier: 'hasta5000', pricePerPerson: 5000, freeFor: [], audiences: ['todo'], wheelchair: false,
       status: r.status === 'ARCHIVED' ? 'oculta' : 'publicada', authorId: null, authorName: t.common.community, createdAt: r.firstReportAt, verificationCount: 0,
-      ratingAvg: 0, ratingCount: 0, views: 0, hiddenReason: r.hiddenReason ?? undefined, reportedAt: r.reportedAt ?? undefined, distanceKm: 0,
+      ratingAvg: 0, ratingCount: 0, hiddenReason: r.hiddenReason ?? undefined, reportedAt: r.reportedAt ?? undefined, distanceKm: 0,
     };
   }
 
@@ -649,15 +649,13 @@ export class HttpApi implements MiVuelticaApi {
     }
   }
 
-  async signIn(input: { provider: SignInProvider; email?: string }): Promise<User> {
+  async signIn(input: { provider: SignInProvider }): Promise<User> {
     let auth: AuthDto;
     if (input.provider === 'apple') {
       const a = await appleSignIn();
       auth = await this.http.post<AuthDto>('/auth/apple', { identityToken: a.identityToken, firstName: a.firstName, lastName: a.lastName }, { auth: false });
-    } else if (input.provider === 'google') {
-      auth = await this.http.post<AuthDto>('/auth/google', { token: await googleSignIn() }, { auth: false });
     } else {
-      return unsupported('email-login');
+      auth = await this.http.post<AuthDto>('/auth/google', { token: await googleSignIn() }, { auth: false });
     }
     await tokenStore.set(auth.token);
     await tokenStore.setProvider(input.provider);

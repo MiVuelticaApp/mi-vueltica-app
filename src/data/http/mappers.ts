@@ -136,7 +136,7 @@ export function parseOpeningHours(text: string | undefined): OpeningHoursDto | u
   return matched ? out : undefined;
 }
 
-const BASE = { verificationCount: 0, views: 0, authorId: null };
+const BASE = { verificationCount: 0, authorId: null };
 const authorOf = (name: string | null | undefined) => name ?? t.common.community;
 
 export function placeToView(p: PlaceDto | PlaceDetailDto, categories: Map<number, string>, loc: LatLng): VuelticaView {

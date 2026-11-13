@@ -76,10 +76,9 @@ export const t = {
   },
   login: {
     notNow: 'Ahora no', perk1: 'Guardar lugares y eventos favoritos', perk2: 'Aportar a la comunidad', perk3: 'Escribir reseñas y calificar',
-    apple: 'Continuar con Apple', google: 'Continuar con Google', email: 'Continuar con correo',
+    apple: 'Continuar con Apple', google: 'Continuar con Google',
     legal: 'Al continuar aceptás los Términos y la Política de privacidad. Podés explorar sin cuenta.',
     terms: 'Términos', privacy: 'Política de privacidad',
-    emailTitle: 'Tu correo', emailPlaceholder: 'correo@ejemplo.com', emailInvalid: 'Ingresá un correo válido', emailSubmit: 'Entrar',
     gate: { save: 'Iniciá sesión para guardar. Guardá tus vuelticas favoritas.', contribute: 'Iniciá sesión para aportar. Sumá una vueltica para la comunidad.', review: 'Iniciá sesión para escribir una reseña. Contá cómo te fue.', moderate: 'Iniciá sesión para moderar. Ayudá a revisar lo que se publica.', useful: 'Iniciá sesión para marcar reseñas útiles.' },
   },
   detail: {
@@ -148,7 +147,7 @@ export const t = {
     step3: 'Publicado en el mapa', step3Sub: 'Te enviamos una notificación', seeMine: 'Ver mis vuelticas', backToMap: 'Volver al mapa', published: 'Publicada en el mapa',
   },
   mine: {
-    title: 'Mis vuelticas', review: (n: number, t: number) => `En revisión · ${n} de ${t} votos`, published: (v: number) => `Publicado · ${v} vistas`,
+    title: 'Mis vuelticas', review: (n: number, t: number) => `En revisión · ${n} de ${t} votos`, published: 'Publicado en el mapa',
     rejected: (r: string) => `No publicado · ${r}`, hidden: 'Oculta · en revisión', withdraw: 'Retirar', withdrawTitle: '¿Retirar vueltica?', withdrawn: 'Vueltica retirada',
     edit: 'Editar', reasonPrice: (p: string) => `costaba ${p}`,
   },

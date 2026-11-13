@@ -184,7 +184,6 @@ export class MockApi implements MiVuelticaApi {
       const visible = isVisibleTo(v, me?.id ?? null, lvl);
       if (!visible) throw new NotFoundError();
       if (v.status === 'publicada') {
-        v.views += 1;
         this.db.viewed = [id, ...this.db.viewed.filter((x) => x !== id)].slice(0, 20);
       }
       const reviews = this.db.reviews.filter((r) => r.vuelticaId === id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 3);
@@ -243,7 +242,7 @@ export class MockApi implements MiVuelticaApi {
         lat: input.lat, lng: input.lng, address: input.address, province: input.province, startAt: input.startAt, endAt: input.endAt, openingHours: input.openingHours,
         priceTier: tier, pricePerPerson: input.pricePerPerson, freeFor: input.freeFor, audiences: input.audiences, wheelchair: input.wheelchair, status: 'pendiente',
         authorId: me.id, authorName: `${me.displayName.split(' ')[0]} ${me.displayName.split(' ')[1]?.[0] ?? ''}.`.trim(), createdAt: clockNow().toISOString(),
-        verificationCount: 0, ratingAvg: 0, ratingCount: 0, views: 0,
+        verificationCount: 0, ratingAvg: 0, ratingCount: 0,
       };
       this.db.vuelticas.push(v);
       this.db.community[v.id] = { votesFor: 0, votesAgainst: 0 };
@@ -598,22 +597,20 @@ export class MockApi implements MiVuelticaApi {
 
   /* -------------------------------------------------------------- account */
 
-  readonly signInProviders: User['provider'][] = ['apple', 'google', 'email'];
+  readonly signInProviders: User['provider'][] = ['apple', 'google'];
 
-  signIn(input: { provider: User['provider']; email?: string }) {
+  signIn(input: { provider: User['provider'] }) {
     return this.write(() => {
       let u = this.db.users.find((x) => x.id === ANA_ID);
       if (!u) {
-        const local = (input.email ?? 'persona@ejemplo.com').split('@')[0].replace(/[._-]+/g, ' ');
-        const name = local.replace(/\b\w/g, (c) => c.toUpperCase());
+        // After the demo account was deleted: a fresh account, as Google / Apple would create.
         u = {
-          id: this.id('u'), displayName: name || 'Persona', initials: initialsOf(name || 'P'), province: 'San José', memberSince: clockNow().toISOString(),
-          provider: input.provider, email: input.email, points: 0, counts: { vuelticas: 0, reviews: 0, verifications: 0 },
+          id: this.id('u'), displayName: 'Persona Nueva', initials: initialsOf('Persona Nueva'), province: 'San José', memberSince: clockNow().toISOString(),
+          provider: input.provider, points: 0, counts: { vuelticas: 0, reviews: 0, verifications: 0 },
         };
         this.db.users.push(u);
       }
       u.provider = input.provider;
-      if (input.email) u.email = input.email;
       this.db.currentUserId = u.id;
       return { ...u };
     });

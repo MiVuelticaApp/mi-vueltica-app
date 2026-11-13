@@ -140,7 +140,7 @@ test('N5 Mis vuelticas lists statuses (review / rejected) and lets the author wi
   await expect(page.getByTestId('mine.screen')).toBeVisible();
   await expect(page.getByTestId('mine.status.v-feria-ana').filter({ visible: true })).toContainText('En revisión · 2 de 3 votos');
   await expect(page.getByTestId('mine.status.v-cine-ana').filter({ visible: true })).toContainText('No publicado · costaba ₡6.000');
-  await expect(page.getByTestId('mine.status.v-mirador').filter({ visible: true })).toContainText('Publicado · 1.240 vistas');
+  await expect(page.getByTestId('mine.status.v-mirador').filter({ visible: true })).toHaveText('Publicado en el mapa');
   await page.getByTestId('mine.withdraw.v-feria-ana').filter({ visible: true }).click();
   await page.getByTestId('dialog.confirm').click();
   await expect(page.getByTestId('mine.row.v-feria-ana').filter({ visible: true })).toHaveCount(0);
