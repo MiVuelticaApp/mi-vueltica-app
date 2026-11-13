@@ -9,7 +9,9 @@ import { t } from '@/i18n/es-CR';
 import { useInvalidateAll } from '@/data/queries';
 import { useResumePending } from '@/features/auth/useResumePending';
 import { syncLocationPermission } from '@/lib/location';
-import { setupNotificationHandler, syncReminders } from '@/lib/notifications';
+import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
+import { notificationTarget, registerForPush, setupNotificationHandler, syncReminders } from '@/lib/notifications';
 import { queryClient } from '@/lib/queryClient';
 import { useIsOffline, useNetwork } from '@/state/network';
 import { useSession } from '@/state/session';
@@ -73,6 +75,28 @@ export function Bootstrap() {
   useEffect(() => {
     if (user) void syncReminders();
   }, [user]);
+
+  // Push (#22): register this device's token for the signed-in account (the API upserts it on every login).
+  const userId = user?.id ?? null;
+  useEffect(() => {
+    if (userId) void registerForPush();
+  }, [userId]);
+
+  // A tapped notification (push or local reminder) opens its plan or screen, also when it launched the app.
+  useEffect(() => {
+    if (Platform.OS === 'web' || !onboarded) return;
+    const open = (r: Notifications.NotificationResponse | null) => {
+      const href = notificationTarget(r?.notification.request.content.data as Record<string, unknown> | undefined);
+      if (href) router.push(href as never);
+    };
+    void Notifications.getLastNotificationResponseAsync().then((r) => {
+      if (!r) return;
+      open(r);
+      void Notifications.clearLastNotificationResponseAsync().catch(() => {});
+    }).catch(() => {});
+    const sub = Notifications.addNotificationResponseReceivedListener(open);
+    return () => sub.remove();
+  }, [onboarded]);
 
   return null;
 }

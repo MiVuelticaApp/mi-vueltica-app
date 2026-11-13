@@ -34,6 +34,7 @@ const KV_SETTINGS = 'mv.api.settings';
 const KV_RECENT = 'mv.api.recent';
 const KV_DEVICE = 'mv.api.deviceId';
 const KV_QUEUE = 'mv.api.verifyQueue';
+const KV_PUSH = 'mv.api.pushToken';
 const RECENT_MAX = 20;
 const MAX_PHOTOS = 5;
 const EMPTY_RATING = { avg: 0, count: 0, distribution: [0, 0, 0, 0, 0] };
@@ -773,7 +774,9 @@ export class HttpApi implements MiVuelticaApi {
   async signOut(): Promise<void> {
     if (await tokenStore.get()) {
       try {
-        await this.http.post('/auth/logout', undefined, { auth: 'required' });
+        // With the token, the API forgets this device so the next person on the phone gets no pushes for this account.
+        const pushToken = (await this.store.getItem(KV_PUSH).catch(() => null)) ?? undefined;
+        await this.http.post('/auth/logout', pushToken ? { pushToken } : undefined, { auth: 'required' });
       } catch {
         /* the token is dropped locally either way */
       }
@@ -811,6 +814,12 @@ export class HttpApi implements MiVuelticaApi {
     }
   }
 
+  async registerPushToken(input: { platform: 'ios' | 'android'; pushToken: string }): Promise<void> {
+    if (!(await tokenStore.get())) return;
+    await this.http.post('/me/devices', { platform: input.platform === 'ios' ? 'IOS' : 'ANDROID', pushToken: input.pushToken }, { auth: 'required' });
+    await this.store.setItem(KV_PUSH, input.pushToken).catch(() => {});
+  }
+
   async getSettings(): Promise<Settings> {
     return { ...defaultSettings(), ...((await this.readJson<Partial<Settings>>(KV_SETTINGS)) ?? {}) };
   }
@@ -820,7 +829,21 @@ export class HttpApi implements MiVuelticaApi {
     const next = { ...prev, ...patch };
     await this.store.setItem(KV_SETTINGS, JSON.stringify(next));
     if ('province' in patch && patch.province !== undefined && patch.province !== prev.province && this.user) await this.pushProvince(patch.province);
+    const notif = (s: Settings) => `${s.notifyReminders}|${s.notifyNewNearby}|${s.notifyMyStatus}`;
+    if (this.user && notif(prev) !== notif(next)) void this.pushNotificationSettings(next);
     return next;
+  }
+
+  /**
+   * `PUT /me/notification-settings` (API issue: push notifications). The API sends the "planes nuevos cerca" and
+   * "estado de mis vuelticas" pushes; reminders are local. Until it exists (404) the switches stay on the device.
+   */
+  private async pushNotificationSettings(s: Settings): Promise<void> {
+    try {
+      await this.http.put('/me/notification-settings', { reminders: s.notifyReminders, newNearby: s.notifyNewNearby, myStatus: s.notifyMyStatus }, { auth: 'required' });
+    } catch {
+      /* older API or offline: kept locally, sent again on the next change */
+    }
   }
 
   async exportMyData(): Promise<ExportedData> {

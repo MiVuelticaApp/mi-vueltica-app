@@ -270,6 +270,8 @@ export interface MiVuelticaApi {
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
   exportMyData(): Promise<ExportedData>;
   deleteAccount(): Promise<void>;
+  /** Register this device's Expo push token for the signed-in user (`POST /me/devices`, idempotent). */
+  registerPushToken(input: { platform: 'ios' | 'android'; pushToken: string }): Promise<void>;
   scheduleNotifications(): Promise<ScheduledReminder[]>;
   /** Dev only: act as the rest of the community. */
   simulateCommunity(input: SimulateInput): Promise<void>;

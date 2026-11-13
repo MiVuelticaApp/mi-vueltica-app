@@ -541,6 +541,19 @@ describe('HttpApi', () => {
     expect((await api.reputationSummary()).canModerate).toBe(true);
   });
 
+  it('push (#22): registers the device and sends its token on logout', async () => {
+    const { api } = make();
+    await api.registerPushToken({ platform: 'ios', pushToken: 'ExponentPushToken[x]' }); // signed out: nothing
+    expect(calls).toHaveLength(0);
+    mockMem.set('t', 'jwt');
+    routes['POST /me/devices'] = () => ({ body: { id: 'd1' } });
+    routes['POST /auth/logout'] = () => ({ body: { message: 'ok' } });
+    await api.registerPushToken({ platform: 'ios', pushToken: 'ExponentPushToken[x]' });
+    expect(calls.find((c) => c.path === '/me/devices')!.body).toEqual({ platform: 'IOS', pushToken: 'ExponentPushToken[x]' });
+    await api.signOut();
+    expect(calls.find((c) => c.path === '/auth/logout')!.body).toEqual({ pushToken: 'ExponentPushToken[x]' });
+  });
+
   it('deletes the account asking Apple for a fresh code, then clears the session', async () => {
     const { api } = make();
     routes['POST /auth/apple'] = () => ({ body: { user: USER, token: 'jwt', expiresIn: '7d' } });

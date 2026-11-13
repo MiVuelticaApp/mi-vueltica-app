@@ -769,6 +769,13 @@ export class MockApi implements MiVuelticaApi {
     });
   }
 
+  /** The demo sends no pushes: nothing to register. */
+  registerPushToken(): Promise<void> {
+    return this.read(() => {
+      this.requireMe('save');
+    });
+  }
+
   signOut() {
     return this.write(() => {
       this.db.currentUserId = null;
