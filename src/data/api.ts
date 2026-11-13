@@ -258,7 +258,10 @@ export interface MiVuelticaApi {
   listBlocks(): Promise<BlockedUser[]>;
   unblock(blockId: string): Promise<void>;
   reputationSummary(): Promise<ReputationSummary & { recent: ReputationEvent[] }>;
-  signIn(input: { provider: SignInProvider }): Promise<User>;
+  /** `privacyVersion`: the notice the person just accepted; the API requires it to create a new account. */
+  signIn(input: { provider: SignInProvider; privacyVersion?: string }): Promise<User>;
+  /** Accept a (newer) privacy notice: `POST /me/privacy-consent { version }`. */
+  acceptPrivacy(version: string): Promise<User>;
   /** Providers the connected backend can sign in with (the login screen hides the rest). */
   readonly signInProviders: SignInProvider[];
   signOut(): Promise<void>;

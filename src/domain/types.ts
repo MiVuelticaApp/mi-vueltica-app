@@ -88,6 +88,8 @@ export interface User {
   email?: string;
   points: number;
   counts: { vuelticas: number; reviews: number; verifications: number };
+  /** Privacy notice version this account accepted (Ley 8968 art. 5); null when it never accepted one. */
+  privacyVersion?: string | null;
 }
 
 /** Someone the user blocked (App Store guideline 1.2). Only the name is shown. */

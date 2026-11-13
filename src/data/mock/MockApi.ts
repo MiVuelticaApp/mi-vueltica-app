@@ -743,7 +743,7 @@ export class MockApi implements MiVuelticaApi {
 
   readonly signInProviders: User['provider'][] = ['apple', 'google'];
 
-  signIn(input: { provider: User['provider'] }) {
+  signIn(input: { provider: User['provider']; privacyVersion?: string }) {
     return this.write(() => {
       let u = this.db.users.find((x) => x.id === ANA_ID);
       if (!u) {
@@ -755,8 +755,17 @@ export class MockApi implements MiVuelticaApi {
         this.db.users.push(u);
       }
       u.provider = input.provider;
+      if (input.privacyVersion) u.privacyVersion = input.privacyVersion;
       this.db.currentUserId = u.id;
       return { ...u };
+    });
+  }
+
+  acceptPrivacy(version: string) {
+    return this.write(() => {
+      const me = this.requireMe('save');
+      me.privacyVersion = version;
+      return { ...me };
     });
   }
 

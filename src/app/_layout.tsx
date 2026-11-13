@@ -16,6 +16,7 @@ import { DialogHost } from '@/components/ui/Dialog';
 import { ToastHost } from '@/components/ui/Toast';
 import { t } from '@/i18n/es-CR';
 import { Bootstrap } from '@/features/app/Bootstrap';
+import { PrivacyRecheck } from '@/features/legal/PrivacyRecheck';
 import { persistOptions, queryClient } from '@/lib/queryClient';
 import { useSession } from '@/state/session';
 import { useSettings } from '@/state/settings';
@@ -61,6 +62,7 @@ function Navigator() {
           <Stack.Screen name="legal/[doc]" options={{ headerShown: true, title: '', headerBackTitle: t.common.back, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary }} />
         </Stack.Protected>
       </Stack>
+      <PrivacyRecheck />
       <ToastHost />
       <DialogHost />
     </ThemeProvider>

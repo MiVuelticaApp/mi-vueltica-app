@@ -25,6 +25,9 @@ export interface UserDto {
   createdAt?: string;
   points?: number;
   level?: number;
+  /** Privacy consent (Ley 8968 art. 5). Absent on an API without it. */
+  privacyAccepted?: boolean;
+  privacyVersion?: string | null;
 }
 /** `GET /me` only: the profile adds the interests and the activity counts. */
 export interface MyProfileDto extends UserDto {

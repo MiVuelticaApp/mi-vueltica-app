@@ -1,4 +1,4 @@
-import { expect, test, tab, vis, start, startSignedIn, openDetail, type Page } from './helpers';
+import { expect, test, tab, vis, start, startSignedIn, openDetail, type Page, signInWith } from './helpers';
 
 const flip = (page: Page, id: string) => page.getByTestId(id).evaluate((el: HTMLInputElement) => el.click());
 const bg = (page: Page) => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
@@ -97,7 +97,7 @@ test('MO2 a user below level 3 has no Moderación entry and the screen is locked
   // a new Google account: level 1 · Primeras vueltas, 0 points
   await tab(page, 'profile').click();
   await vis(page, 'profile.signIn').click();
-  await page.getByTestId('login.google').click();
+  await signInWith(page, 'google');
   await expect(vis(page, 'profile.levelBadge')).toContainText('Nivel 1 · Primeras vueltas');
   await expect(vis(page, 'profile.name')).toHaveText('Persona Nueva');
   await expect(page.getByTestId('profile.moderation').filter({ visible: true })).toHaveCount(0);
@@ -131,3 +131,25 @@ test('A6 login screen: Google and Apple only, and "Ahora no"', async ({ page }) 
   await page.getByTestId('login.notNow').click();
   await expect(page.getByTestId('profile.signedOut')).toBeVisible();
 });
+
+test('A7 the privacy notice comes before the first sign-in: "Ahora no" keeps you signed out, "Acepto" signs in', async ({ page }) => {
+  await start(page);
+  await tab(page, 'profile').click();
+  await vis(page, 'profile.signIn').click();
+  await page.getByTestId('login.apple').click();
+  await expect(page.getByTestId('privacy.notice')).toBeVisible();
+  await expect(page.getByTestId('privacy.title')).toHaveText('Antes de crear tu cuenta');
+  for (const h of ['Qué guardamos', 'Para qué', 'Quién lo ve', 'Responsable', 'Tus derechos']) await expect(page.getByTestId('privacy.notice').getByText(h, { exact: true })).toBeVisible();
+  await page.getByTestId('privacy.decline').click();
+  await expect(page.getByTestId('privacy.notice')).toHaveCount(0);
+  await expect(page.getByTestId('login.screen')).toBeVisible();
+  await page.getByTestId('login.apple').click();
+  await page.getByTestId('privacy.accept').click();
+  await expect(page.getByTestId('login.screen')).toBeHidden();
+  await expect(vis(page, 'profile.levelBadge')).toBeVisible();
+  // Accepted on this device: signing in again does not ask twice.
+  await page.goto('/login');
+  await page.getByTestId('login.apple').click();
+  await expect(page.getByTestId('privacy.notice')).toHaveCount(0);
+});
+
