@@ -31,6 +31,9 @@ export interface Vueltica extends LatLng {
   openingHours?: string;
   priceTier: PriceTier;
   pricePerPerson: number;
+  /** The API's `pricePerPerson: null` (#36): it costs something but nobody knows how much. `pricePerPerson` then holds
+   *  the tier's cap so filters keep working, and it must not be shown as a price. */
+  priceUnknown?: boolean;
   freeFor: FreeFor[];
   audiences: Audience[];
   wheelchair: boolean;

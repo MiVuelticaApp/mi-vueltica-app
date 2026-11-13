@@ -91,7 +91,8 @@ export class HttpClient {
       case 403:
         throw new ForbiddenError(message);
       case 404:
-        throw new NotFoundError();
+        // The API answers a missing record with `{ message }`; an unknown route gets Express's HTML page instead.
+        throw new NotFoundError(json === null);
       case 409:
         throw new ConflictError(message);
       case 429:

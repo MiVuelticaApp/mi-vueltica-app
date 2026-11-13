@@ -16,7 +16,7 @@ import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
 import { useToggleSave, useVerify, useVuelticaDetail } from '@/data/queries';
 import { useRequireAuth } from '@/features/auth/useRequireAuth';
-import { daysSince } from '@/features/list/format';
+import { daysSince, priceLabel } from '@/features/list/format';
 import { useReviewActions } from '@/features/detail/useReviewActions';
 import { needsReview } from '@/domain/rules';
 import type { VuelticaView } from '@/domain/types';
@@ -57,7 +57,7 @@ function InfoRows({ v }: { v: VuelticaView }) {
   rows.push({ icon: 'pin', title: placeTitle, sub: placeSub, chevron: true, testID: 'detail.row.place', onPress: () => router.replace({ pathname: '/vueltica/[id]/como-llegar', params: { id: v.id } }) });
   rows.push({
     icon: 'ticket',
-    title: v.priceTier === 'gratis' ? t.detail.freeEntry : t.detail.perPerson(formatCRC(v.pricePerPerson)),
+    title: v.priceTier === 'gratis' ? t.detail.freeEntry : v.priceUnknown ? t.common.priceUnknown : t.detail.perPerson(formatCRC(v.pricePerPerson)),
     sub: v.priceTier === 'gratis' ? (v.type === 'evento' ? `${t.detail.noReservation} · ${t.detail.limitedSpots}` : t.detail.noReservation) : v.freeFor.length ? t.detail.freeFor(v.freeFor) : undefined,
     testID: 'detail.row.price',
   });
@@ -95,6 +95,13 @@ export default function Detalle() {
       if (useMapSelection.getState().id === id) useMapSelection.getState().set(null);
     };
   }, [id]);
+
+  // An approved suggestion (`s-…`) loads as the place / event it became: switch the route to that id so every action
+  // below (save, verify, report, reviews, block) targets the published plan.
+  const resolvedId = v?.id;
+  useEffect(() => {
+    if (resolvedId && resolvedId !== id) router.setParams({ id: resolvedId });
+  }, [resolvedId, id]);
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const howToGet = async () => {
@@ -157,7 +164,7 @@ export default function Detalle() {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
           {v.type === 'evento' ? <Badge kind="event" label={t.card.event} /> : null}
-          {v.priceTier === 'gratis' ? <Badge kind="free" label={t.card.free} /> : <Badge kind="price" label={formatCRC(v.pricePerPerson)} icon={null} />}
+          {v.priceTier === 'gratis' ? <Badge kind="free" label={t.card.free} /> : <Badge kind="price" label={priceLabel(v)} icon={null} />}
           {studentElig ? <Badge kind="student" label={t.card.students} /> : null}
           {seniorElig ? <Badge kind="senior" label={t.card.seniors} /> : null}
           {v.audiences.includes('familias') ? <Badge kind="family" label={t.card.families} /> : null}

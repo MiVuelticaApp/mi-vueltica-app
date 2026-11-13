@@ -27,7 +27,8 @@ export class ForbiddenError extends Error {
   }
 }
 export class NotFoundError extends Error {
-  constructor() {
+  /** `routeMissing`: the 404 had no JSON body, i.e. the server has no such route (not deployed yet), not a missing record. */
+  constructor(public routeMissing = false) {
     super('not-found');
     this.name = 'NotFoundError';
   }
@@ -119,7 +120,8 @@ export interface CreateVuelticaInput {
   startAt?: string;
   endAt?: string;
   openingHours?: string;
-  pricePerPerson: number;
+  /** `0` = free, `null` = it costs something but the author does not know how much (#36). */
+  pricePerPerson: number | null;
   freeFor: FreeFor[];
   audiences: Audience[];
   wheelchair: boolean;

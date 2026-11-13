@@ -67,6 +67,9 @@ describe('contribute and moderation', () => {
     const ok = await api.createVueltica({ ...base, pricePerPerson: 5000 });
     expect(ok.vueltica.status).toBe('pendiente');
     expect(ok.moderation.votesNeeded).toBe(3);
+    // `null` = it costs something but the price is unknown (#36): filtered as "hasta ₡5.000", flagged for display.
+    const unknown = await api.createVueltica({ ...base, pricePerPerson: null });
+    expect(unknown.vueltica).toMatchObject({ priceTier: 'hasta5000', priceUnknown: true });
   });
   it('shows pending pins only to the author and moderators', async () => {
     const api = make();

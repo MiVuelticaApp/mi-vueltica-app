@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Group, Row } from '@/components/ui/Section';
 import { ListSkeleton } from '@/components/ui/Skeleton';
 import { toast } from '@/components/ui/Toast';
+import { NotSupportedError } from '@/data/api';
 import { useBlocks, useUnblock } from '@/data/queries';
 import { formatRelative } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
@@ -35,6 +36,7 @@ export default function Bloqueados() {
         )}
         ListEmptyComponent={
           q.isPending ? <ListSkeleton count={2} />
+          : q.error instanceof NotSupportedError ? <EmptyState testID="blocks.unavailable" icon="alert" title={t.blocks.title} body={t.common.notSupported} />
           : q.isError ? <EmptyState icon="alert" title={t.common.errorTitle} body={t.common.errorBody}><Button label={t.common.retry} full={false} onPress={() => void q.refetch()} /></EmptyState>
           : <EmptyState testID="blocks.empty" icon="check" title={t.blocks.empty} body={t.blocks.emptyBody} />
         }

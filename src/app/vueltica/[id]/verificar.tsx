@@ -91,7 +91,8 @@ export default function Verificar() {
             </Group>
           </View>
         ) : null}
-        <View style={{ marginTop: 16 }}>
+        {/* The API only takes a photo from signed-in people (uploads need a token), so guests are not offered one. */}
+        {user ? <View style={{ marginTop: 16 }}>
           <Group>
             <Tap testID="verify.photo" label={t.verify.photo} onPress={async () => { const [p] = await pickPhotos(1); if (p) setPhoto(p); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 }}>
               <Icon name="camera" size={22} color="primary" />
@@ -101,7 +102,7 @@ export default function Verificar() {
               </View>
             </Tap>
           </Group>
-        </View>
+        </View> : null}
         <Text variant="caption" color="labelSecondary" style={{ paddingHorizontal: 32, paddingTop: 12, lineHeight: 18 }}>{t.verify.footer}</Text>
       </ScrollView>
       {isAndroid ? (

@@ -7,6 +7,7 @@ import type {
 } from '@/domain/types';
 import { now as clockNow } from '@/lib/clock';
 import { t } from '@/i18n/es-CR';
+import { formatTime } from '@/i18n/format';
 import {
   AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, NotSupportedError, OfflineError, ValidationError,
   type CreateReviewInput, type CreateVuelticaInput, type DecideInput, type ExportedData, type ListParams, type ListResult, type MiVuelticaApi,
@@ -46,6 +47,19 @@ type CachedUser = { user: User; dto: UserDto };
 const unsupported = (feature: string): never => {
   throw new NotSupportedError(feature);
 };
+
+/**
+ * The block routes are not deployed in the API yet (#17). Until they are, the server has no such route (a 404 without
+ * a JSON body): report "not available yet" instead of "this plan has no author". A JSON 404 is still a missing author.
+ */
+async function blockRoute<T>(call: Promise<T>): Promise<T> {
+  try {
+    return await call;
+  } catch (e) {
+    if (e instanceof NotFoundError && e.routeMissing) throw new NotSupportedError('block');
+    throw e;
+  }
+}
 const planPath = (kind: 'p' | 'e', uuid: string) => (kind === 'p' ? `/places/${uuid}` : `/events/${uuid}`);
 const stricter = (a: MaxPrice, b?: MaxPrice): MaxPrice => (!b || tierRank(a) <= tierRank(b) ? a : b);
 
@@ -680,18 +694,18 @@ export class HttpApi implements MiVuelticaApi {
       if (kind === 's') throw new NotFoundError();
       path = `${planPath(kind, uuid)}/author/block`;
     }
-    await this.http.post(path, undefined, { auth: 'required', reason: 'block' });
+    await blockRoute(this.http.post(path, undefined, { auth: 'required', reason: 'block' }));
   }
 
   async listBlocks(): Promise<BlockedUser[]> {
     await this.requireUser('block');
-    const rows = await this.http.getAll<BlockDto>('/me/blocks', {}, { auth: 'required', reason: 'block' });
+    const rows = await blockRoute(this.http.getAll<BlockDto>('/me/blocks', {}, { auth: 'required', reason: 'block' }));
     return rows.map((b) => ({ id: b.id, name: b.name, blockedAt: b.createdAt }));
   }
 
   async unblock(blockId: string): Promise<void> {
     await this.requireUser('block');
-    await this.http.del(`/me/blocks/${blockId}`, { auth: 'required', reason: 'block' });
+    await blockRoute(this.http.del(`/me/blocks/${blockId}`, { auth: 'required', reason: 'block' }));
   }
 
   /** `GET /me/reputation` (#42). Before it is deployed: the points from `/me` (0 when the API has none). */
@@ -889,10 +903,10 @@ export class HttpApi implements MiVuelticaApi {
       fire.setDate(fire.getDate() - settings.reminderOffsetDays);
       fire.setHours(9, 0, 0, 0);
       if (fire.getTime() <= now.getTime()) continue;
-      const h = start.getHours();
-      const label = `${h % 12 === 0 ? 12 : h % 12}:${String(start.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'p.m.' : 'a.m.'}`;
       const id = makeId('e', f.event.id);
-      out.push({ id: `rem-${id}`, vuelticaId: id, title: f.event.title, body: t.notifications.eventTomorrow(f.event.title, label), fireAt: fire.toISOString() });
+      // The start time in Costa Rica time, like everywhere else in the app (not the phone's time zone).
+      const body = t.notifications.eventReminder(f.event.title, formatTime(start), settings.reminderOffsetDays);
+      out.push({ id: `rem-${id}`, vuelticaId: id, title: f.event.title, body, fireAt: fire.toISOString() });
     }
     return out;
   }
