@@ -4,6 +4,7 @@ import { DEFAULT_LOCATION, PROVINCE_CENTERS } from '@/domain/geo';
 import type { Filters, LatLng, Province, SortKey, VuelticaView } from '@/domain/types';
 import { useSession } from '@/state/session';
 import { useSettings } from '@/state/settings';
+import { queryClient, queryPersister } from '@/lib/queryClient';
 import { api } from '..';
 import type {
   CreateReviewInput, CreateVuelticaInput, DecideInput, ReportInput, ReviewListParams, SimulateInput, VerifyInput, VuelticaDetail,
@@ -254,15 +255,28 @@ export function useSignIn() {
   });
 }
 
+/**
+ * Signing out or deleting the account drops the persisted query cache: it holds account data (own pending plans,
+ * saved items, moderation info) that must not stay on the device (review m8, NFR-16).
+ */
+async function forgetCachedData() {
+  queryClient.clear();
+  try {
+    await queryPersister.removeClient();
+  } catch {
+    /* nothing persisted */
+  }
+}
+
 export function useSignOut() {
   const setUser = useSession((s) => s.setUser);
   const invalidate = useInvalidateAll();
-  return useMutation({ mutationFn: () => api.signOut(), onSuccess: async () => { setUser(null); await invalidate(); } });
+  return useMutation({ mutationFn: () => api.signOut(), onSuccess: async () => { setUser(null); await forgetCachedData(); await invalidate(); } });
 }
 
 export function useDeleteAccount() {
   const setUser = useSession((s) => s.setUser);
   const invalidate = useInvalidateAll();
   // Deleting the account is how consent is revoked (Ley 8968): the next account is asked again.
-  return useMutation({ mutationFn: () => api.deleteAccount(), onSuccess: async () => { setUser(null); useSession.getState().setPrivacyAccepted(null); await invalidate(); } });
+  return useMutation({ mutationFn: () => api.deleteAccount(), onSuccess: async () => { setUser(null); useSession.getState().setPrivacyAccepted(null); await forgetCachedData(); await invalidate(); } });
 }

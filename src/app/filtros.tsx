@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Group, Row, SectionHeader } from '@/components/ui/Section';
 import { Segmented } from '@/components/ui/Segmented';
-import { Sheet, SheetHeader, closeSheet } from '@/components/ui/Sheet';
+import { Sheet, SheetHeader } from '@/components/ui/Sheet';
 import { Tap } from '@/components/ui/Tap';
 import { Text } from '@/components/ui/Text';
 import { Icon } from '@/components/icons/Icon';
@@ -120,4 +120,3 @@ export default function Filtros() {
     </Sheet>
   );
 }
-void closeSheet;

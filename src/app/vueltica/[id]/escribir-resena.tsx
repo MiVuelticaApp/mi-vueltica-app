@@ -81,7 +81,7 @@ function Composer({ existing }: { existing?: Review }) {
           <PhotoTile item={v} uri={v.photos[0]} size={48} radius={8} />
           <View style={{ flex: 1 }}>
             <Text variant="headline" numberOfLines={1}>{v.name}</Text>
-            <Text variant="callout" color="labelSecondary">{`${v.type === 'evento' ? 'Evento' : v.category}${v.startAt ? ` · ${formatEventShort(v.startAt).split(' · ')[0]}` : ''}`}</Text>
+            <Text variant="callout" color="labelSecondary">{`${v.type === 'evento' ? t.common.event : v.category}${v.startAt ? ` · ${formatEventShort(v.startAt).split(' · ')[0]}` : ''}`}</Text>
           </View>
         </View>
       ) : null}

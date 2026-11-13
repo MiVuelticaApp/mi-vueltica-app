@@ -12,7 +12,7 @@ export function scheduleLine(v: VuelticaView): string {
 
 /** "Parque · 1,2 km" */
 export function typeLine(v: VuelticaView, distance: string): string {
-  return `${v.type === 'evento' ? 'Evento' : v.category} · ${distance}`;
+  return `${v.type === 'evento' ? t.common.event : v.category} · ${distance}`;
 }
 
 export function daysSince(iso: string | undefined): number | null {

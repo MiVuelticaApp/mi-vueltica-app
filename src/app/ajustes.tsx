@@ -81,6 +81,14 @@ export default function Ajustes() {
     }
     if (exported.uri && (await Sharing.isAvailableAsync())) await Sharing.shareAsync(exported.uri, { mimeType: 'application/json' });
     else await ClipboardApi.setStringAsync(exported.content);
+    // Personal data must not stay in the cache once it was handed over (review m8).
+    if (exported.uri) {
+      try {
+        new File(exported.uri).delete();
+      } catch {
+        /* already gone */
+      }
+    }
   };
   const remove = async () => {
     const ok = await confirmDialog({ title: t.settings.deleteTitle, message: t.settings.deleteBody, confirmLabel: t.settings.deleteConfirm, destructive: true });

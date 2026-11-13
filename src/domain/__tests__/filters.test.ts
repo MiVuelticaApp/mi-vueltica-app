@@ -1,3 +1,4 @@
+import { pinTapsUnsupported } from '@/features/map/pinTaps';
 import { activeFilterCount, applyFilters, DEFAULT_FILTERS, sortVuelticas, summarize, weekendRange } from '../filters';
 import type { VuelticaView } from '../types';
 
@@ -52,4 +53,11 @@ describe('filters', () => {
     expect(r.from.getDay()).toBe(6);
     expect(r.to.getDay()).toBe(0);
   });
+});
+
+
+test('M6 the nearby fallback is only for iOS before 18', () => {
+  expect(pinTapsUnsupported('ios', '17.5')).toBe(true);
+  expect(pinTapsUnsupported('ios', '18.0')).toBe(false);
+  expect(pinTapsUnsupported('android', 34)).toBe(false);
 });

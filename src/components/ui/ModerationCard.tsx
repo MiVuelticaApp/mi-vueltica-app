@@ -20,7 +20,7 @@ export function ModerationCard({ item, voted, onVote, onUndo, onOpen, onDecide }
   const isNew = item.kind === 'nueva';
   const total = item.votesFor + item.votesAgainst;
   const progress = Math.min(1, total / Math.max(1, item.votesNeeded));
-  const meta = [v.type === 'evento' ? 'Evento' : 'Lugar', v.address.split(',')[0].split(' · ')[0], v.startAt ? formatEventShort(v.startAt).split(' · ')[0] : null, v.priceTier === 'gratis' ? 'Gratis' : formatCRC(v.pricePerPerson)].filter(Boolean).join(' · ');
+  const meta = [v.type === 'evento' ? t.common.event : t.common.place, v.address.split(',')[0].split(' · ')[0], v.startAt ? formatEventShort(v.startAt).split(' · ')[0] : null, v.priceTier === 'gratis' ? t.common.free : formatCRC(v.pricePerPerson)].filter(Boolean).join(' · ');
   const ago = (iso?: string) => (iso ? formatRelative(iso, now()) : '');
   return (
     <View testID={`mod.card.${v.id}`} style={{ marginHorizontal: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: c.lineStrong, backgroundColor: c.surface, gap: 12 }}>

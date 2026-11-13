@@ -3,6 +3,7 @@
  * so a backend can replace them one by one.
  */
 import { LEVELS, POINTS } from '@/config/levels';
+import { t } from '@/i18n/es-CR';
 import type {
   Level,
   ModerationItem,
@@ -13,7 +14,6 @@ import type {
   ReputationEvent,
   ReputationKind,
   ReputationSummary,
-  Review,
   Vueltica,
   Verification,
   VoteChoice,
@@ -142,7 +142,7 @@ export interface VerificationOutcome {
  */
 export function outcomeOfVerifications(vs: Pick<Verification, 'stillHappening' | 'pricePaid'>[]): VerificationOutcome {
   const gone = vs.filter((v) => v.stillHappening === 'no').length;
-  if (gone >= VERIFICATIONS_TO_UPDATE) return { hidden: true, hiddenReason: 'Ya no existe' };
+  if (gone >= VERIFICATIONS_TO_UPDATE) return { hidden: true, hiddenReason: t.reasons.gone };
   const counts = new Map<string, number>();
   for (const v of vs) {
     if (!v.pricePaid) continue;
@@ -191,12 +191,3 @@ export function anonymizeOnDelete<T extends { authorId: string | null; authorNam
   return item.authorId === userId ? { ...item, authorId: null, authorName: 'Anónimo' } : item;
 }
 
-export function ratingSummary(reviews: Pick<Review, 'stars'>[]): { avg: number; count: number; distribution: number[] } {
-  const distribution = [0, 0, 0, 0, 0];
-  let sum = 0;
-  for (const r of reviews) {
-    distribution[r.stars - 1] += 1;
-    sum += r.stars;
-  }
-  return { avg: reviews.length ? Math.round((sum / reviews.length) * 10) / 10 : 0, count: reviews.length, distribution };
-}

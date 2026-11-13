@@ -7,12 +7,17 @@ import { Text } from '@/components/ui/Text';
 import { t } from '@/i18n/es-CR';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-/** Stack options for sheets: native formSheet with half/full detents; on web a transparent modal drawn by `Sheet`. */
-export function sheetOptions(detents: number[] = [0.5, 1], initial = 0) {
+/**
+ * Stack options for sheets: native formSheet with half/full detents; on web a transparent modal drawn by `Sheet`.
+ * `undimmedUpTo`: the largest detent index without the dimming view, so the screen behind stays touchable (the
+ * Detalle half sheet over the map: tap another pin, review m11).
+ */
+export function sheetOptions(detents: number[] = [0.5, 1], initial = 0, undimmedUpTo?: number) {
   if (Platform.OS === 'web') return { presentation: 'transparentModal', headerShown: false, animation: 'fade' } as const;
   return {
     presentation: 'formSheet', headerShown: false, sheetAllowedDetents: detents.slice(0, 3), sheetInitialDetentIndex: initial,
     sheetGrabberVisible: true, sheetCornerRadius: 24,
+    ...(undimmedUpTo !== undefined ? { sheetLargestUndimmedDetentIndex: undimmedUpTo } : null),
   } as const;
 }
 
