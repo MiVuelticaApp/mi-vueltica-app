@@ -13,6 +13,8 @@ export const t = {
     updateRequired: 'Hay una versión nueva de MiVueltica. Actualizá la app para seguir usándola sin problemas.',
     notSupported: 'Esta función todavía no está disponible. Estamos trabajando en ella.',
     errorTitle: 'Algo salió mal', errorBody: 'No pudimos cargar esta información. Probá de nuevo.',
+    actionFailed: 'No pudimos guardar el cambio. Probá de nuevo.', rateLimited: 'Hiciste muchos intentos seguidos. Esperá unos minutos y probá de nuevo.',
+    needsNetworkAction: 'Necesitás conexión para hacer esto.',
   },
   tabs: { map: 'Mapa', list: 'Lista', contribute: 'Aportar', saved: 'Guardados', profile: 'Perfil' },
   welcome: {
@@ -119,6 +121,8 @@ export const t = {
     title: 'Reseñas', summary: (n: number) => `${n} reseñas`, didYouGo: '¿Fuiste? Calificá tu visita', write: 'Escribir reseña',
     recent: 'Recientes', withPhotos: 'Con fotos', useful: 'Más útiles', families: 'Familias', students: 'Estudiantes',
     helpful: (n: number) => `Útil · ${n}`, helpfulA11y: 'Marcar como útil', report: 'Reportar', ago: 'Hace',
+    edit: 'Editar', delete: 'Eliminar', deleteTitle: '¿Eliminar tu reseña?', deleteBody: 'Ya no se va a mostrar ni contar en la calificación.', deleted: 'Reseña eliminada',
+    editTitle: 'Editar reseña', updated: 'Reseña actualizada', mine: 'Tu reseña',
     wentWith: { familia: 'Fue con su familia', amigos: 'Fue con amigos', pareja: 'Fue en pareja', solo: 'Fue solo/a' },
     wentWithShort: { familia: 'En familia', amigos: 'Con amigos', pareja: 'En pareja', solo: 'Solo/a' },
     spent: { nada: 'Nada', menos2500: `Menos de ${c(2500)}`, entre2500y5000: `${c(2500)} – ${c(5000)}` },

@@ -475,6 +475,44 @@ export class MockApi implements MiVuelticaApi {
     });
   }
 
+  /** Moves one rating in the plan's average and distribution (create: from 0, delete: to 0). */
+  private moveRating(v: Vueltica, from: number, to: number) {
+    const dist = (this.db.ratingDist[v.id] ??= [0, 0, 0, 0, 0]);
+    if (from) dist[from - 1] = Math.max(0, dist[from - 1] - 1);
+    if (to) dist[to - 1] += 1;
+    const count = dist.reduce((a, b) => a + b, 0);
+    v.ratingCount = Math.max(0, v.ratingCount + (to ? 1 : 0) - (from ? 1 : 0));
+    v.ratingAvg = count ? Math.round((dist.reduce((a, n, i) => a + n * (i + 1), 0) / count) * 10) / 10 : 0;
+  }
+
+  updateReview(reviewId: string, input: CreateReviewInput): Promise<Review> {
+    return this.write(() => {
+      const me = this.requireMe('review');
+      const r = this.db.reviews.find((x) => x.id === reviewId);
+      if (!r) throw new NotFoundError();
+      if (r.authorId !== me.id) throw new ForbiddenError('not-author');
+      if (input.stars < 1 || input.stars > 5) throw new ValidationError('stars', t.reviews.compose.needStars);
+      const v = this.db.vuelticas.find((x) => x.id === r.vuelticaId);
+      if (v && r.stars !== input.stars) this.moveRating(v, r.stars, input.stars);
+      Object.assign(r, { stars: input.stars, wentWith: input.wentWith, spent: input.spent, text: input.text.trim(), photos: input.photos });
+      return { ...r };
+    });
+  }
+
+  deleteReview(reviewId: string): Promise<void> {
+    return this.write(() => {
+      const me = this.requireMe('review');
+      const idx = this.db.reviews.findIndex((x) => x.id === reviewId);
+      if (idx < 0) throw new NotFoundError();
+      const r = this.db.reviews[idx];
+      if (r.authorId !== me.id) throw new ForbiddenError('not-author');
+      this.db.reviews.splice(idx, 1);
+      const v = this.db.vuelticas.find((x) => x.id === r.vuelticaId);
+      if (v) this.moveRating(v, r.stars, 0);
+      me.counts.reviews = Math.max(0, me.counts.reviews - 1);
+    });
+  }
+
   markUseful(reviewId: string): Promise<Review> {
     return this.write(() => {
       const me = this.requireMe('useful');

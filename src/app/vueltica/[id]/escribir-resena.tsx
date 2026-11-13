@@ -14,10 +14,13 @@ import { StarInput } from '@/components/ui/Stars';
 import { Tap } from '@/components/ui/Tap';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
-import { useCreateReview, useVuelticaDetail } from '@/data/queries';
-import type { SpentTier, WentWith } from '@/domain/types';
+import { useCreateReview, useReviews, useUpdateReview, useVuelticaDetail } from '@/data/queries';
+import type { Review, SpentTier, WentWith } from '@/domain/types';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ListSkeleton } from '@/components/ui/Skeleton';
 import { formatEventShort } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
+import { errorMessage } from '@/lib/errors';
 import { pickPhotos } from '@/lib/photos';
 import { useSession } from '@/state/session';
 import { useAppTheme } from '@/theme/useAppTheme';
@@ -25,20 +28,37 @@ import { useAppTheme } from '@/theme/useAppTheme';
 const WENT: WentWith[] = ['familia', 'amigos', 'pareja', 'solo'];
 const SPENT: SpentTier[] = ['nada', 'menos2500', 'entre2500y5000'];
 
-/** 10 Escribir reseña. iOS/web: sheet with ✓ in the header. Android: full-screen with "Publicar" (FR-1.2, FR-10.3). */
+/**
+ * 10 Escribir reseña. iOS/web: sheet with ✓ in the header. Android: full-screen with "Publicar" (FR-1.2, FR-10.3).
+ * With `?reviewId=` it edits the caller's own review (`PUT /reviews/:id`), prefilled once the review is loaded.
+ */
 export default function EscribirResena() {
-  const { id, stars: starsParam } = useLocalSearchParams<{ id: string; stars?: string }>();
+  const { id, reviewId } = useLocalSearchParams<{ id: string; reviewId?: string }>();
+  const list = useReviews({ vuelticaId: id, sort: 'recientes' });
+  const existing = reviewId ? list.data?.items.find((r) => r.id === reviewId) : undefined;
+  if (reviewId && !existing) {
+    return list.isPending ? <Sheet testID="compose.sheet" tall><ListSkeleton count={2} /></Sheet> : <Sheet testID="compose.sheet" tall><EmptyState icon="alert" title={t.common.errorTitle} body={t.common.errorBody} /></Sheet>;
+  }
+  return <Composer key={existing?.id ?? 'new'} existing={existing} />;
+}
+
+function Composer({ existing }: { existing?: Review }) {
+  const { id, stars: starsParam, reviewId } = useLocalSearchParams<{ id: string; stars?: string; reviewId?: string }>();
   const { c, isAndroid } = useAppTheme();
   const insets = useSafeAreaInsets();
   const user = useSession((s) => s.user);
   const q = useVuelticaDetail(id);
   const create = useCreateReview();
-  const [stars, setStars] = useState(Number(starsParam) || 0);
-  const [went, setWent] = useState<WentWith>('familia');
-  const [spent, setSpent] = useState<SpentTier>('nada');
-  const [text, setText] = useState('');
-  const [photos, setPhotos] = useState<string[]>([]);
+  const update = useUpdateReview();
+  const saving = create.isPending || update.isPending;
+
+  const [stars, setStars] = useState(existing?.stars ?? (Number(starsParam) || 0));
+  const [went, setWent] = useState<WentWith>(existing?.wentWith ?? 'familia');
+  const [spent, setSpent] = useState<SpentTier>(existing?.spent ?? 'nada');
+  const [text, setText] = useState(existing?.text ?? '');
+  const [photos, setPhotos] = useState<string[]>(existing?.photos ?? []);
   const v = q.data?.vuelticaView;
+  const title = reviewId ? t.reviews.editTitle : t.reviews.compose.title;
 
   useEffect(() => {
     // Direct deep links while signed out go through Login first.
@@ -47,10 +67,12 @@ export default function EscribirResena() {
 
   const publish = () => {
     if (stars < 1) return toast(t.reviews.compose.needStars);
-    create.mutate(
-      { vuelticaId: id, stars, wentWith: went, spent, text, photos },
-      { onSuccess: () => { toast(t.reviews.compose.published); closeSheet(); } },
-    );
+    const input = { vuelticaId: id, stars, wentWith: went, spent, text, photos };
+    if (reviewId) {
+      update.mutate({ id: reviewId, input }, { onSuccess: () => { toast(t.reviews.updated); closeSheet(); }, onError: (e) => toast(errorMessage(e)) });
+      return;
+    }
+    create.mutate(input, { onSuccess: () => { toast(t.reviews.compose.published); closeSheet(); }, onError: (e) => toast(errorMessage(e)) });
   };
   const body = (
     <ScrollView contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled">
@@ -94,17 +116,17 @@ export default function EscribirResena() {
   if (isAndroid) {
     return (
       <View testID="compose.screen" style={{ flex: 1, backgroundColor: c.groupedBackground, paddingTop: insets.top }}>
-        <SheetHeader testID="compose.header" title={t.reviews.compose.title} right={undefined} left={<IconButton testID="compose.close" icon="close" label={t.common.close} onPress={closeSheet} />} />
+        <SheetHeader testID="compose.header" title={title} right={undefined} left={<IconButton testID="compose.close" icon="close" label={t.common.close} onPress={closeSheet} />} />
         {body}
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, paddingBottom: Math.max(insets.bottom, 16), backgroundColor: c.groupedBackground }}>
-          <Button testID="compose.publish" label={t.reviews.compose.publish} onPress={publish} loading={create.isPending} />
+          <Button testID="compose.publish" label={t.reviews.compose.publish} onPress={publish} loading={saving} />
         </View>
       </View>
     );
   }
   return (
     <Sheet testID="compose.sheet" tall>
-      <SheetHeader testID="compose.header" title={t.reviews.compose.title} right={<IconButton testID="compose.publish" icon="check" label={t.reviews.compose.publish} prominent onPress={publish} disabled={create.isPending} />} />
+      <SheetHeader testID="compose.header" title={title} right={<IconButton testID="compose.publish" icon="check" label={t.reviews.compose.publish} prominent onPress={publish} disabled={saving} />} />
       {body}
     </Sheet>
   );

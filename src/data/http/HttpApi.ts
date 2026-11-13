@@ -540,6 +540,24 @@ export class HttpApi implements MiVuelticaApi {
     return reviewFromApi(r);
   }
 
+  async updateReview(reviewId: string, input: CreateReviewInput): Promise<Review> {
+    await this.requireUser('review');
+    const photos = await uploadPhotos(this.http, input.photos, MAX_PHOTOS);
+    const r = await this.http.put<ReviewDto>(
+      `/reviews/${reviewId}`,
+      { rating: input.stars, comment: input.text.trim() || null, wentWith: input.wentWith, spent: input.spent, photos },
+      { auth: 'required', reason: 'review' },
+    );
+    this.reviews.set(r.id, r);
+    return reviewFromApi(r);
+  }
+
+  async deleteReview(reviewId: string): Promise<void> {
+    await this.requireUser('review');
+    await this.http.del(`/reviews/${reviewId}`, { auth: 'required', reason: 'review' });
+    this.reviews.delete(reviewId);
+  }
+
   /** Toggles "útil" (the app's button is a toggle). */
   async markUseful(reviewId: string): Promise<Review> {
     const opts = { auth: 'required' as const, reason: 'useful' as const };

@@ -10,8 +10,8 @@ import { Stars } from './Stars';
 import { Tap } from './Tap';
 import { Text } from './Text';
 
-/** Figma "Review Item": initials, name, date · went with, stars, text, photos, "útil" and report. */
-export function ReviewItem({ review, onUseful, onReport }: { review: Review; onUseful?: () => void; onReport?: () => void }) {
+/** Figma "Review Item": initials, name, date · went with, stars, text, photos, "útil" and report; the caller's own review gets Editar / Eliminar. */
+export function ReviewItem({ review, mine, onUseful, onReport, onEdit, onDelete }: { review: Review; mine?: boolean; onUseful?: () => void; onReport?: () => void; onEdit?: () => void; onDelete?: () => void }) {
   const { c } = useAppTheme();
   const when = formatRelative(review.createdAt, now());
   const cap = when.charAt(0).toUpperCase() + when.slice(1);
@@ -35,6 +35,17 @@ export function ReviewItem({ review, onUseful, onReport }: { review: Review; onU
           ))}
         </View>
       ) : null}
+      {mine ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
+          <Text variant="caption" color="labelSecondary" style={{ flex: 1 }}>{t.reviews.mine}</Text>
+          <Tap testID={`review.edit.${review.id}`} label={t.reviews.edit} onPress={onEdit} hitSlop={8} style={{ minHeight: 32, justifyContent: 'center' }}>
+            <Text variant="callout" bold color="primary">{t.reviews.edit}</Text>
+          </Tap>
+          <Tap testID={`review.delete.${review.id}`} label={t.reviews.delete} onPress={onDelete} hitSlop={8} style={{ minHeight: 32, justifyContent: 'center' }}>
+            <Text variant="callout" bold color="danger">{t.reviews.delete}</Text>
+          </Tap>
+        </View>
+      ) : (
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 20 }}>
         <Tap testID={`review.useful.${review.id}`} label={t.reviews.helpfulA11y} accessibilityState={{ selected: review.markedUsefulByMe }} onPress={onUseful} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 32 }}>
           <Icon name="thumb" size={18} color={review.markedUsefulByMe ? 'primary' : 'onSurfaceVariant'} />
@@ -45,6 +56,7 @@ export function ReviewItem({ review, onUseful, onReport }: { review: Review; onU
           <Text variant="caption" color="onSurfaceVariant">{t.reviews.report}</Text>
         </Tap>
       </View>
+      )}
     </View>
   );
 }

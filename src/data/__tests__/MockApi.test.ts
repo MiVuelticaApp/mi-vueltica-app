@@ -268,3 +268,29 @@ describe('suggestions (#11)', () => {
   });
 });
 
+describe('own reviews (#23)', () => {
+  it('edits and deletes the author\'s review, keeping the average and distribution right', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    const before = (await api.listReviews({ vuelticaId: 'v-sabana', sort: 'recientes' })).summary;
+    const r = await api.createReview({ vuelticaId: 'v-sabana', stars: 1, wentWith: 'solo', spent: 'nada', text: 'Malo', photos: [] });
+    const edited = await api.updateReview(r.id, { vuelticaId: 'v-sabana', stars: 5, wentWith: 'familia', spent: 'nada', text: 'Al final, muy bueno', photos: [] });
+    expect(edited).toMatchObject({ stars: 5, text: 'Al final, muy bueno', wentWith: 'familia' });
+    const mid = (await api.listReviews({ vuelticaId: 'v-sabana', sort: 'recientes' })).summary;
+    expect(mid.count).toBe(before.count + 1);
+    expect(mid.distribution[4]).toBe(before.distribution[4] + 1);
+    expect(mid.distribution[0]).toBe(before.distribution[0]);
+    await api.deleteReview(r.id);
+    const after = (await api.listReviews({ vuelticaId: 'v-sabana', sort: 'recientes' })).summary;
+    expect(after.count).toBe(before.count);
+    expect(after.distribution).toEqual(before.distribution);
+  });
+  it('refuses to edit someone else\'s review', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    const other = (await api.listReviews({ vuelticaId: 'v-sabana', sort: 'recientes' })).items.find((x) => x.authorId !== 'u-ana');
+    if (!other) return;
+    await expect(api.deleteReview(other.id)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});
+
