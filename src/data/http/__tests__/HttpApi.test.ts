@@ -1,5 +1,5 @@
 import { DEFAULT_FILTERS } from '@/domain/filters';
-import { AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, OfflineError } from '../../api';
+import { AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, NotSupportedError, OfflineError } from '../../api';
 import { MemoryKV } from '../../storage/types';
 import { HttpApi } from '../HttpApi';
 import { HttpClient } from '../client';
@@ -179,7 +179,7 @@ describe('HttpApi', () => {
     // The client re-applies the rules: an unknown price is "hasta ₡5.000", so it does not pass "solo gratis".
     expect(res.items).toHaveLength(0);
     const all = await api.listVuelticas({ filters: DEFAULT_FILTERS, location: LOC });
-    expect(all.items[0]).toMatchObject({ priceTier: 'hasta5000', pricePerPerson: 5000 });
+    expect(all.items[0]).toMatchObject({ priceTier: 'hasta5000', pricePerPerson: 5000, priceUnknown: true });
     expect(sent).toEqual([['gratis', 'true'], ['hasta5000', null]]);
   });
 
@@ -352,6 +352,10 @@ describe('HttpApi', () => {
     expect(d.vuelticaView.id).toBe('p-aaaa');
     expect(d).toMatchObject({ saved: true, mine: true, rating: { avg: 4, count: 1, distribution: [0, 0, 0, 1, 0] }, verification: { count: 3 } });
     expect(d.reviewsPreview[0]).toMatchObject({ id: 'r1', stars: 4, authorName: 'Ana', vuelticaId: 'p-aaaa' });
+    // "Mis vuelticas" lists it by the published id too, so save / verify / report / reviews target the plan (#11).
+    routes['GET /me/submissions'] = () => ({ body: page([{ id: 's9', userId: 'u1', type: 'PLACE', data: {}, status: 'PUBLISHED', reviewedAt: null, reviewNote: null, created: { type: 'PLACE', id: 'aaaa' }, createdAt: '2026-10-01T00:00:00.000Z' }]) });
+    const mine = await api.myVuelticas(LOC);
+    expect(mine.map((m) => m.vuelticaView.id)).toEqual(['p-aaaa']);
   });
 
   it('saves places and events', async () => {
@@ -430,6 +434,10 @@ describe('HttpApi', () => {
     expect(await api.listBlocks()).toEqual([{ id: 'b1', name: 'Ana M.', blockedAt: '2026-10-20T00:00:00.000Z' }]);
     await api.unblock('b1');
     expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual(expect.arrayContaining(['POST /places/aaaa/author/block', 'POST /reviews/r1/author/block', 'DELETE /me/blocks/b1']));
+    // An API without the block routes answers Express's HTML 404: "not available yet", not "no author".
+    global.fetch = jest.fn(async () => new Response('<pre>Cannot POST</pre>', { status: 404, headers: { 'Content-Type': 'text/html' } })) as typeof fetch;
+    await expect(api.blockAuthor({ kind: 'vueltica', id: 'p-aaaa' })).rejects.toBeInstanceOf(NotSupportedError);
+    await expect(api.listBlocks()).rejects.toBeInstanceOf(NotSupportedError);
   });
 
   it('verifications: guests send X-Device-Id, offline answers are queued and flushed later', async () => {

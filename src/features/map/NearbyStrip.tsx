@@ -4,7 +4,8 @@ import { Tap } from '@/components/ui/Tap';
 import { Text } from '@/components/ui/Text';
 import { glassStyle } from '@/components/ui/glass';
 import type { VuelticaView } from '@/domain/types';
-import { formatCRC, formatDistance } from '@/i18n/format';
+import { priceLabel } from '@/features/list/format';
+import { formatDistance } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -19,7 +20,7 @@ export function NearbyStrip({ items, onOpen }: { items: VuelticaView[]; onOpen: 
   return (
     <ScrollView testID="map.nearby" horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={t.map.nearby} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
       {nearest.map((v) => {
-        const price = v.priceTier === 'gratis' ? t.common.free : formatCRC(v.pricePerPerson);
+        const price = v.priceTier === 'gratis' ? t.common.free : priceLabel(v);
         return (
           <Tap key={v.id} testID={`map.nearby.${v.id}`} label={`${v.name}, ${formatDistance(v.distanceKm)}, ${price}`} onPress={() => onOpen(v.id)} style={[{ width: 220, borderRadius: 18, padding: 10, flexDirection: 'row', gap: 10, alignItems: 'center' }, glassStyle(c)]}>
             <PhotoTile item={v} uri={v.photos[0]} size={44} radius={10} />

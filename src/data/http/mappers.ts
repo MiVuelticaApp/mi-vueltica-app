@@ -57,13 +57,15 @@ export function audienceToApi(audiences: Audience[]): TargetAudience {
   return 'EVERYONE';
 }
 
-/** Price, free-for, audiences and accessibility (#36). An unknown price is shown as the "hasta ₡5.000" tier. */
+/** Price, free-for, audiences and accessibility (#36). An unknown price (`null`) is filtered as the "hasta ₡5.000" tier
+ *  but flagged `priceUnknown`, so it is shown as "por confirmar" instead of a made-up amount. */
 function conditionsFromApi(c: PlanConditionsDto, legacy: TargetAudience) {
   const price = c.pricePerPerson ?? null;
   const priceTier = c.priceTier ?? (price !== null ? tierForPrice(price) : null) ?? 'hasta5000';
   return {
     priceTier,
     pricePerPerson: price ?? tierMaxPrice(priceTier),
+    priceUnknown: price === null && priceTier !== 'gratis',
     freeFor: c.freeFor ?? [],
     audiences: c.audiences?.length ? c.audiences : audiencesFromApi(legacy),
     wheelchair: c.wheelchair ?? false,
@@ -213,7 +215,8 @@ export function submissionToView(s: SubmissionDto, categories: Map<number, strin
   return {
     ...BASE,
     ...conditionsFromApi(d, (d.targetAudience as TargetAudience) ?? 'EVERYONE'),
-    id: makeId('s', s.id),
+    // Approved (#40): point at the place / event it became, so detail actions (save, report, verify, reviews) work.
+    id: s.status === 'PUBLISHED' && s.created ? makeId(s.created.type === 'PLACE' ? 'p' : 'e', s.created.id) : makeId('s', s.id),
     type: isEvent ? 'evento' : 'lugar',
     name: String((isEvent ? d.title : d.name) ?? ''),
     category: categories.get(Number(d.categoryId)) ?? '',

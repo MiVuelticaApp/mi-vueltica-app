@@ -9,7 +9,7 @@ export const t = {
     cancel: 'Cancelar', close: 'Cerrar', retry: 'Reintentar', done: 'Listo', clear: 'Limpiar', save: 'Guardar', saved: 'Guardado',
     share: 'Compartir', back: 'Atrás', ok: 'Aceptar', understood: 'Entendido', change: 'Cambiar', send: 'Enviar', publish: 'Publicar',
     optional: 'Opcional', choose: 'Elegir…', photoAdded: '1 foto agregada', notifDenied: 'Activá las notificaciones en los ajustes del sistema para recibir recordatorios', yes: 'Sí', no: 'No', today: 'Hoy', delete: 'Eliminar', confirm: 'Confirmar', loading: 'Cargando…',
-    seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', selectedSuffix: ', seleccionado', event: 'Evento', place: 'Lugar', free: 'Gratis', anonymous: 'Anónimo', community: 'Comunidad', km: 'km',
+    seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', selectedSuffix: ', seleccionado', event: 'Evento', place: 'Lugar', free: 'Gratis', priceUnknown: 'Precio por confirmar', anonymous: 'Anónimo', community: 'Comunidad', km: 'km',
     updateRequired: 'Hay una versión nueva de MiVueltica. Actualizá la app para seguir usándola sin problemas.',
     notSupported: 'Esta función todavía no está disponible. Estamos trabajando en ella.',
     errorTitle: 'Algo salió mal', errorBody: 'No pudimos cargar esta información. Probá de nuevo.',
@@ -150,7 +150,7 @@ export const t = {
     place: 'Lugar', event: 'Evento', details: 'Detalles', name: 'Nombre', namePlaceholder: 'Nombre del lugar o evento', category: 'Categoría',
     location: 'Ubicación', change: 'Cambiar', when: 'Fecha y hora', date: 'Fecha', hours: 'Horario', start: 'Inicio', end: 'Fin', openingHours: 'Horario de apertura',
     description: 'Descripción', descriptionPlaceholder: 'Contá de qué se trata', cost: 'Costo', free: 'Gratis', paid: 'Con costo', pricePerPerson: 'Precio por persona',
-    freeStudents: 'Gratis para estudiantes', freeSeniors: 'Gratis para ciudadanos de oro', maxNote: `Máximo ${c(5000)} por persona. Si cuesta más, no se publica.`,
+    freeStudents: 'Gratis para estudiantes', freeSeniors: 'Gratis para ciudadanos de oro', maxNote: `Máximo ${c(5000)} por persona. Si cuesta más, no se publica. Si no sabés el precio, dejalo vacío.`,
     priceError: `Cuesta más de ${c(5000)}: no podemos publicarla`, whoFor: '¿Para quién es?', everyone: 'Todo público', families: 'Familias', students: 'Estudiantes', seniors: 'Ciudadanos de oro',
     photos: 'Fotos (opcional)', add: 'Agregar', remove: 'Quitar foto', limit: 'Máximo 5 fotos', confirm: `Cuesta ${c(5000)} o menos y es abierto al público`,
     authorNote: 'Tu nombre aparecerá como autor de la vueltica. Podés editarla o retirarla desde Perfil.', submit: 'Enviar vueltica', submitA11y: 'Enviar vueltica (confirmar)',
@@ -243,7 +243,8 @@ export const t = {
     version: (v: string) => `Versión ${v}`, contact: (email: string) => `Consultas: ${email}`,
   },
   notifications: {
-    eventTomorrow: (name: string, time: string) => `Mañana: ${name} · ${time}`, newNearby: (n: number) => `Hay ${n} planes nuevos cerca de vos`,
+    /** The saved-event reminder, `days` before (Ajustes › Recordatorio: 1, 2, 3 or 7). */
+    eventReminder: (name: string, time: string, days: number) => `${days === 1 ? 'Mañana' : days === 7 ? 'En una semana' : `En ${days} días`}: ${name} · ${time}`, newNearby: (n: number) => `Hay ${n} planes nuevos cerca de vos`,
     published: (name: string) => `¡Tu vueltica «${name}» ya está en el mapa!`, rejected: (name: string) => `Tu vueltica «${name}» no se publicó`,
   },
   a11y: { photoPlaceholder: 'Foto de ejemplo', closeSheet: 'Cerrar', backButton: 'Volver', toggleType: (n: string) => `Filtrar ${n}` },

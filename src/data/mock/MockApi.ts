@@ -9,7 +9,7 @@ import type {
   BlockedUser, LatLng, ModerationItem, ModerationKind, Province, Report, Review, Saved, Settings, User, Verification, Vueltica, VuelticaView, ReputationKind, ReputationEvent,
 } from '@/domain/types';
 import { now as clockNow } from '@/lib/clock';
-import { initialsOf } from '@/i18n/format';
+import { formatTime, initialsOf } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
 import {
   AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, OfflineError, ValidationError,
@@ -241,16 +241,23 @@ export class MockApi implements MiVuelticaApi {
     };
   }
 
+  /** Same rules as the API (#36): `null` = unknown (filtered as "hasta ₡5.000"), above ₡5.000 is rejected. */
+  private priceOf(input: CreateVuelticaInput): Pick<Vueltica, 'priceTier' | 'pricePerPerson' | 'priceUnknown'> {
+    if (input.pricePerPerson === null) return { priceTier: 'hasta5000', pricePerPerson: 5000, priceUnknown: true };
+    const tier = tierForPrice(input.pricePerPerson);
+    if (!tier || !isPublishablePrice(input.pricePerPerson)) throw new ValidationError('price', t.contribute.priceError);
+    return { priceTier: tier, pricePerPerson: input.pricePerPerson, priceUnknown: false };
+  }
+
   createVueltica(input: CreateVuelticaInput) {
     return this.write(() => {
       const me = this.requireMe('contribute');
       if (!input.name.trim()) throw new ValidationError('name', t.contribute.needName);
-      const tier = tierForPrice(input.pricePerPerson);
-      if (!tier || !isPublishablePrice(input.pricePerPerson)) throw new ValidationError('price', t.contribute.priceError);
+      const price = this.priceOf(input);
       const v: Vueltica = {
         id: this.id('v'), type: input.type, name: input.name.trim(), category: input.category, description: input.description, photos: input.photos,
         lat: input.lat, lng: input.lng, address: input.address, province: input.province, cantonId: input.type === 'lugar' ? input.cantonId : undefined, startAt: input.startAt, endAt: input.endAt, openingHours: input.openingHours,
-        priceTier: tier, pricePerPerson: input.pricePerPerson, freeFor: input.freeFor, audiences: input.audiences, wheelchair: input.wheelchair, status: 'pendiente',
+        ...price, freeFor: input.freeFor, audiences: input.audiences, wheelchair: input.wheelchair, status: 'pendiente',
         authorId: me.id, authorName: `${me.displayName.split(' ')[0]} ${me.displayName.split(' ')[1]?.[0] ?? ''}.`.trim(), createdAt: clockNow().toISOString(),
         verificationCount: 0, ratingAvg: 0, ratingCount: 0,
       };
@@ -269,12 +276,11 @@ export class MockApi implements MiVuelticaApi {
       if (v.status !== 'pendiente') throw new ConflictError('decided');
       if (v.type !== input.type) throw new ValidationError('type', 'type');
       if (!input.name.trim()) throw new ValidationError('name', t.contribute.needName);
-      const tier = tierForPrice(input.pricePerPerson);
-      if (!tier || !isPublishablePrice(input.pricePerPerson)) throw new ValidationError('price', t.contribute.priceError);
+      const price = this.priceOf(input);
       Object.assign(v, {
         name: input.name.trim(), category: input.category, description: input.description, photos: input.photos, lat: input.lat, lng: input.lng,
         address: input.address, province: input.province, cantonId: input.type === 'lugar' ? input.cantonId : undefined, startAt: input.startAt, endAt: input.endAt,
-        openingHours: input.openingHours, priceTier: tier, pricePerPerson: input.pricePerPerson, freeFor: input.freeFor, audiences: input.audiences, wheelchair: input.wheelchair,
+        openingHours: input.openingHours, ...price, freeFor: input.freeFor, audiences: input.audiences, wheelchair: input.wheelchair,
       });
       return this.view(v, input);
     });
@@ -384,6 +390,7 @@ export class MockApi implements MiVuelticaApi {
     } else if (out.priceTier) {
       v.priceTier = out.priceTier;
       v.pricePerPerson = out.priceTier === 'gratis' ? 0 : out.priceTier === 'hasta2500' ? Math.min(v.pricePerPerson || 2500, 2500) || 2500 : Math.max(v.pricePerPerson, 2501);
+      v.priceUnknown = false; // the community confirmed a price
     }
     if (out.hidden || out.priceTier) this.db.verifications = this.db.verifications.filter((x) => x.vuelticaId !== v.id);
     return { queued: false, points, hidden };
@@ -847,10 +854,8 @@ export class MockApi implements MiVuelticaApi {
         fire.setDate(fire.getDate() - s.reminderOffsetDays);
         fire.setHours(9, 0, 0, 0);
         if (fire.getTime() <= now.getTime()) continue;
-        const time = new Date(v.startAt);
-        const h = time.getHours();
-        const label = `${h % 12 === 0 ? 12 : h % 12}:${String(time.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'p.m.' : 'a.m.'}`;
-        out.push({ id: `rem-${v.id}`, vuelticaId: v.id, title: v.name, body: t.notifications.eventTomorrow(v.name, label), fireAt: fire.toISOString() });
+        const body = t.notifications.eventReminder(v.name, formatTime(new Date(v.startAt)), s.reminderOffsetDays);
+        out.push({ id: `rem-${v.id}`, vuelticaId: v.id, title: v.name, body, fireAt: fire.toISOString() });
       }
       return out;
     });

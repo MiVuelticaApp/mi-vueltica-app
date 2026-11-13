@@ -53,7 +53,9 @@ export function ContributeForm() {
   const [priceError, setPriceError] = useState(false);
   const price = digits(d.price);
   const tooExpensive = d.paid && !isPublishablePrice(price);
-  const priceInvalid = d.paid && (price <= 0 || tooExpensive);
+  // An empty price on a paid plan is sent as `null` ("por confirmar", #36); a typed one must be ₡1–₡5.000.
+  const priceUnknown = d.paid && d.price.trim() === '';
+  const priceInvalid = d.paid && !priceUnknown && (price <= 0 || tooExpensive);
   const cats = d.type === 'lugar' ? t.contribute.categories.place : t.contribute.categories.event;
   const offline = useIsOffline();
   const valid = !offline && d.name.trim().length > 0 && d.category !== '' && d.hasLocation && !needsCanton && d.confirm && !priceInvalid;
@@ -78,7 +80,7 @@ export function ContributeForm() {
     const input = {
         type: d.type, name: d.name, category: d.category, description: d.description.trim(), lat: d.lat, lng: d.lng, address: d.address || t.contribute.defaultAddress,
         province: d.province, cantonId: d.type === 'lugar' ? d.cantonId ?? undefined : undefined, startAt, endAt, openingHours: d.type === 'lugar' ? d.openingHours.trim() || undefined : undefined,
-        pricePerPerson: d.paid ? price : 0, freeFor: d.paid ? [...(d.freeStudents ? (['estudiantes'] as const) : []), ...(d.freeSeniors ? (['ciudadanosOro'] as const) : [])] : [],
+        pricePerPerson: !d.paid ? 0 : priceUnknown ? null : price, freeFor: d.paid ? [...(d.freeStudents ? (['estudiantes'] as const) : []), ...(d.freeSeniors ? (['ciudadanosOro'] as const) : [])] : [],
         audiences: d.audiences.length ? d.audiences : (['todo'] as Audience[]), wheelchair: d.wheelchair, photos: d.photos,
     };
     const onError = (e: Error) => {

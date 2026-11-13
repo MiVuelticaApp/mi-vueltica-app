@@ -50,7 +50,7 @@ export function draftFromVueltica(v: VuelticaView): Draft {
     type: v.type, name: v.name, category: v.category, description: v.description, lat: v.lat, lng: v.lng, address: v.address, province: v.province,
     cantonId: v.cantonId ?? null, hasLocation: true,
     date: v.startAt ?? b.date, start: v.startAt ?? b.start, end: v.endAt ?? b.end, openingHours: v.openingHours ?? '',
-    paid: v.pricePerPerson > 0, price: v.pricePerPerson > 0 ? String(v.pricePerPerson) : '',
+    paid: v.pricePerPerson > 0 || !!v.priceUnknown, price: v.pricePerPerson > 0 && !v.priceUnknown ? String(v.pricePerPerson) : '',
     freeStudents: v.freeFor.includes('estudiantes'), freeSeniors: v.freeFor.includes('ciudadanosOro'),
     audiences: v.audiences.length ? v.audiences : ['todo'], wheelchair: v.wheelchair, photos: v.photos, confirm: true, editingId: v.id,
   };
