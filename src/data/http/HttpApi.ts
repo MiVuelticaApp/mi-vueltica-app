@@ -3,7 +3,7 @@ import { applyFilters, dateRange, sortVuelticas, summarize } from '@/domain/filt
 import { haversineKm } from '@/domain/geo';
 import { levelForPoints, reputationFor, votesNeeded, tierRank } from '@/domain/rules';
 import type {
-  Filters, LatLng, MaxPrice, ModerationItem, Province, Report, Review, Settings, SignInProvider, User, VuelticaView,
+  BlockedUser, Filters, LatLng, MaxPrice, ModerationItem, Province, Report, Review, Settings, SignInProvider, User, VuelticaView,
 } from '@/domain/types';
 import { now as clockNow } from '@/lib/clock';
 import { t } from '@/i18n/es-CR';
@@ -17,7 +17,7 @@ import { defaultSettings } from '../mock/seed';
 import type { KeyValueStore } from '../storage/types';
 import type { HttpClient, Query } from './client';
 import type {
-  AuthDto, CategoryDto, ProvinceDto, EventDetailDto, EventDto, FavoriteDto, ModerationQueueDto, ModerationVoteDto, MyProfileDto, PlaceDetailDto, PlaceDto,
+  AuthDto, BlockDto, CategoryDto, ProvinceDto, EventDetailDto, EventDto, FavoriteDto, ModerationQueueDto, ModerationVoteDto, MyProfileDto, PlaceDetailDto, PlaceDto,
   ReportDto, ReportQueueItemDto, ReputationDto, ReviewDto, ReviewListDto, SubmissionDto, UserDto, VerifyBodyDto, VerifyDto,
 } from './dto';
 import {
@@ -664,6 +664,32 @@ export class HttpApi implements MiVuelticaApi {
       await this.http.post(`/submissions/${uuid}/reject`, { reason, note: input.note?.trim() || undefined }, { auth: 'required', reason: 'moderate' });
     }
     this.queued.delete(input.vuelticaId);
+  }
+
+  /* ----------------------------------------------------------------- blocks */
+
+  /** `POST /places|events|reviews/:id/author/block` (API issue: block users, guideline 1.2). 204, idempotent. */
+  async blockAuthor(target: { kind: 'vueltica' | 'review'; id: string }): Promise<void> {
+    await this.requireUser('block');
+    let path: string;
+    if (target.kind === 'review') path = `/reviews/${target.id}/author/block`;
+    else {
+      const { kind, uuid } = parseId(target.id);
+      if (kind === 's') throw new NotFoundError();
+      path = `${planPath(kind, uuid)}/author/block`;
+    }
+    await this.http.post(path, undefined, { auth: 'required', reason: 'block' });
+  }
+
+  async listBlocks(): Promise<BlockedUser[]> {
+    await this.requireUser('block');
+    const rows = await this.http.getAll<BlockDto>('/me/blocks', {}, { auth: 'required', reason: 'block' });
+    return rows.map((b) => ({ id: b.id, name: b.name, blockedAt: b.createdAt }));
+  }
+
+  async unblock(blockId: string): Promise<void> {
+    await this.requireUser('block');
+    await this.http.del(`/me/blocks/${blockId}`, { auth: 'required', reason: 'block' });
   }
 
   /** `GET /me/reputation` (#42). Before it is deployed: the points from `/me` (0 when the API has none). */

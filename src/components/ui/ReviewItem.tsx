@@ -11,7 +11,7 @@ import { Tap } from './Tap';
 import { Text } from './Text';
 
 /** Figma "Review Item": initials, name, date · went with, stars, text, photos, "útil" and report; the caller's own review gets Editar / Eliminar. */
-export function ReviewItem({ review, mine, onUseful, onReport, onEdit, onDelete }: { review: Review; mine?: boolean; onUseful?: () => void; onReport?: () => void; onEdit?: () => void; onDelete?: () => void }) {
+export function ReviewItem({ review, mine, onUseful, onReport, onEdit, onDelete, onBlock }: { review: Review; mine?: boolean; onUseful?: () => void; onReport?: () => void; onEdit?: () => void; onDelete?: () => void; onBlock?: () => void }) {
   const { c } = useAppTheme();
   const when = formatRelative(review.createdAt, now());
   const cap = when.charAt(0).toUpperCase() + when.slice(1);
@@ -55,6 +55,12 @@ export function ReviewItem({ review, mine, onUseful, onReport, onEdit, onDelete 
           <Icon name="flag" size={18} color="onSurfaceVariant" />
           <Text variant="caption" color="onSurfaceVariant">{t.reviews.report}</Text>
         </Tap>
+        {onBlock && review.authorId !== null ? (
+          <Tap testID={`review.block.${review.id}`} label={`${t.blocks.action}: ${review.authorName}`} onPress={onBlock} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 32 }}>
+            <Icon name="block" size={18} color="onSurfaceVariant" />
+            <Text variant="caption" color="onSurfaceVariant">{t.reviews.block}</Text>
+          </Tap>
+        ) : null}
       </View>
       )}
     </View>

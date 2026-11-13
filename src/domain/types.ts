@@ -52,6 +52,8 @@ export interface Vueltica extends LatLng {
 export interface VuelticaView extends Vueltica {
   distanceKm: number;
   saved?: boolean;
+  /** A person (not the curated catalogue, not the caller) is behind it, so they can be blocked. */
+  blockable?: boolean;
 }
 
 export type SettingsDirections = 'preguntar' | 'apple' | 'google' | 'waze';
@@ -86,6 +88,13 @@ export interface User {
   email?: string;
   points: number;
   counts: { vuelticas: number; reviews: number; verifications: number };
+}
+
+/** Someone the user blocked (App Store guideline 1.2). Only the name is shown. */
+export interface BlockedUser {
+  id: string;
+  name: string;
+  blockedAt: string;
 }
 
 export interface Saved {

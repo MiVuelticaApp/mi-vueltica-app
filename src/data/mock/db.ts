@@ -48,6 +48,8 @@ export interface DB {
   queue: QueuedVerification[];
   /** Per-vueltica status of the author's notification (published / rejected) already notified. */
   notified: string[];
+  /** Blocked authors (guideline 1.2). Optional: older persisted demo databases have none. */
+  blocks?: { id: string; blockerId: string; blockedId: string; blockedName: string; createdAt: string }[];
 }
 
 export const DB_VERSION = 4;

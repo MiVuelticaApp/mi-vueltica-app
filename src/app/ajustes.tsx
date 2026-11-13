@@ -128,6 +128,7 @@ export default function Ajustes() {
       <Group>
         <Row testID="settings.location" title={t.settings.location} value={s.locationPermission === 'granted' ? t.settings.whileUsing : s.locationPermission === 'denied' ? t.settings.denied : t.settings.whileUsing} chevron onPress={async () => { if (s.locationPermission !== 'granted') { const r = await requestAndLocate(); if (r === 'denied') void Linking.openSettings().catch(() => {}); } else void Linking.openSettings().catch(() => {}); }} />
         <Row testID="settings.export" title={t.settings.download} chevron last={!user} onPress={() => (user ? void exportData() : router.push({ pathname: '/login', params: { next: '/ajustes' } }))} />
+        {user ? <Row testID="settings.blocks" title={t.blocks.title} chevron last onPress={() => router.push('/bloqueados')} /> : null}
       </Group>
       {user ? (
         <>

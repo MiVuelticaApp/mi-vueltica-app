@@ -382,6 +382,24 @@ describe('HttpApi', () => {
     expect(calls.some((c) => c.method === 'DELETE' && c.path === '/reviews/r1')).toBe(true);
   });
 
+  it('blocks (#17): blocks the author of a plan or review, lists blocks by name, unblocks', async () => {
+    const { api } = make();
+    await expect(api.blockAuthor({ kind: 'review', id: 'r1' })).rejects.toBeInstanceOf(AuthRequiredError);
+    mockMem.set('t', 'jwt');
+    routes['GET /me'] = () => ({ body: { ...USER, interests: [] } });
+    routes['POST /places/aaaa/author/block'] = () => ({ status: 204 });
+    routes['POST /reviews/r1/author/block'] = () => ({ status: 204 });
+    routes['POST /events/eeee/author/block'] = () => ({ status: 404, body: { message: 'sin autor' } });
+    routes['GET /me/blocks'] = () => ({ body: page([{ id: 'b1', name: 'Ana M.', createdAt: '2026-10-20T00:00:00.000Z' }]) });
+    routes['DELETE /me/blocks/b1'] = () => ({ status: 204 });
+    await api.blockAuthor({ kind: 'vueltica', id: 'p-aaaa' });
+    await api.blockAuthor({ kind: 'review', id: 'r1' });
+    await expect(api.blockAuthor({ kind: 'vueltica', id: 'e-eeee' })).rejects.toBeInstanceOf(NotFoundError);
+    expect(await api.listBlocks()).toEqual([{ id: 'b1', name: 'Ana M.', blockedAt: '2026-10-20T00:00:00.000Z' }]);
+    await api.unblock('b1');
+    expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual(expect.arrayContaining(['POST /places/aaaa/author/block', 'POST /reviews/r1/author/block', 'DELETE /me/blocks/b1']));
+  });
+
   it('verifications: guests send X-Device-Id, offline answers are queued and flushed later', async () => {
     const { api } = make();
     const seen: (string | undefined)[] = [];

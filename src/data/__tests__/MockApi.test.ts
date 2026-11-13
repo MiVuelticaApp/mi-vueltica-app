@@ -1,6 +1,6 @@
 import { DEFAULT_FILTERS } from '@/domain/filters';
 import { DEFAULT_LOCATION } from '@/domain/geo';
-import { AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, OfflineError, ValidationError } from '../api';
+import { AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, OfflineError, ValidationError } from '../api';
 import { MockApi } from '../mock/MockApi';
 import { MemoryKV } from '../storage/types';
 
@@ -291,6 +291,36 @@ describe('own reviews (#23)', () => {
     const other = (await api.listReviews({ vuelticaId: 'v-sabana', sort: 'recientes' })).items.find((x) => x.authorId !== 'u-ana');
     if (!other) return;
     await expect(api.deleteReview(other.id)).rejects.toBeInstanceOf(ForbiddenError);
+  });
+});
+
+describe('blocking users (#17)', () => {
+  it('hides the blocked person\'s reviews and plans, lists them by name, and unblocks', async () => {
+    const api = make();
+    await expect(api.blockAuthor({ kind: 'review', id: 'r-1' })).rejects.toBeInstanceOf(AuthRequiredError);
+    await api.signIn({ provider: 'apple' });
+    const reviews = (await api.listReviews({ vuelticaId: 'v-jade', sort: 'recientes' })).items;
+    const target = reviews.find((r) => r.authorName === 'María Rodríguez')!;
+    await api.blockAuthor({ kind: 'review', id: target.id });
+    await api.blockAuthor({ kind: 'review', id: target.id }); // idempotent
+    const after = (await api.listReviews({ vuelticaId: 'v-jade', sort: 'recientes' })).items;
+    expect(after.some((r) => r.authorId === target.authorId)).toBe(false);
+    const queueBefore = (await api.moderationQueue(loc)).nuevas.map((i) => i.vuelticaId);
+    expect(queueBefore).toContain('v-feria-jose');
+    await api.blockAuthor({ kind: 'vueltica', id: 'v-feria-jose' });
+    expect((await api.moderationQueue(loc)).nuevas.map((i) => i.vuelticaId)).not.toContain('v-feria-jose');
+    await expect(api.getVueltica('v-feria-jose', loc)).rejects.toBeInstanceOf(NotFoundError);
+    const blocks = await api.listBlocks();
+    expect(blocks.map((b) => b.name)).toEqual(['María Rodríguez', 'José A.']);
+    await api.unblock(blocks[0].id);
+    expect((await api.listReviews({ vuelticaId: 'v-jade', sort: 'recientes' })).items.some((r) => r.authorId === target.authorId)).toBe(true);
+  });
+  it('cannot block yourself or a curated plan', async () => {
+    const api = make();
+    await api.signIn({ provider: 'apple' });
+    await expect(api.blockAuthor({ kind: 'vueltica', id: 'v-mirador' })).rejects.toBeInstanceOf(ValidationError);
+    await expect(api.blockAuthor({ kind: 'vueltica', id: 'v-jade' })).rejects.toBeInstanceOf(NotFoundError);
+    expect((await api.getVueltica('v-jade', loc)).vuelticaView.blockable).toBe(false);
   });
 });
 

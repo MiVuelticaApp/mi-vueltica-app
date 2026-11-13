@@ -6,7 +6,7 @@ import {
   outcomeOfVerifications, pointsFor, reportsHide, reputationFor, tierForPrice, voteWeight, votesNeeded, isMinorityVote,
 } from '@/domain/rules';
 import type {
-  LatLng, ModerationItem, ModerationKind, Province, Report, Review, Saved, Settings, User, Verification, Vueltica, VuelticaView, ReputationKind, ReputationEvent,
+  BlockedUser, LatLng, ModerationItem, ModerationKind, Province, Report, Review, Saved, Settings, User, Verification, Vueltica, VuelticaView, ReputationKind, ReputationEvent,
 } from '@/domain/types';
 import { now as clockNow } from '@/lib/clock';
 import { initialsOf } from '@/i18n/format';
@@ -126,7 +126,10 @@ export class MockApi implements MiVuelticaApi {
 
   private view(v: Vueltica, loc: LatLng): VuelticaView {
     const me = this.me();
-    return { ...v, distanceKm: haversineKm(loc, v), saved: !!me && this.db.saved.some((s) => s.userId === me.id && s.vueltica === v.id) };
+    return {
+      ...v, distanceKm: haversineKm(loc, v), saved: !!me && this.db.saved.some((s) => s.userId === me.id && s.vueltica === v.id),
+      blockable: !!v.authorId && v.authorId !== me?.id,
+    };
   }
 
   private addPoints(userId: string, kind: ReputationKind, delta = pointsFor(kind)) {
@@ -137,6 +140,12 @@ export class MockApi implements MiVuelticaApi {
     const ev: ReputationEvent = { id: this.id('ev'), userId, kind, delta: u.points - before, createdAt: clockNow().toISOString() };
     this.db.events.push(ev);
     return ev.delta;
+  }
+
+  /** Whether the signed-in user blocked this author. */
+  private blockedAuthor(authorId: string | null | undefined): boolean {
+    const me = this.me();
+    return !!me && !!authorId && (this.db.blocks ?? []).some((b) => b.blockerId === me.id && b.blockedId === authorId);
   }
 
   private visible(): Vueltica[] {
@@ -151,11 +160,11 @@ export class MockApi implements MiVuelticaApi {
     const now = clockNow();
     const me = this.me();
     const lvl = level(this.db);
-    const published = this.db.vuelticas.filter((v) => v.status === 'publicada').map((v) => this.view(v, p.location));
+    const published = this.db.vuelticas.filter((v) => v.status === 'publicada' && !this.blockedAuthor(v.authorId)).map((v) => this.view(v, p.location));
     const items = sortVuelticas(applyFilters(published, p.filters, now, p.maxPrice), p.sort ?? 'cercanos', now);
     const { count, free } = summarize(items);
     const pending = this.db.vuelticas
-      .filter((v) => v.status === 'pendiente' && me && (v.authorId === me.id || canModerate(lvl)))
+      .filter((v) => v.status === 'pendiente' && me && (v.authorId === me.id || canModerate(lvl)) && !this.blockedAuthor(v.authorId))
       .map((v) => ({ ...this.view(v, p.location), mine: v.authorId === me?.id }));
     return { items, count, freeCount: free, pending };
   }
@@ -183,11 +192,11 @@ export class MockApi implements MiVuelticaApi {
       if (!v) throw new NotFoundError();
       const lvl = level(this.db);
       const visible = isVisibleTo(v, me?.id ?? null, lvl);
-      if (!visible) throw new NotFoundError();
+      if (!visible || this.blockedAuthor(v.authorId)) throw new NotFoundError();
       if (v.status === 'publicada') {
         this.db.viewed = [id, ...this.db.viewed.filter((x) => x !== id)].slice(0, 20);
       }
-      const reviews = this.db.reviews.filter((r) => r.vuelticaId === id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 3);
+      const reviews = this.db.reviews.filter((r) => r.vuelticaId === id && !this.blockedAuthor(r.authorId)).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 3);
       const today = clockNow().toDateString();
       return {
         vuelticaView: this.view(v, location),
@@ -207,7 +216,7 @@ export class MockApi implements MiVuelticaApi {
   }
 
   recentlyViewed(location: LatLng) {
-    return this.read(() => this.db.viewed.map((id) => this.db.vuelticas.find((v) => v.id === id)).filter((v): v is Vueltica => !!v && v.status === 'publicada').map((v) => this.view(v, location)));
+    return this.read(() => this.db.viewed.map((id) => this.db.vuelticas.find((v) => v.id === id)).filter((v): v is Vueltica => !!v && v.status === 'publicada' && !this.blockedAuthor(v.authorId)).map((v) => this.view(v, location)));
   }
 
   /* ----------------------------------------------------------------- create */
@@ -323,7 +332,7 @@ export class MockApi implements MiVuelticaApi {
       return this.db.saved
         .filter((s) => s.userId === me.id)
         .map((s) => ({ s, v: this.db.vuelticas.find((x) => x.id === s.vueltica) }))
-        .filter((x): x is { s: Saved; v: Vueltica } => !!x.v && x.v.status === 'publicada')
+        .filter((x): x is { s: Saved; v: Vueltica } => !!x.v && x.v.status === 'publicada' && !this.blockedAuthor(x.v.authorId))
         .map(({ s, v }) => ({ saved: s, vuelticaView: this.view(v, location) }));
     });
   }
@@ -445,7 +454,7 @@ export class MockApi implements MiVuelticaApi {
 
   listReviews(p: ReviewListParams): Promise<ReviewList> {
     return this.read(() => {
-      let items = this.db.reviews.filter((r) => r.vuelticaId === p.vuelticaId);
+      let items = this.db.reviews.filter((r) => r.vuelticaId === p.vuelticaId && !this.blockedAuthor(r.authorId));
       if (p.audience === 'familias') items = items.filter((r) => r.wentWith === 'familia');
       if (p.audience === 'estudiantes') items = items.filter((r) => r.wentWith === 'amigos' || r.wentWith === 'solo');
       if (p.sort === 'fotos') items = items.filter((r) => r.photos.length > 0);
@@ -537,7 +546,7 @@ export class MockApi implements MiVuelticaApi {
     const nuevas: ModerationQueue['nuevas'] = [];
     const reportadas: ModerationQueue['reportadas'] = [];
     for (const v of this.db.vuelticas) {
-      if (me && v.authorId === me.id) continue;
+      if ((me && v.authorId === me.id) || this.blockedAuthor(v.authorId)) continue;
       const item = this.moderationItem(v);
       if (!item) continue;
       if (v.status === 'pendiente') nuevas.push({ ...item, kind: 'nueva', vuelticaView: this.view(v, location) });
@@ -646,6 +655,46 @@ export class MockApi implements MiVuelticaApi {
       }
       this.resolve(v);
       return this.moderationItem(v)!;
+    });
+  }
+
+  /* ----------------------------------------------------------------- blocks */
+
+  blockAuthor(target: { kind: 'vueltica' | 'review'; id: string }): Promise<void> {
+    return this.write(() => {
+      const me = this.requireMe('block');
+      let authorId: string | null | undefined;
+      let name = '';
+      if (target.kind === 'review') {
+        const r = this.db.reviews.find((x) => x.id === target.id);
+        if (!r) throw new NotFoundError();
+        authorId = r.authorId;
+        name = r.authorName;
+      } else {
+        const v = this.db.vuelticas.find((x) => x.id === target.id);
+        if (!v) throw new NotFoundError();
+        authorId = v.authorId;
+        name = v.authorName;
+      }
+      if (!authorId) throw new NotFoundError();
+      if (authorId === me.id) throw new ValidationError('self', t.blocks.self);
+      this.db.blocks ??= [];
+      if (this.db.blocks.some((b) => b.blockerId === me.id && b.blockedId === authorId)) return;
+      this.db.blocks.push({ id: this.id('b'), blockerId: me.id, blockedId: authorId, blockedName: name, createdAt: clockNow().toISOString() });
+    });
+  }
+
+  listBlocks(): Promise<BlockedUser[]> {
+    return this.read(() => {
+      const me = this.requireMe('block');
+      return (this.db.blocks ?? []).filter((b) => b.blockerId === me.id).map((b) => ({ id: b.id, name: b.blockedName, blockedAt: b.createdAt }));
+    });
+  }
+
+  unblock(blockId: string): Promise<void> {
+    return this.write(() => {
+      const me = this.requireMe('block');
+      this.db.blocks = (this.db.blocks ?? []).filter((b) => !(b.id === blockId && b.blockerId === me.id));
     });
   }
 
