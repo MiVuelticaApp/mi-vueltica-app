@@ -249,7 +249,7 @@ export function useSignIn() {
   const setUser = useSession((s) => s.setUser);
   const invalidate = useInvalidateAll();
   return useMutation({
-    mutationFn: (i: { provider: 'apple' | 'google' }) => api.signIn(i),
+    mutationFn: (i: { provider: 'apple' | 'google'; privacyVersion?: string }) => api.signIn(i),
     onSuccess: async (u) => { setUser(u); await invalidate(); },
   });
 }
@@ -263,5 +263,6 @@ export function useSignOut() {
 export function useDeleteAccount() {
   const setUser = useSession((s) => s.setUser);
   const invalidate = useInvalidateAll();
-  return useMutation({ mutationFn: () => api.deleteAccount(), onSuccess: async () => { setUser(null); await invalidate(); } });
+  // Deleting the account is how consent is revoked (Ley 8968): the next account is asked again.
+  return useMutation({ mutationFn: () => api.deleteAccount(), onSuccess: async () => { setUser(null); useSession.getState().setPrivacyAccepted(null); await invalidate(); } });
 }

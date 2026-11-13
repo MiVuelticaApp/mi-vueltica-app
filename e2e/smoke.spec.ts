@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { signInWith } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -39,7 +40,7 @@ test('guest saves a plan: login gate returns to the plan and saves it', async ({
   await page.goto('/vueltica/v-sabana');
   await page.getByTestId('detail.save').click();
   await expect(page.getByTestId('login.screen')).toBeVisible();
-  await page.getByTestId('login.apple').click();
+  await signInWith(page, 'apple');
   await expect(page.getByTestId('detail.save')).toContainText('Guardado');
 });
 
@@ -47,7 +48,7 @@ test('profile shows level 3 for the signed-in user', async ({ page }) => {
   await start(page);
   await page.getByTestId('tabs.profile').click();
   await page.getByTestId('profile.signIn').click();
-  await page.getByTestId('login.apple').click();
+  await signInWith(page, 'apple');
   await expect(page.getByTestId('profile.levelBadge')).toContainText('Nivel 3 · De confianza');
   await expect(page.getByTestId('profile.points')).toContainText('172 puntos');
 });

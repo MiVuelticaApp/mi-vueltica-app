@@ -19,12 +19,15 @@ interface SessionState {
   coords: LatLng | null;
   province: Province | null;
   pending: PendingAction;
+  /** Privacy notice version accepted on this device before signing in (sent with the login). */
+  privacyAccepted: string | null;
   hydrated: boolean;
   setUser: (u: User | null) => void;
   setOnboarded: (v: boolean) => void;
   setCoords: (c: LatLng | null) => void;
   setProvince: (p: Province | null) => void;
   setPending: (p: PendingAction) => void;
+  setPrivacyAccepted: (v: string | null) => void;
 }
 
 export const useSession = create<SessionState>()(
@@ -36,17 +39,19 @@ export const useSession = create<SessionState>()(
       coords: null,
       province: null,
       pending: null,
+      privacyAccepted: null,
       hydrated: false,
       setUser: (user) => set({ user, userLoaded: true }),
       setOnboarded: (onboarded) => set({ onboarded }),
       setCoords: (coords) => set({ coords }),
       setProvince: (province) => set({ province }),
       setPending: (pending) => set({ pending }),
+      setPrivacyAccepted: (privacyAccepted) => set({ privacyAccepted }),
     }),
     {
       name: 'mv.session',
       storage: persistStorage,
-      partialize: (s) => ({ onboarded: s.onboarded, province: s.province }),
+      partialize: (s) => ({ onboarded: s.onboarded, province: s.province, privacyAccepted: s.privacyAccepted }),
       onRehydrateStorage: () => () => useSession.setState({ hydrated: true }),
     },
   ),

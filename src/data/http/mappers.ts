@@ -255,6 +255,8 @@ export function userFromApi(
     email: u.email,
     points: u.points ?? 0,
     counts: u.counts ?? fallback.counts ?? { vuelticas: 0, reviews: 0, verifications: 0 },
+    // An API without the consent fields: undefined, so the app does not ask (it cannot record the answer).
+    privacyVersion: u.privacyVersion === undefined && u.privacyAccepted === undefined ? undefined : u.privacyAccepted === false ? null : (u.privacyVersion ?? null),
   };
 }
 

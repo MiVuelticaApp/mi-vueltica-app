@@ -195,6 +195,26 @@ describe('HttpApi', () => {
     expect(calls.at(-1)?.auth).toBe('Bearer jwt');
   });
 
+  it('privacy consent (#18): sends the accepted version with the login and accepts a newer one', async () => {
+    const { api } = make();
+    routes['POST /auth/google'] = () => ({ body: { user: USER, token: 'jwt', expiresIn: '7d' } });
+    let me: Record<string, unknown> = { ...USER, interests: [], privacyAccepted: true, privacyVersion: '2026-01-01' };
+    routes['GET /me'] = () => ({ body: me });
+    routes['POST /me/privacy-consent'] = (_u, init) => {
+      me = { ...me, privacyAccepted: true, privacyVersion: JSON.parse(String(init.body)).version };
+      return { body: me };
+    };
+    const u = await api.signIn({ provider: 'google', privacyVersion: '2026-11-13' });
+    expect(calls.find((c) => c.path === '/auth/google')!.body).toEqual({ token: 'google-id-token', privacyVersion: '2026-11-13' });
+    expect(u.privacyVersion).toBe('2026-01-01');
+    expect((await api.acceptPrivacy('2026-11-13')).privacyVersion).toBe('2026-11-13');
+    me = { ...USER, interests: [], privacyAccepted: false, privacyVersion: null };
+    expect((await api.currentUser())?.privacyVersion).toBeNull();
+    // An API without the consent fields: nothing to ask.
+    me = { ...USER, interests: [] };
+    expect((await api.currentUser())?.privacyVersion).toBeUndefined();
+  });
+
   it('sends the Apple identity token and name', async () => {
     const { api } = make();
     routes['POST /auth/apple'] = () => ({ body: { user: USER, token: 'jwt', expiresIn: '7d' } });

@@ -79,7 +79,7 @@ export const t = {
   login: {
     notNow: 'Ahora no', perk1: 'Guardar lugares y eventos favoritos', perk2: 'Aportar a la comunidad', perk3: 'Escribir reseñas y calificar',
     apple: 'Continuar con Apple', google: 'Continuar con Google',
-    legal: 'Al continuar aceptás los Términos y la Política de privacidad. Podés explorar sin cuenta.',
+    legal: 'Antes de crear tu cuenta te mostramos el aviso de privacidad. Podés explorar sin cuenta.',
     terms: 'Términos', privacy: 'Política de privacidad',
     gate: { save: 'Iniciá sesión para guardar. Guardá tus vuelticas favoritas.', contribute: 'Iniciá sesión para aportar. Sumá una vueltica para la comunidad.', review: 'Iniciá sesión para escribir una reseña. Contá cómo te fue.', moderate: 'Iniciá sesión para moderar. Ayudá a revisar lo que se publica.', useful: 'Iniciá sesión para marcar reseñas útiles.', block: 'Iniciá sesión para bloquear a una persona.' },
   },
@@ -95,6 +95,11 @@ export const t = {
     verifiedBy: 'Verificada por la comunidad', priceConditions: 'Precio y condiciones', perks: 'Beneficios', accessibility: 'Accesibilidad',
     copied: 'Enlace copiado', shareMessage: (name: string, url: string) => `${name} en MiVueltica: ${url}`,
     notFound: 'No encontramos este plan', stillThere: 'Sigue igual', alreadyVerified: 'Ya verificaste este plan hoy', thanks: 'Verificación enviada · +2 puntos', thanksGuest: 'Gracias por verificar',
+  },
+  privacy: {
+    title: 'Antes de crear tu cuenta', intro: 'Leé qué datos guardamos y para qué. Necesitamos tu consentimiento para crear tu cuenta (Ley 8968).',
+    updatedTitle: 'Actualizamos el aviso de privacidad', updatedIntro: 'Para seguir usando tu cuenta, leé y aceptá la nueva versión.',
+    accept: 'Acepto', decline: 'Ahora no', signOut: 'No acepto · cerrar sesión', full: 'Ver la política completa', signedOut: 'Cerraste sesión. Podés seguir explorando sin cuenta.',
   },
   blocks: {
     action: 'Bloquear a esta persona', title: 'Personas bloqueadas', confirmTitle: (name: string) => `¿Bloquear a ${name}?`,
@@ -231,6 +236,7 @@ export const t = {
     title: 'Normas de la comunidad', draft: 'BORRADOR',
     body: ['Aportá solo actividades gratis o de hasta ₡5.000 por persona y abiertas al público.', 'Verificá con honestidad: tu reputación depende de la precisión.', 'Respetá a las demás personas: no se permite contenido inapropiado ni publicidad.', 'Los reportes son anónimos; usalos con criterio.'],
     terms: 'Términos de uso', privacy: 'Política de privacidad', draftNote: 'Este texto es un borrador y será reemplazado por el contenido legal definitivo.',
+    version: (v: string) => `Versión ${v}`, contact: (email: string) => `Consultas: ${email}`,
   },
   notifications: {
     eventTomorrow: (name: string, time: string) => `Mañana: ${name} · ${time}`, newNearby: (n: number) => `Hay ${n} planes nuevos cerca de vos`,

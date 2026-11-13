@@ -1,4 +1,4 @@
-import { expect, test, tab, start, startSignedIn, simulate, type Page } from './helpers';
+import { expect, test, tab, start, startSignedIn, simulate, type Page, signInWith } from './helpers';
 
 const flip = (page: Page, id: string) => page.getByTestId(id).evaluate((el: HTMLInputElement) => el.click());
 
@@ -29,7 +29,7 @@ test('N0 signed-out Aportar asks to sign in, then shows the form', async ({ page
   await expect(page.getByTestId('contribute.signedOut')).toBeVisible();
   await page.getByTestId('contribute.signIn').click();
   await expect(page.getByTestId('login.reason')).toContainText('Iniciá sesión para aportar');
-  await page.getByTestId('login.apple').click();
+  await signInWith(page, 'apple');
   await expect(page.getByTestId('contribute.screen')).toBeVisible();
   await expect(page.getByTestId('contribute.info')).toContainText('La comunidad revisa cada vueltica');
 });

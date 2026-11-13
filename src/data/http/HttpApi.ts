@@ -744,19 +744,29 @@ export class HttpApi implements MiVuelticaApi {
     }
   }
 
-  async signIn(input: { provider: SignInProvider }): Promise<User> {
+  async signIn(input: { provider: SignInProvider; privacyVersion?: string }): Promise<User> {
     let auth: AuthDto;
+    const privacyVersion = input.privacyVersion;
     if (input.provider === 'apple') {
       const a = await appleSignIn();
-      auth = await this.http.post<AuthDto>('/auth/apple', { identityToken: a.identityToken, firstName: a.firstName, lastName: a.lastName }, { auth: false });
+      auth = await this.http.post<AuthDto>('/auth/apple', { identityToken: a.identityToken, firstName: a.firstName, lastName: a.lastName, privacyVersion }, { auth: false });
     } else {
-      auth = await this.http.post<AuthDto>('/auth/google', { token: await googleSignIn() }, { auth: false });
+      auth = await this.http.post<AuthDto>('/auth/google', { token: await googleSignIn(), privacyVersion }, { auth: false });
     }
     await tokenStore.set(auth.token);
     await tokenStore.setProvider(input.provider);
     // The login answer has no `counts`; `/me` does.
     const profile = await this.http.get<MyProfileDto>('/me', { auth: 'required' }).catch(() => auth.user);
     return this.loadUser(profile, input.provider);
+  }
+
+  async acceptPrivacy(version: string): Promise<User> {
+    await this.requireUser('save');
+    const provider = ((await tokenStore.getProvider()) as SignInProvider | null) ?? this.user?.provider ?? 'google';
+    const profile = await this.http.post<MyProfileDto>('/me/privacy-consent', { version }, { auth: 'required' });
+    // The answer may be the profile or just `{ privacyVersion }`: read /me when it is not a profile.
+    const me = profile && 'id' in profile ? profile : await this.http.get<MyProfileDto>('/me', { auth: 'required' });
+    return this.loadUser({ ...me, privacyAccepted: true, privacyVersion: me.privacyVersion ?? version }, provider);
   }
 
   async signOut(): Promise<void> {

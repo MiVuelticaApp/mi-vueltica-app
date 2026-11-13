@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +13,8 @@ import { api } from '@/data';
 import { SignInCancelledError } from '@/data/api';
 import { useSignIn } from '@/data/queries';
 import { t } from '@/i18n/es-CR';
+import { PRIVACY_VERSION } from '@/config/legal';
+import { PrivacyNotice } from '@/features/legal/PrivacyNotice';
 import { useSession } from '@/state/session';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -37,10 +40,16 @@ export default function Login() {
     else if (router.canGoBack()) router.back();
     else router.replace('/');
   };
+  const [notice, setNotice] = useState<'apple' | 'google' | null>(null);
+  /** The privacy notice comes first (Ley 8968 art. 5); the accepted version goes with the login. */
+  const start = (provider: 'apple' | 'google') => {
+    if (useSession.getState().privacyAccepted === PRIVACY_VERSION) void go(provider);
+    else setNotice(provider);
+  };
   const go = async (provider: 'apple' | 'google') => {
     const p = useSession.getState().pending;
     try {
-      await signIn.mutateAsync({ provider });
+      await signIn.mutateAsync({ provider, privacyVersion: PRIVACY_VERSION });
       leave();
       if (p?.kind === 'review') {
         useSession.getState().setPending(null);
@@ -68,8 +77,8 @@ export default function Login() {
           <Row icon="star" iconBg="senior" iconColor="#ffffff" title={t.login.perk3} last />
         </Group>
         <View style={{ gap: 12 }}>
-          {api.signInProviders.includes('apple') ? <Button testID="login.apple" variant="dark" icon="apple" label={t.login.apple} onPress={() => go('apple')} loading={signIn.isPending} /> : null}
-          {api.signInProviders.includes('google') ? <Button testID="login.google" variant="outline" icon="google" label={t.login.google} onPress={() => go('google')} /> : null}
+          {api.signInProviders.includes('apple') ? <Button testID="login.apple" variant="dark" icon="apple" label={t.login.apple} onPress={() => start('apple')} loading={signIn.isPending} /> : null}
+          {api.signInProviders.includes('google') ? <Button testID="login.google" variant="outline" icon="google" label={t.login.google} onPress={() => start('google')} /> : null}
         </View>
         <Text variant="caption" color="labelSecondary" align="center" style={{ lineHeight: 18 }}>
           {t.login.legal}
@@ -79,6 +88,16 @@ export default function Login() {
           <Tap testID="login.privacy" label={t.login.privacy} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'privacidad' } })}><Text variant="caption" color="primary">{t.login.privacy}</Text></Tap>
         </View>
       </ScrollView>
+      <PrivacyNotice
+        visible={!!notice}
+        onAccept={() => {
+          const provider = notice!;
+          useSession.getState().setPrivacyAccepted(PRIVACY_VERSION);
+          setNotice(null);
+          void go(provider);
+        }}
+        onDecline={() => setNotice(null)}
+      />
     </View>
   );
 }
