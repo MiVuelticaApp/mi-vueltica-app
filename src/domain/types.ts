@@ -22,6 +22,8 @@ export interface Vueltica extends LatLng {
   photos: string[];
   address: string;
   province: Province;
+  /** INEC canton id (see `domain/cantons.ts`). Places and place suggestions; events carry none. */
+  cantonId?: number;
   /** ISO strings, events only. */
   startAt?: string;
   endAt?: string;
@@ -129,6 +131,10 @@ export interface Verification {
   createdAt: string;
 }
 
+/** Why a suggestion was rejected (mi-vueltica-api #40). `otro` needs a written note. */
+export type RejectionCode = 'duplicado' | 'masDe5000' | 'eventoPasado' | 'datosIncompletos' | 'ubicacionIncorrecta' | 'noEsPublico' | 'inapropiado' | 'spam' | 'otro';
+export const REJECTION_CODES: RejectionCode[] = ['duplicado', 'masDe5000', 'eventoPasado', 'datosIncompletos', 'ubicacionIncorrecta', 'noEsPublico', 'inapropiado', 'spam', 'otro'];
+
 export type ReportReason = 'cerro' | 'noGratis' | 'masDe5000' | 'horario' | 'inapropiado' | 'spam' | 'otro';
 
 export interface Report {
@@ -184,6 +190,8 @@ export interface ReputationSummary {
   recent: ReputationEvent[];
   /** Whether the moderation entry is shown. Defaults to `canModerate(level)`; the API also opens it to team roles. */
   canModerate?: boolean;
+  /** Team role (moderator / admin): can also approve or reject a suggestion directly, with a reason code. */
+  team?: boolean;
 }
 
 export type DateFilter = 'any' | 'hoy' | 'finDeSemana' | { from: string; to: string };

@@ -47,6 +47,7 @@ function Navigator() {
           <Stack.Screen name="vueltica/[id]/escribir-resena" options={Platform.OS === 'android' ? { presentation: 'fullScreenModal', animation: 'slide_from_bottom' } : sheetOptions([1])} />
           <Stack.Screen name="vueltica/[id]/verificar" options={sheetOptions([0.5, 1])} />
           <Stack.Screen name="vueltica/[id]/reportar" options={sheetOptions([0.5, 1])} />
+          <Stack.Screen name="vueltica/[id]/decidir" options={sheetOptions([1])} />
           <Stack.Screen name="vueltica/[id]/como-llegar" options={sheetOptions([0.5])} />
           <Stack.Screen name="filtros" options={sheetOptions([1])} />
           <Stack.Screen name="elegir-ubicacion" options={sheetOptions([1])} />

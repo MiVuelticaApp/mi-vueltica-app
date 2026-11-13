@@ -259,6 +259,67 @@ describe('HttpApi', () => {
     expect(data).toMatchObject({ placeId: null, latitude: 9.9, longitude: -84.0, address: 'Plaza', title: 'Feria', startsAt: '2026-11-01T15:00:00.000Z', pricePerPerson: 0 });
   });
 
+  it('sends the canton picked in the form (#11), and lists cantons from the API', async () => {
+    const { api } = make();
+    mockMem.set('t', 'jwt');
+    routes['GET /categories'] = () => ({ body: CATS });
+    routes['GET /me'] = () => ({ body: { ...USER, interests: [] } });
+    routes['GET /provinces'] = (u) => ({ body: page(u.searchParams.get('include') === 'cantons' ? [{ id: 4, name: 'Heredia', cantons: [{ id: 402, name: 'Barva' }, { id: 401, name: 'Heredia' }] }] : []) });
+    routes['POST /me/submissions'] = (_u, init) => ({ status: 201, body: { id: 's3', userId: 'u1', type: 'PLACE', data: JSON.parse(String(init.body)).data, status: 'PENDING', reviewedAt: null, reviewNote: null, createdAt: '2026-10-20T00:00:00.000Z' } });
+    expect((await api.listCantons('Heredia')).map((c) => c.name)).toEqual(['Heredia', 'Barva']);
+    // Not in the API answer: the bundled INEC list.
+    expect((await api.listCantons('Limón')).map((c) => c.id)).toEqual([701, 702, 703, 704, 705, 706]);
+    const out = await api.createVueltica({
+      type: 'lugar', name: 'Parque', category: 'Parques', description: '', lat: 10, lng: -84.1, address: 'Barva', province: 'Heredia', cantonId: 402,
+      pricePerPerson: 0, freeFor: [], audiences: ['todo'], wheelchair: false, photos: [],
+    });
+    expect((calls.find((c) => c.path === '/me/submissions')!.body as { data: { cantonId: number } }).data.cantonId).toBe(402);
+    expect(out.vueltica.cantonId).toBe(402);
+  });
+
+  it('edits a pending suggestion with PUT, keeping photos already uploaded, and 409 once decided', async () => {
+    const { api } = make();
+    mockMem.set('t', 'jwt');
+    routes['GET /categories'] = () => ({ body: CATS });
+    routes['GET /me'] = () => ({ body: { ...USER, interests: [] } });
+    let decided = false;
+    routes['PUT /me/submissions/s1'] = (_u, init) =>
+      decided ? { status: 409, body: { message: 'ya revisada' } } : { body: { id: 's1', userId: 'u1', type: 'PLACE', data: JSON.parse(String(init.body)).data, status: 'PENDING', reviewedAt: null, reviewNote: null, createdAt: '2026-10-20T00:00:00.000Z' } };
+    const input = {
+      type: 'lugar' as const, name: 'Parque nuevo', category: 'Parques', description: '', lat: 10, lng: -84.1, address: 'Barva', province: 'Heredia' as const, cantonId: 402,
+      pricePerPerson: 500, freeFor: [], audiences: ['todo' as const], wheelchair: false, photos: ['https://api.test/api/v1/files/up1'],
+    };
+    const v = await api.updateVueltica('s-s1', input);
+    expect(v).toMatchObject({ id: 's-s1', name: 'Parque nuevo', status: 'pendiente', pricePerPerson: 500 });
+    const put = calls.find((c) => c.method === 'PUT')!;
+    expect((put.body as { data: { photos: string[] } }).data.photos).toEqual(['https://api.test/api/v1/files/up1']);
+    expect(calls.some((c) => c.path === '/uploads')).toBe(false);
+    decided = true;
+    await expect(api.updateVueltica('s-s1', input)).rejects.toBeInstanceOf(ConflictError);
+    await expect(api.updateVueltica('p-aaaa', input)).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it('team roles approve or reject a suggestion directly with a reason code', async () => {
+    const { api } = make();
+    mockMem.set('t', 'jwt');
+    let role = 'USER';
+    routes['GET /me'] = () => ({ body: { ...USER, role, interests: [] } });
+    routes['POST /submissions/s1/reject'] = () => ({ body: {} });
+    routes['POST /submissions/s1/approve'] = () => ({ body: {} });
+    await api.currentUser();
+    await expect(api.decideSubmission({ vuelticaId: 's-s1', decision: 'approve' })).rejects.toBeInstanceOf(ForbiddenError);
+    role = 'MODERATOR';
+    const team = make().api;
+    await team.currentUser();
+    await team.decideSubmission({ vuelticaId: 's-s1', decision: 'reject', reason: 'duplicado' });
+    expect(calls.find((c) => c.path === '/submissions/s1/reject')!.body).toEqual({ reason: 'duplicado' });
+    await expect(team.decideSubmission({ vuelticaId: 's-s1', decision: 'reject', reason: 'otro' })).rejects.toMatchObject({ field: 'note' });
+    await team.decideSubmission({ vuelticaId: 's-s1', decision: 'reject', reason: 'otro', note: ' Cerró en 2025 ' });
+    expect(calls.filter((c) => c.path === '/submissions/s1/reject')[1].body).toEqual({ reason: 'otro', note: 'Cerró en 2025' });
+    await team.decideSubmission({ vuelticaId: 's-s1', decision: 'approve' });
+    expect(calls.some((c) => c.path === '/submissions/s1/approve')).toBe(true);
+  });
+
   it('opens the place a submission became once approved', async () => {
     const { api } = make();
     mockMem.set('t', 'jwt');

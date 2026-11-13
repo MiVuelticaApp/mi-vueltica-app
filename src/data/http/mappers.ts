@@ -24,7 +24,7 @@ export const PROVINCES: Province[] = ['San José', 'Alajuela', 'Cartago', 'Hered
 export const provinceOfCanton = (cantonId: number): Province => PROVINCES[Math.floor(cantonId / 100) - 1] ?? 'San José';
 export const provinceById = (id: number | null | undefined): Province | null => (id ? (PROVINCES[id - 1] ?? null) : null);
 export const provinceIdOf = (p: Province): number => PROVINCES.indexOf(p) + 1;
-/** Interim: the form only collects a province, so submissions use that province's central canton (x01). */
+/** Fallback when a place suggestion has no canton picked (older drafts): the province's central canton (x01). */
 export const defaultCantonOf = (province: Province): number => provinceIdOf(province) * 100 + 1;
 /** Events with their own location have no canton: take the province whose center is closest. */
 export function nearestProvince(p: LatLng): Province {
@@ -154,6 +154,7 @@ export function placeToView(p: PlaceDto | PlaceDetailDto, categories: Map<number
     lng: p.longitude,
     address: p.address ?? '',
     province: provinceOfCanton(p.cantonId),
+    cantonId: p.cantonId,
     openingHours: formatOpeningHours(p.openingHours),
     status: statusFromApi(p.status),
     authorName: authorOf(p.authorName),
@@ -220,6 +221,7 @@ export function submissionToView(s: SubmissionDto, categories: Map<number, strin
     lng,
     address: String(d.address ?? ''),
     province: d.cantonId ? provinceOfCanton(Number(d.cantonId)) : nearestProvince({ lat, lng }),
+    cantonId: d.cantonId ? Number(d.cantonId) : undefined,
     startAt: isEvent ? String(d.startsAt) : undefined,
     endAt: isEvent && d.endsAt ? String(d.endsAt) : undefined,
     openingHours: !isEvent ? formatOpeningHours((d.openingHours as OpeningHoursDto) ?? null) : undefined,
@@ -270,6 +272,7 @@ export function reputationFromApi(r: ReputationDto, userId: string, role: UserDt
     progress: r.progress,
     recent,
     canModerate: r.perks.includes('moderation') || role === 'MODERATOR' || role === 'ADMIN',
+    team: role === 'MODERATOR' || role === 'ADMIN' || undefined,
   };
 }
 export function reviewFromApi(r: ReviewDto): Review {

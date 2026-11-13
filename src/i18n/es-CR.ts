@@ -9,7 +9,7 @@ export const t = {
     cancel: 'Cancelar', close: 'Cerrar', retry: 'Reintentar', done: 'Listo', clear: 'Limpiar', save: 'Guardar', saved: 'Guardado',
     share: 'Compartir', back: 'Atrás', ok: 'Aceptar', understood: 'Entendido', change: 'Cambiar', send: 'Enviar', publish: 'Publicar',
     optional: 'Opcional', choose: 'Elegir…', photoAdded: '1 foto agregada', notifDenied: 'Activá las notificaciones en los ajustes del sistema para recibir recordatorios', yes: 'Sí', no: 'No', today: 'Hoy', delete: 'Eliminar', confirm: 'Confirmar', loading: 'Cargando…',
-    seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', free: 'Gratis', anonymous: 'Anónimo', community: 'Comunidad', km: 'km',
+    seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', selectedSuffix: ', seleccionado', free: 'Gratis', anonymous: 'Anónimo', community: 'Comunidad', km: 'km',
     updateRequired: 'Hay una versión nueva de MiVueltica. Actualizá la app para seguir usándola sin problemas.',
     notSupported: 'Esta función todavía no está disponible. Estamos trabajando en ella.',
     errorTitle: 'Algo salió mal', errorBody: 'No pudimos cargar esta información. Probá de nuevo.',
@@ -140,6 +140,9 @@ export const t = {
     categories: { place: ['Parque', 'Museo', 'Biblioteca', 'Mirador', 'Playa', 'Plaza', 'Otro lugar'], event: ['Ferias y mercados', 'Conciertos', 'Cine', 'Deporte', 'Cultura', 'Talleres', 'Otro evento'] },
     pickLocation: 'Elegir ubicación', useThisLocation: 'Usar esta ubicación', dragMap: 'Tocá el mapa para colocar el pin',
     defaultAddress: 'Ubicación en el mapa',
+    province: 'Provincia', canton: 'Cantón', needCanton: 'Elegí el cantón', wheelchair: 'Accesible en silla de ruedas',
+    editTitle: 'Editar vueltica', save: 'Guardar cambios', saveA11y: 'Guardar cambios (confirmar)', saved: 'Cambios guardados',
+    alreadyDecided: 'Esta vueltica ya se revisó: no se puede editar.',
   },
   sent: {
     title: '¡Gracias por tu vueltica!', body: (name: string) => `«${name}» está en revisión. Te avisamos cuando se publique, normalmente en menos de 24 horas.`,
@@ -184,6 +187,15 @@ export const t = {
     locked: 'La moderación se abre en el Nivel 3 · De confianza', lockedBody: 'Seguí verificando y aportando para llegar.', needsReview: 'Necesita revisión',
     voteUndone: 'Voto deshecho', voteAgain: 'Volver a votar',
     undoDecided: 'Ya se decidió con tu voto: no se puede deshacer.', voteFailed: 'No pudimos registrar tu voto. Probá de nuevo.',
+    decide: {
+      open: 'Decidir como equipo', title: 'Decisión del equipo', approve: 'Publicar ahora', reject: 'Rechazar', reason: 'Motivo del rechazo',
+      note: 'Nota para la persona autora', notePlaceholder: 'Opcional, salvo con «Otro motivo»', needNote: 'Escribí el motivo cuando elegís «Otro motivo»',
+      approved: 'Vueltica publicada', rejected: 'Vueltica rechazada', failed: 'No pudimos guardar la decisión. Probá de nuevo.',
+      codes: {
+        duplicado: 'Ya existe en MiVueltica', masDe5000: `Cuesta más de ${c(5000)}`, eventoPasado: 'El evento ya pasó', datosIncompletos: 'Faltan datos o no se pudieron verificar',
+        ubicacionIncorrecta: 'La ubicación no es correcta', noEsPublico: 'No es abierto al público', inapropiado: 'Contenido inapropiado', spam: 'Spam o publicidad', otro: 'Otro motivo',
+      },
+    },
   },
   settings: {
     title: 'Ajustes', appearance: 'Apariencia', dark: 'Modo oscuro', accessibility: 'Accesibilidad', textSize: 'Tamaño del texto', followsSystem: 'Sigue al sistema',

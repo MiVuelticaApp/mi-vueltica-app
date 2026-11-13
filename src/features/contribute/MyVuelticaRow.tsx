@@ -9,7 +9,7 @@ import { t } from '@/i18n/es-CR';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 /** One row of "Mis vuelticas" with its status line (En revisión · 3 de 5 votos / Publicado / No publicado · reason). */
-export function MyVuelticaRow({ item, onWithdraw, compact }: { item: MyVuelticaItem; onWithdraw?: () => void; compact?: boolean }) {
+export function MyVuelticaRow({ item, onWithdraw, onEdit, compact }: { item: MyVuelticaItem; onWithdraw?: () => void; onEdit?: () => void; compact?: boolean }) {
   const { c } = useAppTheme();
   const v = item.vuelticaView;
   const status =
@@ -30,10 +30,19 @@ export function MyVuelticaRow({ item, onWithdraw, compact }: { item: MyVuelticaI
         </View>
         <Icon name="chevronRight" size={20} color="labelTertiary" />
       </Tap>
-      {v.status === 'pendiente' && onWithdraw ? (
-        <Tap testID={`mine.withdraw.${v.id}`} label={t.mine.withdraw} onPress={onWithdraw} style={{ paddingHorizontal: 14, paddingBottom: 12, alignSelf: 'flex-start' }}>
-          <Text variant="callout" bold color="danger">{t.mine.withdraw}</Text>
-        </Tap>
+      {v.status === 'pendiente' && (onWithdraw || onEdit) ? (
+        <View style={{ flexDirection: 'row', gap: 24, paddingHorizontal: 14, paddingBottom: 12 }}>
+          {onEdit ? (
+            <Tap testID={`mine.edit.${v.id}`} label={`${t.mine.edit}: ${v.name}`} onPress={onEdit} style={{ minHeight: 32, justifyContent: 'center' }}>
+              <Text variant="callout" bold color="primary">{t.mine.edit}</Text>
+            </Tap>
+          ) : null}
+          {onWithdraw ? (
+            <Tap testID={`mine.withdraw.${v.id}`} label={`${t.mine.withdraw}: ${v.name}`} onPress={onWithdraw} style={{ minHeight: 32, justifyContent: 'center' }}>
+              <Text variant="callout" bold color="danger">{t.mine.withdraw}</Text>
+            </Tap>
+          ) : null}
+        </View>
       ) : null}
     </View>
   );

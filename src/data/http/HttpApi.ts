@@ -1,3 +1,4 @@
+import { cantonsOf, type Canton } from '@/domain/cantons';
 import { applyFilters, dateRange, sortVuelticas, summarize } from '@/domain/filters';
 import { haversineKm } from '@/domain/geo';
 import { levelForPoints, reputationFor, votesNeeded, tierRank } from '@/domain/rules';
@@ -8,7 +9,7 @@ import { now as clockNow } from '@/lib/clock';
 import { t } from '@/i18n/es-CR';
 import {
   AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, NotSupportedError, OfflineError, ValidationError,
-  type CreateReviewInput, type CreateVuelticaInput, type ExportedData, type ListParams, type ListResult, type MiVuelticaApi,
+  type CreateReviewInput, type CreateVuelticaInput, type DecideInput, type ExportedData, type ListParams, type ListResult, type MiVuelticaApi,
   type ModerationQueue, type MyVuelticaItem, type ReportInput, type ReviewList, type ReviewListParams, type SavedItem,
   type ScheduledReminder, type SimulateInput, type VerifyInput, type VerifyResult, type VuelticaDetail,
 } from '../api';
@@ -16,11 +17,11 @@ import { defaultSettings } from '../mock/seed';
 import type { KeyValueStore } from '../storage/types';
 import type { HttpClient, Query } from './client';
 import type {
-  AuthDto, CategoryDto, EventDetailDto, EventDto, FavoriteDto, ModerationQueueDto, ModerationVoteDto, MyProfileDto, PlaceDetailDto, PlaceDto,
+  AuthDto, CategoryDto, ProvinceDto, EventDetailDto, EventDto, FavoriteDto, ModerationQueueDto, ModerationVoteDto, MyProfileDto, PlaceDetailDto, PlaceDto,
   ReportDto, ReportQueueItemDto, ReputationDto, ReviewDto, ReviewListDto, SubmissionDto, UserDto, VerifyBodyDto, VerifyDto,
 } from './dto';
 import {
-  audienceToApi, defaultCantonOf, eventToView, makeId, moderationFromTally, parseId, parseOpeningHours, placeToView, provinceIdOf,
+  audienceToApi, defaultCantonOf, provinceOfCanton as provinceOfCantonId, eventToView, makeId, moderationFromTally, parseId, parseOpeningHours, placeToView, provinceIdOf,
   reportFromApi, reputationFromApi, reviewFromApi, submissionToView, userFromApi,
 } from './mappers';
 import { appleAuthorizationCode, appleSignIn, googleSignIn, googleSignOut } from './socialAuth';
@@ -305,9 +306,9 @@ export class HttpApi implements MiVuelticaApi {
     return { vuelticaId, kind: 'nueva', votesFor: 0, votesAgainst: 0, votesNeeded: votesNeeded(levelForPoints(this.user?.points ?? 0).number) };
   }
 
-  async createVueltica(input: CreateVuelticaInput) {
-    const me = await this.requireUser('contribute');
-    const [categoryId, cats] = [await this.categoryId(input.category), await this.categoryMap()];
+  /** `POST` / `PUT /me/submissions` body. Photos not on the server yet are uploaded first. */
+  private async submissionBody(input: CreateVuelticaInput) {
+    const categoryId = await this.categoryId(input.category);
     const photos = await uploadPhotos(this.http, input.photos, MAX_PHOTOS);
     const address = input.address.trim().slice(0, 191) || undefined;
     const common = {
@@ -326,7 +327,7 @@ export class HttpApi implements MiVuelticaApi {
             type: 'PLACE',
             data: {
               ...common,
-              cantonId: defaultCantonOf(input.province),
+              cantonId: input.cantonId ?? defaultCantonOf(input.province),
               name: input.name.trim(),
               latitude: input.lat,
               longitude: input.lng,
@@ -339,9 +340,43 @@ export class HttpApi implements MiVuelticaApi {
             // #37: an event without a fixed place carries its own point.
             data: { ...common, placeId: null, latitude: input.lat, longitude: input.lng, address, title: input.name.trim(), startsAt: input.startAt, endsAt: input.endAt || undefined },
           };
+    return body;
+  }
+
+  async createVueltica(input: CreateVuelticaInput) {
+    const me = await this.requireUser('contribute');
+    const cats = await this.categoryMap();
+    const body = await this.submissionBody(input);
     const s = await this.http.post<SubmissionDto>('/me/submissions', body, { auth: 'required', reason: 'contribute' });
     const vueltica = { ...submissionToView(s, cats, { lat: input.lat, lng: input.lng }, me.displayName), lat: input.lat, lng: input.lng, address: input.address, province: input.province };
     return { vueltica, moderation: this.authorModeration(vueltica.id) };
+  }
+
+  /** `PUT /me/submissions/:id` (#57): same body as create; 409 once decided, 422 if the type changes. */
+  async updateVueltica(id: string, input: CreateVuelticaInput): Promise<VuelticaView> {
+    const me = await this.requireUser('contribute');
+    const { kind, uuid } = parseId(id);
+    if (kind !== 's') throw new ConflictError('decided');
+    const cats = await this.categoryMap();
+    const s = await this.http.put<SubmissionDto>(`/me/submissions/${uuid}`, await this.submissionBody(input), { auth: 'required', reason: 'contribute' });
+    return { ...submissionToView(s, cats, { lat: input.lat, lng: input.lng }, me.displayName), address: input.address, province: input.province };
+  }
+
+  private cantons?: Promise<Canton[]>;
+
+  /** `GET /provinces?include=cantons`, cached; the bundled INEC list when the API cannot be reached. */
+  async listCantons(province: Province): Promise<Canton[]> {
+    this.cantons ??= this.http
+      .getAll<ProvinceDto>('/provinces', { include: 'cantons' }, { auth: false })
+      .then((rows) => {
+        return rows.flatMap((p) => (p.cantons ?? []).map((c) => ({ id: c.id, name: c.name, province: provinceOfCantonId(c.id) })));
+      })
+      .catch(() => {
+        this.cantons = undefined;
+        return [];
+      });
+    const list = (await this.cantons).filter((c) => c.province === province);
+    return list.length ? list.sort((a, b) => a.id - b.id) : cantonsOf(province);
   }
 
   async myVuelticas(location: LatLng): Promise<MyVuelticaItem[]> {
@@ -597,6 +632,22 @@ export class HttpApi implements MiVuelticaApi {
     return this.afterVote(vuelticaId, res);
   }
 
+  /** Team roles: `POST /submissions/:id/approve` or `/reject { reason, note }` (#40 codes). */
+  async decideSubmission(input: DecideInput): Promise<void> {
+    await this.requireUser('moderate');
+    if (!this.privileged()) throw new ForbiddenError('team');
+    const { kind, uuid } = parseId(input.vuelticaId);
+    if (kind !== 's') throw new ConflictError('decided');
+    if (input.decision === 'approve') {
+      await this.http.post(`/submissions/${uuid}/approve`, {}, { auth: 'required', reason: 'moderate' });
+    } else {
+      const reason = input.reason ?? 'otro';
+      if (reason === 'otro' && !input.note?.trim()) throw new ValidationError('note', t.moderation.decide.needNote);
+      await this.http.post(`/submissions/${uuid}/reject`, { reason, note: input.note?.trim() || undefined }, { auth: 'required', reason: 'moderate' });
+    }
+    this.queued.delete(input.vuelticaId);
+  }
+
   /** `GET /me/reputation` (#42). Before it is deployed: the points from `/me` (0 when the API has none). */
   async reputationSummary() {
     const me = await this.requireUser('moderate');
@@ -604,7 +655,7 @@ export class HttpApi implements MiVuelticaApi {
       return reputationFromApi(await this.http.get<ReputationDto>('/me/reputation', { auth: 'required' }), me.id, this.role);
     } catch (e) {
       if (!(e instanceof NotFoundError)) throw e;
-      return { ...reputationFor(me.points, []), canModerate: this.privileged() || undefined };
+      return { ...reputationFor(me.points, []), canModerate: this.privileged() || undefined, team: this.privileged() || undefined };
     }
   }
 

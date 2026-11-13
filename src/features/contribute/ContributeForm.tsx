@@ -19,10 +19,11 @@ import { Segmented } from '@/components/ui/Segmented';
 import { Tap } from '@/components/ui/Tap';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
-import { useCreateVueltica } from '@/data/queries';
-import { ValidationError } from '@/data/api';
+import { useCantons, useCreateVueltica, useUpdateVueltica } from '@/data/queries';
+import { ConflictError, ValidationError } from '@/data/api';
+import { PROVINCE_ORDER } from '@/domain/cantons';
 import { isPublishablePrice } from '@/domain/rules';
-import type { Audience, VuelticaType } from '@/domain/types';
+import type { Audience, Province, VuelticaType } from '@/domain/types';
 import { t } from '@/i18n/es-CR';
 import { pickPhotos } from '@/lib/photos';
 import { isDirty, useDraft } from '@/state/draft';
@@ -44,14 +45,22 @@ export function ContributeForm() {
   const insets = useSafeAreaInsets();
   const { draft: d, patch, reset } = useDraft();
   const create = useCreateVueltica();
+  const update = useUpdateVueltica();
+  const editing = d.editingId;
+  const saving = create.isPending || update.isPending;
+  const cantons = useCantons(d.province);
+  const needsCanton = d.type === 'lugar' && !d.cantonId;
   const [priceError, setPriceError] = useState(false);
   const price = digits(d.price);
   const tooExpensive = d.paid && !isPublishablePrice(price);
   const priceInvalid = d.paid && (price <= 0 || tooExpensive);
   const cats = d.type === 'lugar' ? t.contribute.categories.place : t.contribute.categories.event;
   const offline = useIsOffline();
-  const valid = !offline && d.name.trim().length > 0 && d.category !== '' && d.hasLocation && d.confirm && !priceInvalid;
-  const reasons = useMemo(() => [!d.name.trim() && t.contribute.needName, !d.category && t.contribute.needCategory, !d.hasLocation && t.contribute.needLocation].filter(Boolean) as string[], [d.name, d.category, d.hasLocation]);
+  const valid = !offline && d.name.trim().length > 0 && d.category !== '' && d.hasLocation && !needsCanton && d.confirm && !priceInvalid;
+  const reasons = useMemo(
+    () => [!d.name.trim() && t.contribute.needName, !d.category && t.contribute.needCategory, !d.hasLocation && t.contribute.needLocation, needsCanton && t.contribute.needCanton].filter(Boolean) as string[],
+    [d.name, d.category, d.hasLocation, needsCanton],
+  );
 
   const close = async () => {
     if (isDirty(d)) {
@@ -59,29 +68,43 @@ export function ContributeForm() {
       if (!ok) return;
     }
     reset();
-    router.navigate('/');
+    router.navigate(editing ? '/mis-vuelticas' : '/');
   };
 
   const submit = () => {
     if (!valid) return;
     const startAt = d.type === 'evento' ? mergeDate(d.date, d.start) : undefined;
     const endAt = d.type === 'evento' ? mergeDate(d.date, d.end) : undefined;
-    create.mutate(
-      {
+    const input = {
         type: d.type, name: d.name, category: d.category, description: d.description.trim(), lat: d.lat, lng: d.lng, address: d.address || t.contribute.defaultAddress,
-        province: d.province, startAt, endAt, openingHours: d.type === 'lugar' ? d.openingHours.trim() || undefined : undefined,
+        province: d.province, cantonId: d.type === 'lugar' ? d.cantonId ?? undefined : undefined, startAt, endAt, openingHours: d.type === 'lugar' ? d.openingHours.trim() || undefined : undefined,
         pricePerPerson: d.paid ? price : 0, freeFor: d.paid ? [...(d.freeStudents ? (['estudiantes'] as const) : []), ...(d.freeSeniors ? (['ciudadanosOro'] as const) : [])] : [],
-        audiences: d.audiences.length ? d.audiences : ['todo'], wheelchair: d.wheelchair, photos: d.photos,
-      },
+        audiences: d.audiences.length ? d.audiences : (['todo'] as Audience[]), wheelchair: d.wheelchair, photos: d.photos,
+    };
+    const onError = (e: Error) => {
+      if (e instanceof ValidationError && e.field === 'price') setPriceError(true);
+      else if (e instanceof ConflictError) toast(t.contribute.alreadyDecided);
+      else toast(t.common.errorBody);
+    };
+    if (editing) {
+      update.mutate({ id: editing, input }, {
+        onSuccess: () => {
+          reset();
+          toast(t.contribute.saved);
+          router.navigate('/mis-vuelticas');
+        },
+        onError,
+      });
+      return;
+    }
+    create.mutate(
+      input,
       {
         onSuccess: (r) => {
           reset();
           router.replace({ pathname: '/vueltica-enviada/[id]', params: { id: r.vueltica.id } });
         },
-        onError: (e) => {
-          if (e instanceof ValidationError && e.field === 'price') setPriceError(true);
-          else toast(t.common.errorBody);
-        },
+        onError,
       },
     );
   };
@@ -103,19 +126,21 @@ export function ContributeForm() {
     <View testID="contribute.screen" style={{ flex: 1, backgroundColor: c.groupedBackground, paddingTop: insets.top }}>
       <View style={{ minHeight: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 12 }}>
         <IconButton testID="contribute.close" icon="close" label={t.common.close} onPress={() => void close()} />
-        <Text variant="headline" bold align="center" accessibilityRole="header" style={{ flex: 1 }}>{t.contribute.title}</Text>
-        {isIOS || !isAndroid ? <IconButton testID="contribute.check" icon="check" label={t.contribute.submitA11y} prominent disabled={!valid || create.isPending} onPress={submit} /> : <View style={{ width: 44 }} />}
+        <Text testID="contribute.title" variant="headline" bold align="center" accessibilityRole="header" style={{ flex: 1 }}>{editing ? t.contribute.editTitle : t.contribute.title}</Text>
+        {isIOS || !isAndroid ? <IconButton testID="contribute.check" icon="check" label={editing ? t.contribute.saveA11y : t.contribute.submitA11y} prominent disabled={!valid || saving} onPress={submit} /> : <View style={{ width: 44 }} />}
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: 150, gap: 0 }} keyboardShouldPersistTaps="handled">
         <Banner icon="info" text={t.contribute.info} testID="contribute.info" />
-        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-          <Segmented<VuelticaType>
-            testID="contribute.type"
-            value={d.type}
-            onChange={(v) => patch({ type: v, category: '' })}
-            options={[{ value: 'lugar', label: t.contribute.place }, { value: 'evento', label: t.contribute.event }]}
-          />
-        </View>
+        {editing ? null : (
+          <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+            <Segmented<VuelticaType>
+              testID="contribute.type"
+              value={d.type}
+              onChange={(v) => patch({ type: v, category: '' })}
+              options={[{ value: 'lugar', label: t.contribute.place }, { value: 'evento', label: t.contribute.event }]}
+            />
+          </View>
+        )}
 
         <SectionHeader title={t.contribute.details} />
         <Group>
@@ -134,6 +159,19 @@ export function ContributeForm() {
             <Text variant="body" style={{ flex: 1 }} numberOfLines={2} testID="contribute.address">{d.hasLocation ? d.address || t.contribute.defaultAddress : t.contribute.pickLocation}</Text>
             <Text variant="body" color="labelSecondary">{t.contribute.change}</Text>
           </Tap>
+          <View style={{ height: 1, backgroundColor: c.separator, marginLeft: 16 }} />
+          <Row title={t.contribute.province} last={d.type !== 'lugar'} right={<Menu<Province> testID="contribute.province" accessibilityLabel={t.contribute.province} value={d.province} onChange={(v) => patch({ province: v, cantonId: null })} options={PROVINCE_ORDER.map((p) => ({ value: p, label: p }))} />} />
+          {d.type === 'lugar' ? (
+            <Row title={t.contribute.canton} last right={
+              <Menu
+                testID="contribute.canton"
+                accessibilityLabel={t.contribute.canton}
+                value={d.cantonId ? String(d.cantonId) : ''}
+                onChange={(v) => patch({ cantonId: v ? Number(v) : null })}
+                options={[{ value: '', label: t.common.choose }, ...(cantons.data ?? []).map((x) => ({ value: String(x.id), label: x.name }))]}
+              />
+            } />
+          ) : null}
         </Group>
 
         {d.type === 'evento' ? (
@@ -190,8 +228,9 @@ export function ContributeForm() {
         <SectionHeader title={t.contribute.whoFor} />
         <Group>
           {AUDS.map((a, i) => (
-            <Row key={a.id} testID={`contribute.aud.${a.id}`} icon={a.icon} iconBg={a.icon === 'school' ? 'student' : a.icon === 'medal' ? 'senior' : 'primary'} title={a.label} onPress={() => toggleAud(a.id)} last={i === AUDS.length - 1} right={d.audiences.includes(a.id) ? <Icon name="check" size={20} color="primary" /> : null} accessibilityLabel={`${a.label}${d.audiences.includes(a.id) ? ', seleccionado' : ''}`} />
+            <Row key={a.id} testID={`contribute.aud.${a.id}`} icon={a.icon} iconBg={a.icon === 'school' ? 'student' : a.icon === 'medal' ? 'senior' : 'primary'} title={a.label} onPress={() => toggleAud(a.id)} right={d.audiences.includes(a.id) ? <Icon name="check" size={20} color="primary" /> : null} accessibilityLabel={`${a.label}${d.audiences.includes(a.id) ? t.common.selectedSuffix : ''}`} />
           ))}
+          <Row icon="wheelchair" iconBg="primary" title={t.contribute.wheelchair} last right={<Switch testID="contribute.wheelchair" accessibilityLabel={t.contribute.wheelchair} value={d.wheelchair} onValueChange={(v) => patch({ wheelchair: v })} />} />
         </Group>
 
         <SectionHeader title={t.contribute.photos} />
@@ -220,7 +259,7 @@ export function ContributeForm() {
         {!valid && reasons.length > 0 ? <Text testID="contribute.missing" variant="caption" color="labelSecondary" style={{ paddingHorizontal: 32, paddingTop: 6 }}>{reasons.join(' · ')}</Text> : null}
       </ScrollView>
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 10, paddingBottom: Math.max(insets.bottom, 12) + 74, backgroundColor: c.groupedBackground }}>
-        <Button testID="contribute.submit" label={t.contribute.submit} onPress={submit} disabled={!valid} loading={create.isPending} />
+        <Button testID="contribute.submit" label={editing ? t.contribute.save : t.contribute.submit} onPress={submit} disabled={!valid} loading={saving} />
       </View>
     </View>
   );
