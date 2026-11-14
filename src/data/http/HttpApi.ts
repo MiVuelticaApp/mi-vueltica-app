@@ -1,9 +1,9 @@
 import { cantonsOf, type Canton } from '@/domain/cantons';
 import { applyFilters, dateRange, sortVuelticas, summarize } from '@/domain/filters';
-import { distanceTo } from '@/domain/geo';
+import { distanceTo, type Bounds } from '@/domain/geo';
 import { levelForPoints, reputationFor, votesNeeded, tierRank } from '@/domain/rules';
 import type {
-  BlockedUser, Filters, LatLng, MaxPrice, ModerationItem, MyReview, Province, Report, Review, Settings, SignInProvider, User, VuelticaView,
+  BlockedUser, Filters, LatLng, MaxPrice, ModerationItem, MyReview, Province, Report, Review, Settings, SignInProvider, User, VuelticaType, VuelticaView,
 } from '@/domain/types';
 import { now as clockNow } from '@/lib/clock';
 import { t } from '@/i18n/es-CR';
@@ -11,7 +11,7 @@ import { formatTime } from '@/i18n/format';
 import {
   AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, NotSupportedError, OfflineError, ValidationError,
   type CreateReviewInput, type CreateVuelticaInput, type DecideInput, type ExportedData, type ListParams, type ListResult, type MiVuelticaApi,
-  type ModerationQueue, type MyVuelticaItem, type ReportInput, type ReviewList, type ReviewListParams, type SavedItem,
+  type ModerationQueue, type MyVuelticaItem, type ReportInput, type ReviewReportInput, type ReviewList, type ReviewListParams, type SavedItem,
   type ScheduledReminder, type SimulateInput, type VerifyInput, type VerifyResult, type VuelticaDetail,
 } from '../api';
 import { defaultSettings } from '../mock/seed';
@@ -151,9 +151,15 @@ export class HttpApi implements MiVuelticaApi {
   /* ------------------------------------------------------------------ lists */
 
   /** Server-side pre-filter (#36): the same rules run again client-side, so the API only narrows what is downloaded. */
-  private conditionQuery(f: Filters, loc: LatLng, maxPrice?: MaxPrice): Query {
+  private conditionQuery(f: Filters, loc: LatLng, maxPrice?: MaxPrice, bounds?: Bounds): Query {
+    // The API takes the visible area or the radius, never both; the distance limit still runs client-side.
+    const geo: Query = bounds
+      ? { minLat: bounds.south, minLng: bounds.west, maxLat: bounds.north, maxLng: bounds.east }
+      : f.nearMe
+        ? { lat: loc.lat, lng: loc.lng, radiusKm: Math.max(0.1, f.distanceKm) }
+        : {};
     return {
-      ...(f.nearMe ? { lat: loc.lat, lng: loc.lng, radiusKm: Math.max(0.1, f.distanceKm) } : {}),
+      ...geo,
       q: f.text.trim() || undefined,
       maxPrice: stricter(f.maxPrice, maxPrice),
       students: f.students ? 'true' : undefined,
@@ -163,15 +169,15 @@ export class HttpApi implements MiVuelticaApi {
     };
   }
 
-  private async fetchPlaces(f: Filters, loc: LatLng, cats: Map<number, string>, maxPrice?: MaxPrice): Promise<VuelticaView[]> {
-    const rows = await this.http.getAll<PlaceDto>('/places', { ...this.conditionQuery(f, loc, maxPrice), sort: 'name' });
+  private async fetchPlaces(f: Filters, loc: LatLng, cats: Map<number, string>, maxPrice?: MaxPrice, bounds?: Bounds): Promise<VuelticaView[]> {
+    const rows = await this.http.getAll<PlaceDto>('/places', { ...this.conditionQuery(f, loc, maxPrice, bounds), sort: 'name' });
     return rows.map((p) => placeToView(p, cats, loc));
   }
 
-  private async fetchEvents(f: Filters, loc: LatLng, cats: Map<number, string>, now: Date, maxPrice?: MaxPrice): Promise<VuelticaView[]> {
+  private async fetchEvents(f: Filters, loc: LatLng, cats: Map<number, string>, now: Date, maxPrice?: MaxPrice, bounds?: Bounds): Promise<VuelticaView[]> {
     const range = dateRange(f.date, now);
     const rows = await this.http.getAll<EventDto>('/events', {
-      ...this.conditionQuery(f, loc, maxPrice),
+      ...this.conditionQuery(f, loc, maxPrice, bounds),
       from: range?.from.toISOString(),
       to: range?.to.toISOString(),
     });
@@ -198,12 +204,12 @@ export class HttpApi implements MiVuelticaApi {
     return out;
   }
 
-  async listVuelticas({ filters, location, sort = 'cercanos', maxPrice }: ListParams): Promise<ListResult> {
+  async listVuelticas({ filters, location, sort = 'cercanos', maxPrice, bounds }: ListParams): Promise<ListResult> {
     const now = clockNow();
     const cats = await this.categoryMap();
     const [places, events, pending, saved] = await Promise.all([
-      filters.types.includes('lugar') ? this.fetchPlaces(filters, location, cats, maxPrice) : [],
-      filters.types.includes('evento') ? this.fetchEvents(filters, location, cats, now, maxPrice) : [],
+      filters.types.includes('lugar') ? this.fetchPlaces(filters, location, cats, maxPrice, bounds) : [],
+      filters.types.includes('evento') ? this.fetchEvents(filters, location, cats, now, maxPrice, bounds) : [],
       this.pendingPins(location, cats),
       this.savedIds(),
     ]);
@@ -409,8 +415,8 @@ export class HttpApi implements MiVuelticaApi {
 
   /* ------------------------------------------------------------------ saved */
 
-  private async favorites(): Promise<FavoriteDto[]> {
-    return this.http.getAll<FavoriteDto>('/me/favorites', {}, { auth: 'required' });
+  private async favorites(type?: 'PLACE' | 'EVENT'): Promise<FavoriteDto[]> {
+    return this.http.getAll<FavoriteDto>('/me/favorites', { type }, { auth: 'required' });
   }
 
   private static favId(f: FavoriteDto): string | null {
@@ -440,12 +446,12 @@ export class HttpApi implements MiVuelticaApi {
     await this.http.del(`${planPath(kind, uuid)}/favorite`, { auth: 'required', reason: 'save' });
   }
 
-  async listSaved(location: LatLng): Promise<SavedItem[]> {
+  async listSaved(location: LatLng, type?: VuelticaType): Promise<SavedItem[]> {
     const me = await this.requireUser('save');
     const cats = await this.categoryMap();
     const offset = (await this.getSettings()).reminderOffsetDays;
     const out: SavedItem[] = [];
-    for (const f of await this.favorites()) {
+    for (const f of await this.favorites(type ? (type === 'lugar' ? 'PLACE' : 'EVENT') : undefined)) {
       const view = f.event ? eventToView(f.event, cats, location) : f.place ? placeToView(f.place, cats, location) : null;
       // Hidden or unpublished plans would open "No encontramos este plan" (review M5): the API filters them too.
       if (!view || view.status !== 'publicada') continue;
@@ -523,6 +529,22 @@ export class HttpApi implements MiVuelticaApi {
       return reportFromApi(r);
     } catch (e) {
       if (e instanceof ConflictError) throw new DuplicateReportError();
+      throw e;
+    }
+  }
+
+  async reportReview(input: ReviewReportInput): Promise<{ hidden: boolean }> {
+    await this.requireUser('report');
+    try {
+      return await this.http.post<{ hidden: boolean }>(
+        `/reviews/${input.reviewId}/reports`,
+        { reason: input.reason, details: input.details?.trim() || undefined },
+        { auth: 'required', reason: 'report' },
+      );
+    } catch (e) {
+      if (e instanceof ConflictError) throw new DuplicateReportError();
+      // Older API without the route (#16): say so instead of "not found".
+      if (e instanceof NotFoundError && e.routeMissing) throw new NotSupportedError('report-review');
       throw e;
     }
   }

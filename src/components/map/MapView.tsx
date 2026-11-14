@@ -27,7 +27,7 @@ function clusterSvg(count: number, fill: string) {
 }
 
 function NativeMap(props: MapViewProps) {
-  const { items, pending, selectedId, center, showUser, recenterToken, onSelect, onSelectPending, onMapPress, dropPin } = props;
+  const { items, pending, selectedId, center, showUser, recenterToken, onSelect, onSelectPending, onMapPress, onBoundsChange, dropPin } = props;
   const { dark, c } = useAppTheme();
   const ref = useRef<{ setCameraPosition: (p: { coordinates: { latitude: number; longitude: number }; zoom?: number }) => Promise<void> } | null>(null);
   const [cam, setCam] = useState({ zoom: 13, lat: center.lat, lng: center.lng, latDelta: 0.1 });
@@ -38,6 +38,14 @@ function NativeMap(props: MapViewProps) {
     return { north: cam.lat + span / 2, south: cam.lat - span / 2, east: cam.lng + span, west: cam.lng - span };
   }, [cam]);
   const nodes = useClusters(items, pending, bounds, cam.zoom);
+
+  // Tell the screen what is visible once the camera stops moving (onCameraMove fires on every frame).
+  // The screen passes a stable callback (useCallback), so this only re-runs when the area changes.
+  useEffect(() => {
+    if (!onBoundsChange) return;
+    const timer = setTimeout(() => onBoundsChange(bounds), 400);
+    return () => clearTimeout(timer);
+  }, [bounds, onBoundsChange]);
 
   useEffect(() => {
     void ref.current?.setCameraPosition({ coordinates: { latitude: center.lat, longitude: center.lng }, zoom: 13 });
