@@ -122,7 +122,16 @@ export default function MapaScreen() {
         </View>
       ) : null}
 
-      <View pointerEvents="box-none" style={{ position: 'absolute', right: 16, bottom: insets.bottom + (NO_PIN_TAPS ? 252 : 192) }}>
+      <View pointerEvents="box-none" style={{ position: 'absolute', left: 16, right: 16, bottom: insets.bottom + (NO_PIN_TAPS ? 252 : 192), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Tap
+          testID="map.plan"
+          label={t.plan.a11y}
+          onPress={() => router.push('/armar-plan')}
+          style={[{ height: 44, borderRadius: 22, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8 }, glassStyle(c)]}
+        >
+          <Icon name="calendar" size={18} color="primary" />
+          <Text variant="headline" color="primary" system>{t.plan.button}</Text>
+        </Tap>
         <IconButton testID="map.locate" icon="locate" label={t.map.locate} onPress={locate} />
       </View>
 
