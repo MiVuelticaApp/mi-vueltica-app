@@ -189,6 +189,8 @@ export interface ModerationItem {
   topReason?: ReportReason;
   lastReportAt?: string;
   myVote?: VoteChoice;
+  /** #5: the automatic check flagged it (score at least 0.5); the categories it found, e.g. "harassment, spam: enlaces". */
+  aiFlag?: string;
 }
 
 /** Same strings as mi-vueltica-api's `REPUTATION_KINDS` (`minorityModerator`: −2 for voting with the losing side). */
