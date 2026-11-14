@@ -13,12 +13,25 @@ export interface ConfirmOptions {
   destructive?: boolean;
 }
 
-interface DialogState {
-  open: (ConfirmOptions & { resolve: (v: boolean) => void }) | null;
-  set: (o: DialogState['open']) => void;
+export interface ChooseOptions<T extends string> {
+  title: string;
+  options: { value: T; label: string }[];
+  testID?: string;
 }
 
-const useDialog = create<DialogState>((set) => ({ open: null, set: (open) => set({ open }) }));
+interface DialogState {
+  open: (ConfirmOptions & { resolve: (v: boolean) => void }) | null;
+  choice: (ChooseOptions<string> & { resolve: (v: string | null) => void }) | null;
+  set: (o: DialogState['open']) => void;
+  setChoice: (o: DialogState['choice']) => void;
+}
+
+const useDialog = create<DialogState>((set) => ({ open: null, choice: null, set: (open) => set({ open }), setChoice: (choice) => set({ choice }) }));
+
+/** Pick one option (a themed modal on every platform: Android alerts take at most three buttons). Null when cancelled. */
+export function chooseDialog<T extends string>(o: ChooseOptions<T>): Promise<T | null> {
+  return new Promise((resolve) => useDialog.getState().setChoice({ ...o, resolve: resolve as (v: string | null) => void }));
+}
 
 /** Native alert on iOS/Android (system look); a themed modal on web. Resolves true when confirmed. */
 export function confirmDialog(o: ConfirmOptions): Promise<boolean> {
@@ -33,7 +46,40 @@ export function confirmDialog(o: ConfirmOptions): Promise<boolean> {
   return new Promise((resolve) => useDialog.getState().set({ ...o, resolve }));
 }
 
+function ChoiceHost() {
+  const { c } = useAppTheme();
+  const choice = useDialog((s) => s.choice);
+  if (!choice) return null;
+  const close = (v: string | null) => {
+    choice.resolve(v);
+    useDialog.getState().setChoice(null);
+  };
+  const id = choice.testID ?? 'choice';
+  return (
+    <Modal transparent animationType="fade" onRequestClose={() => close(null)} visible>
+      <View style={{ flex: 1, backgroundColor: c.scrim, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
+        <View testID={id} accessibilityViewIsModal style={{ width: '100%', maxWidth: 340, backgroundColor: c.surface, borderRadius: 20, padding: 20, gap: 8 }}>
+          <Text variant="title" align="center" style={{ paddingBottom: 4 }}>{choice.title}</Text>
+          {choice.options.map((o) => (
+            <Button key={o.value} testID={`${id}.${o.value}`} label={o.label} variant="secondary" onPress={() => close(o.value)} />
+          ))}
+          <Button testID={`${id}.cancel`} label={t.common.cancel} variant="text" onPress={() => close(null)} />
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export function DialogHost() {
+  return (
+    <>
+      <ConfirmHost />
+      <ChoiceHost />
+    </>
+  );
+}
+
+function ConfirmHost() {
   const { c } = useAppTheme();
   const open = useDialog((s) => s.open);
   if (!open) return null;

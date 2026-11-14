@@ -1,13 +1,13 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import { DEFAULT_LOCATION, PROVINCE_CENTERS } from '@/domain/geo';
-import type { Filters, LatLng, Province, SortKey, VuelticaView } from '@/domain/types';
+import { DEFAULT_LOCATION, PROVINCE_CENTERS, type Bounds } from '@/domain/geo';
+import type { Filters, LatLng, Province, SortKey, VuelticaType, VuelticaView } from '@/domain/types';
 import { useSession } from '@/state/session';
 import { useSettings } from '@/state/settings';
 import { queryClient, queryPersister } from '@/lib/queryClient';
 import { api } from '..';
 import type {
-  CreateReviewInput, CreateVuelticaInput, DecideInput, ReportInput, ReviewListParams, SimulateInput, VerifyInput, VuelticaDetail,
+  CreateReviewInput, CreateVuelticaInput, DecideInput, ReportInput, ReviewListParams, ReviewReportInput, SavedItem, SimulateInput, VerifyInput, VuelticaDetail,
 } from '../api';
 
 /** Effective location: GPS if allowed, else the chosen province's center, else downtown San José. */
@@ -36,13 +36,14 @@ export const qk = {
   user: ['user'] as const,
 };
 
-export function useVuelticas(filters: Filters, sort: SortKey = 'cercanos', kind: 'list' | 'search' = 'list') {
+/** `bounds`: the map's area (already padded and rounded with `queryBounds`); the lists leave it out. */
+export function useVuelticas(filters: Filters, sort: SortKey = 'cercanos', kind: 'list' | 'search' = 'list', bounds?: Bounds) {
   const location = useAppLocation();
   const maxPrice = useSettings((s) => s.settings.maxPrice);
   const userId = useSession((s) => s.user?.id ?? null);
   return useQuery({
-    queryKey: [...qk.list, kind, filters, sort, locKey(location), maxPrice, userId],
-    queryFn: () => (kind === 'list' ? api.listVuelticas({ filters, location, sort, maxPrice }) : api.searchVuelticas({ filters, location, sort, maxPrice })),
+    queryKey: [...qk.list, kind, filters, sort, locKey(location), maxPrice, userId, bounds ?? null],
+    queryFn: () => (kind === 'list' ? api.listVuelticas({ filters, location, sort, maxPrice, bounds }) : api.searchVuelticas({ filters, location, sort, maxPrice, bounds })),
     placeholderData: keepPreviousData,
     retry: (n, e) => !(e instanceof Error && e.name === 'OfflineError') && n < 1,
   });
@@ -101,10 +102,21 @@ export function useRecentlyViewed() {
   return useQuery({ queryKey: [...qk.recent, locKey(location)], queryFn: () => api.recentlyViewed(location), retry: false });
 }
 
-export function useSaved() {
+/** `type`: one Guardados tab. While it loads (or offline) it shows the "Todo" answer already cached, filtered. */
+export function useSaved(type?: VuelticaType) {
   const location = useAppLocation();
   const userId = useSession((s) => s.user?.id ?? null);
-  return useQuery({ queryKey: [...qk.saved, locKey(location), userId], queryFn: () => api.listSaved(location), retry: false });
+  const qc = useQueryClient();
+  return useQuery({
+    queryKey: [...qk.saved, locKey(location), userId, type ?? 'todo'],
+    queryFn: () => api.listSaved(location, type),
+    placeholderData: () => {
+      if (!type) return undefined;
+      const all = qc.getQueryData<SavedItem[]>([...qk.saved, locKey(location), userId, 'todo']);
+      return all?.filter((i) => i.vuelticaView.type === type);
+    },
+    retry: false,
+  });
 }
 
 export function useMyVuelticas(enabled = true) {
@@ -167,6 +179,11 @@ export function useVerify() {
 export function useReport() {
   const invalidate = useInvalidateAll();
   return useMutation({ mutationFn: (i: ReportInput) => api.report(i), onSuccess: () => invalidate() });
+}
+
+export function useReportReview() {
+  const invalidate = useInvalidateAll();
+  return useMutation({ mutationFn: (i: ReviewReportInput) => api.reportReview(i), onSuccess: (r) => (r.hidden ? invalidate() : undefined) });
 }
 
 export function useCantons(province: Province) {

@@ -34,6 +34,28 @@ export interface Bounds {
   west: number;
 }
 
+/** Whether a point lies inside the area (Costa Rica never crosses the antimeridian, so no wrap-around). */
+export function inBounds(b: Bounds, p: LatLng): boolean {
+  return p.lat >= b.south && p.lat <= b.north && p.lng >= b.west && p.lng <= b.east;
+}
+
+/**
+ * The area the map asks the API for: the visible one padded by a fifth on each side (pins just off-screen are
+ * already there when panning) and rounded outward to 0.01° (~1 km), so small pans reuse the cached answer.
+ */
+export function queryBounds(b: Bounds): Bounds {
+  const padLat = (b.north - b.south) / 5;
+  const padLng = (b.east - b.west) / 5;
+  const down = (n: number) => Math.floor(n * 100) / 100;
+  const up = (n: number) => Math.ceil(n * 100) / 100;
+  return {
+    south: Math.max(-90, down(b.south - padLat)),
+    north: Math.min(90, up(b.north + padLat)),
+    west: Math.max(-180, down(b.west - padLng)),
+    east: Math.min(180, up(b.east + padLng)),
+  };
+}
+
 /** Zoom level ↔ degrees span helper (web-mercator-ish) for supercluster. */
 export function zoomForLatDelta(latDelta: number): number {
   return Math.max(0, Math.min(20, Math.round(Math.log2(360 / Math.max(latDelta, 1e-6)))));

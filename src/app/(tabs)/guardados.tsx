@@ -43,21 +43,22 @@ export default function GuardadosScreen() {
   const insets = useSafeAreaInsets();
   const user = useSession((s) => s.user);
   const loaded = useSession((s) => s.userLoaded);
-  const q = useSaved();
   const toggle = useToggleSave();
   const offset = useSettings((s) => s.settings.reminderOffsetDays);
   const offline = useIsOffline();
   const [seg, setSeg] = useState<Seg>('todo');
+  // Each tab asks the API for its own type (`/me/favorites?type=`).
+  const q = useSaved(seg === 'todo' ? undefined : seg === 'lugares' ? 'lugar' : 'evento');
   const [picker, setPicker] = useState(false);
 
   const sections = useMemo(() => {
-    const items = (q.data ?? []).filter((i) => seg === 'todo' || (seg === 'lugares' ? i.vuelticaView.type === 'lugar' : i.vuelticaView.type === 'evento'));
+    const items = q.data ?? [];
     const order = ['week', 'month', 'later', 'places'] as const;
     const titles = { week: t.saved.thisWeek, month: t.saved.nextMonth, later: t.saved.later, places: t.saved.places2 };
     return order
       .map((g) => ({ key: g, title: titles[g], data: items.filter((i) => groupOf(i) === g).sort((a, b) => (a.vuelticaView.startAt ?? '').localeCompare(b.vuelticaView.startAt ?? '')) }))
       .filter((s) => s.data.length > 0);
-  }, [q.data, seg]);
+  }, [q.data]);
 
   if (!loaded) return <View style={{ flex: 1, backgroundColor: c.groupedBackground }} />;
   if (!user) {

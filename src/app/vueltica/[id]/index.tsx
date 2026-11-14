@@ -226,7 +226,7 @@ export default function Detalle() {
             </View>
             {d.reviewsPreview.length === 0 ? <Text variant="callout" color="labelSecondary" style={{ paddingHorizontal: 16 }}>{t.detail.noReviews}</Text> : null}
             {d.reviewsPreview.map((r) => (
-              <ReviewItem key={r.id} review={r} mine={rev.isMine(r)} onUseful={() => rev.useful(r)} onReport={rev.report} onEdit={() => rev.edit(r)} onDelete={() => void rev.remove(r)} onBlock={() => rev.block(r)} />
+              <ReviewItem key={r.id} review={r} mine={rev.isMine(r)} onUseful={() => rev.useful(r)} onReport={() => rev.report(r)} onEdit={() => rev.edit(r)} onDelete={() => void rev.remove(r)} onBlock={() => rev.block(r)} />
             ))}
           </View>
         ) : null}

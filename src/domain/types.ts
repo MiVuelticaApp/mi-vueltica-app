@@ -162,6 +162,8 @@ export type RejectionCode = 'duplicado' | 'masDe5000' | 'eventoPasado' | 'datosI
 export const REJECTION_CODES: RejectionCode[] = ['duplicado', 'masDe5000', 'eventoPasado', 'datosIncompletos', 'ubicacionIncorrecta', 'noEsPublico', 'inapropiado', 'spam', 'otro'];
 
 export type ReportReason = 'cerro' | 'noGratis' | 'masDe5000' | 'horario' | 'inapropiado' | 'spam' | 'otro';
+/** The reasons that make sense for a review (#16). */
+export type ReviewReportReason = Extract<ReportReason, 'inapropiado' | 'spam' | 'otro'>;
 
 export interface Report {
   id: string;
