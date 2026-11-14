@@ -164,12 +164,6 @@ export class MockApi implements MiVuelticaApi {
     return !!me && !!authorId && (this.db.blocks ?? []).some((b) => b.blockerId === me.id && b.blockedId === authorId);
   }
 
-  private visible(): Vueltica[] {
-    const me = this.me();
-    const lvl = level(this.db);
-    return this.db.vuelticas.filter((v) => isVisibleTo(v, me?.id ?? null, lvl));
-  }
-
   /* ------------------------------------------------------------------- list */
 
   private list(p: ListParams): ListResult {
