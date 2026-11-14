@@ -41,12 +41,20 @@ export class MockApi implements MiVuelticaApi {
   private db!: DB;
   private ready: Promise<void>;
   private saveTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly saveNow: boolean;
   private opts: Required<Omit<MockOptions, 'store'>> & { store: KeyValueStore };
 
   constructor(opts: MockOptions) {
     const e2e = process.env.EXPO_PUBLIC_E2E === '1';
     this.opts = { isOffline: () => false, latency: e2e ? [0, 0] : [300, 700], deviceId: 'device-1', ...opts } as MockApi['opts'];
     this.ready = this.load();
+    // e2e reloads the page right after a write: save at once there. On web, also save before the page goes away.
+    this.saveNow = e2e;
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('pagehide', () => {
+        if (this.saveTimer) void this.flush();
+      });
+    }
   }
 
   /* ------------------------------------------------------------------ infra */
@@ -78,7 +86,15 @@ export class MockApi implements MiVuelticaApi {
 
   private persist() {
     if (this.saveTimer) clearTimeout(this.saveTimer);
-    this.saveTimer = setTimeout(() => void this.flush(), 50);
+    this.saveTimer = null;
+    if (this.saveNow) {
+      void this.flush();
+      return;
+    }
+    this.saveTimer = setTimeout(() => {
+      this.saveTimer = null;
+      void this.flush();
+    }, 50);
   }
 
   /** Reset to the seed (used by tests / e2e). */
