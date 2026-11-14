@@ -322,6 +322,12 @@ export function reportFromApi(r: ReportDto): Report {
   };
 }
 
+/** #5: same threshold as the API's default `AI_MODERATION_THRESHOLD`. */
+export const AI_FLAG_THRESHOLD = 0.5;
+export function aiFlagOf(s: { aiScore?: number | null; aiReason?: string | null }): string | undefined {
+  return s.aiScore != null && s.aiScore >= AI_FLAG_THRESHOLD ? s.aiReason || '' : undefined;
+}
+
 export function moderationFromTally(vuelticaId: string, kind: ModerationItem['kind'], tally: ModerationTallyDto, extra: Partial<ModerationItem> = {}): ModerationItem {
   return {
     vuelticaId,

@@ -598,7 +598,10 @@ describe('HttpApi', () => {
     const tally = { votesFor: 1, votesAgainst: 0, votesNeeded: 5, myVote: null };
     routes['GET /moderation/queue'] = () => ({
       body: {
-        nuevas: [{ ...tally, submission: { id: 's1', type: 'PLACE', data: { name: 'Mirador', categoryId: 2, cantonId: 301, latitude: 9.86, longitude: -83.9 }, status: 'PENDING', reviewedAt: null, reviewNote: null, createdAt: '2026-10-19T00:00:00.000Z' } }],
+        nuevas: [
+          { ...tally, submission: { id: 's1', type: 'PLACE', data: { name: 'Mirador', categoryId: 2, cantonId: 301, latitude: 9.86, longitude: -83.9 }, status: 'PENDING', reviewedAt: null, reviewNote: null, createdAt: '2026-10-19T00:00:00.000Z', aiScore: 0.1, aiReason: null } },
+          { ...tally, submission: { id: 's2', type: 'PLACE', data: { name: 'GANÁ YA', categoryId: 2, cantonId: 301, latitude: 9.86, longitude: -83.9 }, status: 'PENDING', reviewedAt: null, reviewNote: null, createdAt: '2026-10-19T00:00:00.000Z', aiScore: 0.8, aiReason: 'spam: enlaces' } },
+        ],
         reportadas: [{ votesFor: 0, votesAgainst: 1, votesNeeded: 3, myVote: 'against', report: { type: 'PLACE', placeId: 'aaaa', eventId: null, title: 'Museo del Jade', status: 'ARCHIVED', hiddenReason: 'En revisión por reportes', reportedAt: '2026-10-19T00:00:00.000Z', needsReview: false, reportCount: 3, topReason: 'noGratis', firstReportAt: '2026-10-18T00:00:00.000Z', lastReportAt: '2026-10-19T00:00:00.000Z' } }],
         totals: { nuevas: 1, reportadas: 1 },
         total: 2,
@@ -608,6 +611,9 @@ describe('HttpApi', () => {
     const q = await api.moderationQueue(LOC);
     expect(q.total).toBe(2);
     expect(q.nuevas[0]).toMatchObject({ vuelticaId: 's-s1', kind: 'nueva', votesFor: 1, votesNeeded: 5, myVote: undefined, vuelticaView: { name: 'Mirador', province: 'Cartago' } });
+    // #5: only a score at or above 0.5 flags it.
+    expect(q.nuevas[0].aiFlag).toBeUndefined();
+    expect(q.nuevas[1].aiFlag).toBe('spam: enlaces');
     expect(q.reportadas[0]).toMatchObject({ vuelticaId: 'p-aaaa', kind: 'reportada', myVote: 'against', reportCount: 3, topReason: 'noGratis', vuelticaView: { name: 'Museo del Jade', status: 'oculta' } });
     expect(await api.moderationCount()).toBe(2);
 

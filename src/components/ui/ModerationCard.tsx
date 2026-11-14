@@ -35,6 +35,12 @@ export function ModerationCard({ item, voted, onVote, onUndo, onOpen, onDecide }
       {isNew ? (
         <>
           <Text variant="caption" color="onSurfaceVariant">{t.moderation.by(v.authorName, ago(v.createdAt))}</Text>
+          {item.aiFlag !== undefined ? (
+            <View testID={`mod.aiFlag.${v.id}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 6, backgroundColor: '#ffc72c' }}>
+              <Icon name="alert" size={18} color="#0b1220" />
+              <Text variant="callout" bold color="#0b1220" style={{ flex: 1 }}>{t.moderation.aiFlag(item.aiFlag)}</Text>
+            </View>
+          ) : null}
           <View style={{ height: 6, borderRadius: 3, backgroundColor: c.priceContainer }}>
             <View style={{ width: `${Math.max(2, progress * 100)}%`, height: 6, borderRadius: 3, backgroundColor: c.primary }} />
           </View>
