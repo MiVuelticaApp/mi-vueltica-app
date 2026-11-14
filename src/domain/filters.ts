@@ -100,11 +100,14 @@ export function activeFilterCount(f: Filters): number {
   return n;
 }
 
+/** Nearest first; events with no location (`distanceKm: Infinity`) last. `Infinity - Infinity` is NaN, hence `|| 0`. */
+const byDistance = (a: VuelticaView, b: VuelticaView) => a.distanceKm - b.distanceKm || 0;
+
 export function sortVuelticas(list: VuelticaView[], key: SortKey, now: Date): VuelticaView[] {
   const copy = [...list];
   switch (key) {
     case 'cercanos':
-      return copy.sort((a, b) => a.distanceKm - b.distanceKm);
+      return copy.sort((a, b) => byDistance(a, b));
     case 'calificados':
       return copy.sort((a, b) => b.ratingAvg - a.ratingAvg || b.ratingCount - a.ratingCount);
     case 'recientes':
@@ -112,7 +115,7 @@ export function sortVuelticas(list: VuelticaView[], key: SortKey, now: Date): Vu
     case 'fecha': {
       const t = now.getTime();
       const key2 = (v: VuelticaView) => (v.startAt ? Math.max(new Date(v.startAt).getTime(), t) : Number.MAX_SAFE_INTEGER);
-      return copy.sort((a, b) => key2(a) - key2(b) || a.distanceKm - b.distanceKm);
+      return copy.sort((a, b) => key2(a) - key2(b) || byDistance(a, b));
     }
   }
 }

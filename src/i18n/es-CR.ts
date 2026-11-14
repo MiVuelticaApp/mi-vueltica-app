@@ -9,7 +9,7 @@ export const t = {
     cancel: 'Cancelar', close: 'Cerrar', retry: 'Reintentar', done: 'Listo', clear: 'Limpiar', save: 'Guardar', saved: 'Guardado',
     share: 'Compartir', back: 'Atrás', ok: 'Aceptar', understood: 'Entendido', change: 'Cambiar', send: 'Enviar', publish: 'Publicar',
     optional: 'Opcional', choose: 'Elegir…', photoAdded: '1 foto agregada', notifDenied: 'Activá las notificaciones en los ajustes del sistema para recibir recordatorios', yes: 'Sí', no: 'No', today: 'Hoy', delete: 'Eliminar', confirm: 'Confirmar', loading: 'Cargando…',
-    seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', selectedSuffix: ', seleccionado', event: 'Evento', place: 'Lugar', free: 'Gratis', priceUnknown: 'Precio por confirmar', anonymous: 'Anónimo', community: 'Comunidad', km: 'km',
+    seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', selectedSuffix: ', seleccionado', event: 'Evento', place: 'Lugar', free: 'Gratis', priceUnknown: 'Precio por confirmar', locationUnknown: 'Ubicación por confirmar', anonymous: 'Anónimo', community: 'Comunidad', km: 'km',
     updateRequired: 'Hay una versión nueva de MiVueltica. Actualizá la app para seguir usándola sin problemas.',
     notSupported: 'Esta función todavía no está disponible. Estamos trabajando en ella.',
     errorTitle: 'Algo salió mal', errorBody: 'No pudimos cargar esta información. Probá de nuevo.',
@@ -64,7 +64,7 @@ export const t = {
     event: 'Evento', students: 'Estudiantes', seniors: 'Ciudadanos de oro', families: 'Familias', wheelchair: 'Accesible',
     priceUpTo: (p: number) => `Hasta ${c(p)}`, openToday: 'Abierto hoy', verify: '¿Sigue igual? Verificar',
     freeFor: (what: string) => `Gratis para ${what}`, save: 'Guardar', unsave: 'Quitar de guardados', rating: (r: string) => `Calificación ${r}`,
-    pending: 'Pendiente',
+    pending: 'Pendiente', by: (name: string) => `Por ${name}`,
   },
   skeleton: { loading: 'Cargando planes' },
   filters: {
@@ -249,6 +249,14 @@ export const t = {
   },
   a11y: { photoPlaceholder: 'Foto de ejemplo', closeSheet: 'Cerrar', backButton: 'Volver', toggleType: (n: string) => `Filtrar ${n}` },
   toast: { linkCopied: 'Enlace copiado' },
+  myReviews: {
+    title: 'Mis reseñas', pending: 'En revisión', unknownPlan: 'Plan sin nombre', open: (name: string) => `Abrir ${name}`,
+    empty: 'Todavía no escribiste reseñas', emptyBody: 'Cuando visités una vueltica, contale a la comunidad cómo te fue desde su detalle.',
+  },
+  upload: {
+    skipped: 'Dejamos fuera fotos que no se pueden subir: tienen que ser JPG, PNG o WebP de hasta 10 MB.',
+    rejected: 'No pudimos subir una foto: tiene que ser JPG, PNG o WebP de hasta 10 MB. Quitala o cambiala y probá de nuevo.',
+  },
 } as const;
 
 export type Strings = typeof t;

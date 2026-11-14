@@ -86,6 +86,7 @@ export function ContributeForm() {
     const onError = (e: Error) => {
       if (e instanceof ValidationError && e.field === 'price') setPriceError(true);
       else if (e instanceof ConflictError) toast(t.contribute.alreadyDecided);
+      else if (e instanceof ValidationError && e.field === 'photo') toast(e.message); // 413 / 415 from POST /uploads (#15)
       else toast(t.common.errorBody);
     };
     if (editing) {

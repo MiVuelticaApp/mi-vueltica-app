@@ -28,7 +28,7 @@ export default function ComoLlegar() {
   const [remember, setRemember] = useState(false);
   const update = useSettings((s) => s.update);
   const choose = async (app: DirectionsApp) => {
-    if (!v) return;
+    if (!v || v.noLocation) return; // an event with no location (#37) has nothing to open
     if (remember) update({ rememberedDirections: app });
     const ok = await openDirections(app, v);
     if (!ok) toast(t.directions.openFailed);

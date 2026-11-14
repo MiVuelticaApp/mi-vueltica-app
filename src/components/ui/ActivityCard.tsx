@@ -1,8 +1,7 @@
 import { View } from 'react-native';
 import { Icon } from '@/components/icons/Icon';
-import { daysSince, priceBadge, scheduleLine, stale, typeLine } from '@/features/list/format';
+import { daysSince, distanceLabel, priceBadge, scheduleLine, stale, typeLine } from '@/features/list/format';
 import type { VuelticaView } from '@/domain/types';
-import { formatDistance } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
 import { useAppTheme } from '@/theme/useAppTheme';
 import { Badge } from './Badge';
@@ -25,7 +24,7 @@ interface Props {
 export function ActivityCard({ item, onPress, onToggleSave, showVerification = 'list', testID, saveDisabled }: Props) {
   const { c } = useAppTheme();
   const d = daysSince(item.lastVerifiedAt);
-  const dist = formatDistance(item.distanceKm);
+  const dist = distanceLabel(item);
   const price = priceBadge(item);
   const studentElig = item.audiences.includes('estudiantes') || item.freeFor.includes('estudiantes');
   const seniorElig = item.audiences.includes('ciudadanosOro') || item.freeFor.includes('ciudadanosOro');
@@ -46,9 +45,13 @@ export function ActivityCard({ item, onPress, onToggleSave, showVerification = '
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Text variant="callout" color="onSurfaceVariant" numberOfLines={1} style={{ flex: 1 }}>{typeLine(item, dist)}</Text>
-          {item.ratingCount > 0 ? <RatingInline avg={item.ratingAvg} /> : null}
+          {item.ratingCount > 0 ? <RatingInline avg={item.ratingAvg} count={item.ratingCount} testID={`card.rating.${item.id}`} /> : null}
         </View>
         <Text variant="caption" color="onSurface" style={{ lineHeight: 17 }}>{scheduleLine(item)}</Text>
+        {/* Community plans name their author (#13); curated ones say "Comunidad", which adds nothing on a card. */}
+        {item.authorName && item.authorName !== t.common.community ? (
+          <Text testID={`card.author.${item.id}`} variant="caption" color="labelSecondary" numberOfLines={1}>{t.card.by(item.authorName)}</Text>
+        ) : null}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
           {item.type === 'evento' ? <Badge kind="event" label={t.card.event} /> : null}
           {item.priceTier === 'gratis' ? <Badge kind="free" label={t.card.free} /> : null}
@@ -59,6 +62,7 @@ export function ActivityCard({ item, onPress, onToggleSave, showVerification = '
           {showVerification === 'saved' && !stale(item) && d !== null ? <Badge kind="verified" label={d === 0 ? t.card.verifiedToday : t.card.verifiedAgo(d)} /> : null}
           {showVerification === 'saved' && stale(item) ? <Badge kind="stale" label={t.card.verify} /> : null}
           {price ? <Badge kind="price" label={price} icon={null} /> : null}
+          {item.wheelchair ? <Badge kind="access" label={t.card.wheelchair} testID={`card.access.${item.id}`} /> : null}
         </View>
       </View>
     </Tap>

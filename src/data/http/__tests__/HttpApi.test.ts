@@ -143,6 +143,33 @@ describe('HttpApi', () => {
     expect(res.items[0]).toMatchObject({ type: 'lugar', category: 'Museos', province: 'San José', openingHours: 'Lun–Mar · 9:00 a.m.–5:00 p.m.' });
   });
 
+  it('keeps events with no location off "near me" but lists them without it, last, with no map point (#37)', async () => {
+    const { api } = make();
+    routes['GET /categories'] = () => ({ body: CATS });
+    routes['GET /places'] = () => ({ body: page([]) });
+    const base = {
+      placeId: null, categoryId: 2, sourceId: null, description: null, startsAt: '2026-10-24T00:00:00.000Z', endsAt: null, targetAudience: 'EVERYONE',
+      pricePerPerson: 0, priceTier: 'gratis', status: 'PUBLISHED', hiddenReason: null, authorName: null, createdAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z',
+    };
+    const sent: (string | null)[] = [];
+    routes['GET /events'] = (u) => {
+      sent.push(u.searchParams.get('radiusKm'));
+      return {
+        body: page([
+          { ...base, id: 'nowhere', title: 'Sin lugar', latitude: null, longitude: null, address: null, place: null },
+          { ...base, id: 'park', title: 'En el parque', latitude: 9.94, longitude: -84.08, address: 'Calle 5', place: { id: 'pl', name: 'Parque Central', cantonId: 101, latitude: 9.94, longitude: -84.08, address: 'Calle 5', status: 'PUBLISHED' } },
+        ]),
+      };
+    };
+    const near = await api.listVuelticas({ filters: DEFAULT_FILTERS, location: LOC });
+    expect(near.items.map((v) => v.id)).toEqual(['e-park']);
+    expect(near.items[0].address).toBe('Parque Central · Calle 5'); // place name and address, shown as title / subtitle
+    const all = await api.listVuelticas({ filters: { ...DEFAULT_FILTERS, nearMe: false }, location: LOC });
+    expect(all.items.map((v) => v.id)).toEqual(['e-park', 'e-nowhere']);
+    expect(all.items[1]).toMatchObject({ noLocation: true, distanceKm: Infinity });
+    expect(sent).toEqual(['5', null]); // no geo filter without "Cerca de mí", so the API returns them
+  });
+
   it('maps events with their resolved location, price and audiences, and skips events without one', async () => {
     const { api } = make();
     routes['GET /categories'] = () => ({ body: CATS });
@@ -438,6 +465,23 @@ describe('HttpApi', () => {
     global.fetch = jest.fn(async () => new Response('<pre>Cannot POST</pre>', { status: 404, headers: { 'Content-Type': 'text/html' } })) as typeof fetch;
     await expect(api.blockAuthor({ kind: 'vueltica', id: 'p-aaaa' })).rejects.toBeInstanceOf(NotSupportedError);
     await expect(api.listBlocks()).rejects.toBeInstanceOf(NotSupportedError);
+  });
+
+  it('lists my reviews with the plan name and pending flag, newest first (#23)', async () => {
+    const { api } = make();
+    mockMem.set('t', 'jwt');
+    routes['GET /me'] = () => ({ body: { ...USER, interests: [] } });
+    routes['GET /me/reviews'] = () => ({
+      body: page([
+        { ...REVIEW, id: 'old', createdAt: '2026-10-01T00:00:00.000Z', place: { id: 'aaaa', name: 'Museo del Jade' }, event: null },
+        { ...REVIEW, id: 'new', placeId: null, eventId: 'eeee', status: 'PENDING', createdAt: '2026-10-20T00:00:00.000Z', place: null, event: { id: 'eeee', title: 'Noche de Museos' } },
+      ]),
+    });
+    const mine = await api.myReviews();
+    expect(mine.map((m) => [m.review.id, m.planName, m.pending, m.review.vuelticaId])).toEqual([
+      ['new', 'Noche de Museos', true, 'e-eeee'],
+      ['old', 'Museo del Jade', false, 'p-aaaa'],
+    ]);
   });
 
   it('verifications: guests send X-Device-Id, offline answers are queued and flushed later', async () => {
