@@ -67,6 +67,21 @@ export const t = {
     pending: 'Pendiente', by: (name: string) => `Por ${name}`,
   },
   skeleton: { loading: 'Cargando planes' },
+  plan: {
+    button: 'Armame el plan', a11y: 'Armame el plan: un recorrido para tu tiempo libre',
+    title: 'Armame el plan', subtitle: 'Decinos cuándo y cuántas vuelticas, y te armamos el recorrido con lo que hay cerca (15 km).',
+    from: 'Desde', to: 'Hasta', stops: '¿Cuántas vuelticas?', build: 'Armar plan', again: 'Otra opción', saveAll: 'Guardar todo',
+    savedAll: 'Guardamos todas las vuelticas del plan',
+    windowInvalid: 'La hora de fin tiene que ser después de la de inicio.',
+    short: (n: number, from: string, to: string) =>
+      n === 0 ? `No encontramos vuelticas que quepan entre ${from} y ${to}.` : `Solo ${n === 1 ? 'cabe 1 vueltica' : `caben ${n} vuelticas`} entre ${from} y ${to}.`,
+    emptyBody: 'Probá con otro horario o quitá algunos filtros.',
+    travel: (min: number) => `${min} min de camino`,
+    startsAt: (time: string) => `Empieza a las ${time}`,
+    hoursUnknown: 'Horario sin confirmar',
+    total: (cost: string, unknown: boolean) => `Costo estimado por persona: ${cost}${unknown ? ' (algún precio por confirmar)' : ''}`,
+    directions: 'Cómo llegar', loading: 'Buscando vuelticas cerca…',
+  },
   filters: {
     title: 'Filtros', clear: 'Limpiar', show: (n: number) => (n === 1 ? 'Mostrar 1 resultado' : `Mostrar ${n} resultados`),
     showNone: 'Sin resultados', sectionShow: 'Mostrar', places: 'Lugares', events: 'Eventos',

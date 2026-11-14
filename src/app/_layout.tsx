@@ -56,6 +56,7 @@ function Navigator() {
           <Stack.Screen name="vueltica/[id]/decidir" options={sheetOptions([1])} />
           <Stack.Screen name="vueltica/[id]/como-llegar" options={sheetOptions([0.5])} />
           <Stack.Screen name="filtros" options={sheetOptions([1])} />
+          <Stack.Screen name="armar-plan" options={sheetOptions([1])} />
           <Stack.Screen name="elegir-ubicacion" options={sheetOptions([1])} />
           <Stack.Screen name="login" options={{ presentation: Platform.OS === 'web' ? 'card' : 'fullScreenModal', animation: anim('slide_from_bottom') }} />
           <Stack.Screen name="vueltica-enviada/[id]" options={{ gestureEnabled: false }} />
