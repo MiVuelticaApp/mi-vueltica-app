@@ -1,12 +1,12 @@
 import { cantonsOf, type Canton } from '@/domain/cantons';
-import { haversineKm } from '@/domain/geo';
+import { haversineKm, inBounds } from '@/domain/geo';
 import { applyFilters, sortVuelticas, summarize } from '@/domain/filters';
 import {
   applyPoints, canModerate, canVerifyPrice, decideNew, decideReported, isPublishablePrice, isVisibleTo, levelForPoints, needsReview,
   outcomeOfVerifications, pointsFor, reportsHide, reputationFor, tierForPrice, voteWeight, votesNeeded, isMinorityVote,
 } from '@/domain/rules';
 import type {
-  BlockedUser, LatLng, ModerationItem, ModerationKind, MyReview, Province, Report, Review, Saved, Settings, User, Verification, Vueltica, VuelticaView, ReputationKind, ReputationEvent,
+  BlockedUser, LatLng, ModerationItem, ModerationKind, MyReview, Province, Report, Review, Saved, Settings, User, Verification, Vueltica, VuelticaType, VuelticaView, ReputationKind, ReputationEvent,
 } from '@/domain/types';
 import { now as clockNow } from '@/lib/clock';
 import { formatTime, initialsOf } from '@/i18n/format';
@@ -14,7 +14,7 @@ import { t } from '@/i18n/es-CR';
 import {
   AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, OfflineError, ValidationError,
   type CreateReviewInput, type CreateVuelticaInput, type DecideInput, type ExportedData, type ListParams, type ListResult, type MiVuelticaApi, type ModerationQueue,
-  type MyVuelticaItem, type RatingSummary, type ReportInput, type ReviewList, type ReviewListParams, type SavedItem, type ScheduledReminder, type SimulateInput,
+  type MyVuelticaItem, type RatingSummary, type ReportInput, type ReviewReportInput, type ReviewList, type ReviewListParams, type SavedItem, type ScheduledReminder, type SimulateInput,
   type VerifyInput, type VerifyResult, type VuelticaDetail,
 } from '../api';
 import type { KeyValueStore } from '../storage/types';
@@ -160,7 +160,11 @@ export class MockApi implements MiVuelticaApi {
     const now = clockNow();
     const me = this.me();
     const lvl = level(this.db);
-    const published = this.db.vuelticas.filter((v) => v.status === 'publicada' && !this.blockedAuthor(v.authorId)).map((v) => this.view(v, p.location));
+    const published = this.db.vuelticas
+      .filter((v) => v.status === 'publicada' && !this.blockedAuthor(v.authorId))
+      .map((v) => this.view(v, p.location))
+      // Same as the API's bounding box: plans with no location are never inside the map's area.
+      .filter((v) => !p.bounds || (!v.noLocation && inBounds(p.bounds, v)));
     const items = sortVuelticas(applyFilters(published, p.filters, now, p.maxPrice), p.sort ?? 'cercanos', now);
     const { count, free } = summarize(items);
     const pending = this.db.vuelticas
@@ -331,14 +335,14 @@ export class MockApi implements MiVuelticaApi {
     });
   }
 
-  listSaved(location: LatLng): Promise<SavedItem[]> {
+  listSaved(location: LatLng, type?: VuelticaType): Promise<SavedItem[]> {
     return this.read(() => {
       const me = this.me();
       if (!me) return [];
       return this.db.saved
         .filter((s) => s.userId === me.id)
         .map((s) => ({ s, v: this.db.vuelticas.find((x) => x.id === s.vueltica) }))
-        .filter((x): x is { s: Saved; v: Vueltica } => !!x.v && x.v.status === 'publicada' && !this.blockedAuthor(x.v.authorId))
+        .filter((x): x is { s: Saved; v: Vueltica } => !!x.v && x.v.status === 'publicada' && !this.blockedAuthor(x.v.authorId) && (!type || x.v.type === type))
         .map(({ s, v }) => ({ saved: s, vuelticaView: this.view(v, location) }));
     });
   }
@@ -442,6 +446,22 @@ export class MockApi implements MiVuelticaApi {
       this.db.reports.push(r);
       this.afterReport(v);
       return { ...r, reporterId: '' };
+    });
+  }
+
+  /** Review reports are only remembered for this session: the offline demo has a single person, so 3 never happen. */
+  private readonly reviewReports = new Set<string>();
+
+  reportReview(input: ReviewReportInput): Promise<{ hidden: boolean }> {
+    return this.write(() => {
+      const me = this.requireMe('report');
+      const r = this.db.reviews.find((x) => x.id === input.reviewId);
+      if (!r) throw new NotFoundError();
+      if (r.authorId === me.id) throw new ForbiddenError();
+      const key = `${r.id}:${me.id}`;
+      if (this.reviewReports.has(key)) throw new DuplicateReportError();
+      this.reviewReports.add(key);
+      return { hidden: false };
     });
   }
 

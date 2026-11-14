@@ -1,3 +1,4 @@
+import type { Bounds } from '@/domain/geo';
 import type { LatLng, VuelticaView } from '@/domain/types';
 
 export type PendingView = VuelticaView & { mine: boolean };
@@ -18,6 +19,8 @@ export interface MapViewProps {
   offline?: boolean;
   /** Tap on empty map (location picker). */
   onMapPress?: (lat: number, lng: number) => void;
+  /** The visible area, once the camera settles (debounced). Not called by the image fallback map. */
+  onBoundsChange?: (b: Bounds) => void;
   /** Extra marker (location picker). */
   dropPin?: { lat: number; lng: number; type: 'lugar' | 'evento' } | null;
 }

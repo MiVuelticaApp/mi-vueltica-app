@@ -3,10 +3,11 @@
  * `src/data/index.ts` picks one from `EXPO_PUBLIC_API_URL`.
  */
 import type {
-  Audience, BlockedUser, FreeFor, Filters, LatLng, MaxPrice, ModerationItem, MyReview, PricePaid, Province, Report, ReportReason, ReputationSummary, Review, Saved,
+  Audience, BlockedUser, FreeFor, Filters, LatLng, MaxPrice, ModerationItem, MyReview, PricePaid, Province, Report, ReportReason, ReputationSummary, Review, ReviewReportReason, Saved,
   Settings, SignInProvider, SortKey, SpentTier, StillHappening, User, VoteChoice, VuelticaType, VuelticaView, WentWith, ReputationEvent, RejectionCode,
 } from '@/domain/types';
 import type { Canton } from '@/domain/cantons';
+import type { Bounds } from '@/domain/geo';
 
 export class OfflineError extends Error {
   constructor() {
@@ -15,7 +16,7 @@ export class OfflineError extends Error {
   }
 }
 export class AuthRequiredError extends Error {
-  constructor(public reason: 'save' | 'contribute' | 'review' | 'moderate' | 'useful' | 'block') {
+  constructor(public reason: 'save' | 'contribute' | 'review' | 'moderate' | 'useful' | 'block' | 'report') {
     super('auth-required');
     this.name = 'AuthRequiredError';
   }
@@ -79,6 +80,8 @@ export interface ListParams {
   location: LatLng;
   sort?: SortKey;
   maxPrice?: MaxPrice;
+  /** The map's visible area (#37): the API only returns plans inside it, instead of the radius around `location`. */
+  bounds?: Bounds;
 }
 
 export interface ListResult {
@@ -162,6 +165,12 @@ export interface ReportInput {
   photo?: string;
 }
 
+export interface ReviewReportInput {
+  reviewId: string;
+  reason: ReviewReportReason;
+  details?: string;
+}
+
 export interface ReviewListParams {
   vuelticaId: string;
   sort: 'recientes' | 'fotos' | 'utiles';
@@ -234,11 +243,17 @@ export interface MiVuelticaApi {
   withdrawVueltica(id: string): Promise<void>;
   saveVueltica(id: string): Promise<void>;
   unsaveVueltica(id: string): Promise<void>;
-  listSaved(location: LatLng): Promise<SavedItem[]>;
+  /** `type`: only places or only events (the Guardados tabs); the API filters with `?type=`. */
+  listSaved(location: LatLng, type?: VuelticaType): Promise<SavedItem[]>;
   verify(input: VerifyInput): Promise<VerifyResult>;
   quickConfirm(vuelticaId: string): Promise<VerifyResult>;
   flushQueuedVerifications(): Promise<number>;
   report(input: ReportInput): Promise<Report>;
+  /**
+   * Signed in only. `DuplicateReportError` if already reported; `ForbiddenError` on your own. `hidden`: this report took
+   * it off the lists until a moderator decides (3 reports).
+   */
+  reportReview(input: ReviewReportInput): Promise<{ hidden: boolean }>;
   listReviews(p: ReviewListParams): Promise<ReviewList>;
   createReview(input: CreateReviewInput): Promise<Review>;
   markUseful(reviewId: string): Promise<Review>;
