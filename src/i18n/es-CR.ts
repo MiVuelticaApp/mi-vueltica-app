@@ -81,7 +81,7 @@ export const t = {
     apple: 'Continuar con Apple', google: 'Continuar con Google',
     legal: 'Antes de crear tu cuenta te mostramos el aviso de privacidad. Podés explorar sin cuenta.',
     terms: 'Términos', privacy: 'Política de privacidad',
-    gate: { save: 'Iniciá sesión para guardar. Guardá tus vuelticas favoritas.', contribute: 'Iniciá sesión para aportar. Sumá una vueltica para la comunidad.', review: 'Iniciá sesión para escribir una reseña. Contá cómo te fue.', moderate: 'Iniciá sesión para moderar. Ayudá a revisar lo que se publica.', useful: 'Iniciá sesión para marcar reseñas útiles.', block: 'Iniciá sesión para bloquear a una persona.' },
+    gate: { save: 'Iniciá sesión para guardar. Guardá tus vuelticas favoritas.', contribute: 'Iniciá sesión para aportar. Sumá una vueltica para la comunidad.', review: 'Iniciá sesión para escribir una reseña. Contá cómo te fue.', moderate: 'Iniciá sesión para moderar. Ayudá a revisar lo que se publica.', useful: 'Iniciá sesión para marcar reseñas útiles.', block: 'Iniciá sesión para bloquear a una persona.', report: 'Iniciá sesión para reportar una reseña.' },
   },
   detail: {
     howToGet: 'Cómo llegar', save: 'Guardar', saved: 'Guardado', share: 'Compartir', close: 'Cerrar',
@@ -137,6 +137,9 @@ export const t = {
     helpful: (n: number) => `Útil · ${n}`, helpfulA11y: 'Marcar como útil', report: 'Reportar', ago: 'Hace',
     edit: 'Editar', delete: 'Eliminar', deleteTitle: '¿Eliminar tu reseña?', deleteBody: 'Ya no se va a mostrar ni contar en la calificación.', deleted: 'Reseña eliminada',
     editTitle: 'Editar reseña', updated: 'Reseña actualizada', mine: 'Tu reseña', block: 'Bloquear',
+    reportTitle: '¿Qué pasa con esta reseña?', reportReasons: { inapropiado: 'Contenido inapropiado u ofensivo', spam: 'Es spam o publicidad', otro: 'Otro motivo' },
+    reportSent: 'Reporte enviado. Si 3 personas la reportan, la ocultamos mientras la revisamos.', reportHidden: 'Reporte enviado. Ocultamos la reseña mientras la revisamos.',
+    reportDupe: 'Ya reportaste esta reseña', reportOwn: 'No podés reportar tu propia reseña',
     wentWith: { familia: 'Fue con su familia', amigos: 'Fue con amigos', pareja: 'Fue en pareja', solo: 'Fue solo/a' },
     wentWithShort: { familia: 'En familia', amigos: 'Con amigos', pareja: 'En pareja', solo: 'Solo/a' },
     spent: { nada: 'Nada', menos2500: `Menos de ${c(2500)}`, entre2500y5000: `${c(2500)} – ${c(5000)}` },

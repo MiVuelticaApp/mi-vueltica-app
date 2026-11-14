@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useCallback } from 'react';
 import { useSession, type PendingAction } from '@/state/session';
 
-export type GateReason = 'save' | 'contribute' | 'review' | 'moderate' | 'useful' | 'block';
+export type GateReason = 'save' | 'contribute' | 'review' | 'moderate' | 'useful' | 'block' | 'report';
 
 /**
  * Sign-in gate. Signed in → runs the action. Signed out → remembers it, opens Login (replacing the current

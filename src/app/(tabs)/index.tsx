@@ -1,5 +1,5 @@
 import { router, usePathname } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Linking, Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/icons/Icon';
@@ -12,6 +12,7 @@ import { Text } from '@/components/ui/Text';
 import { glassStyle } from '@/components/ui/glass';
 import { useAppLocation, useVuelticas } from '@/data/queries';
 import { activeFilterCount } from '@/domain/filters';
+import { queryBounds, type Bounds } from '@/domain/geo';
 import { formatCRC } from '@/i18n/format';
 import { t } from '@/i18n/es-CR';
 import { describeFilters } from '@/features/map/describe';
@@ -39,7 +40,13 @@ export default function MapaScreen() {
   const coords = useSession((s) => s.coords);
   const permission = useSettings((s) => s.settings.locationPermission);
   const [recenter, setRecenter] = useState(0);
-  const query = useVuelticas({ ...filters, nearMe: true });
+  // Only the visible area is downloaded (#37); until the native map reports it, the radius around the center.
+  const [area, setArea] = useState<Bounds | undefined>(undefined);
+  const onBoundsChange = useCallback((b: Bounds) => {
+    const next = queryBounds(b);
+    setArea((prev) => (prev && prev.north === next.north && prev.south === next.south && prev.east === next.east && prev.west === next.west ? prev : next));
+  }, []);
+  const query = useVuelticas({ ...filters, nearMe: true }, 'cercanos', 'list', area);
   const data = query.data;
   const n = activeFilterCount(filters);
   const label = describeFilters(filters);
@@ -74,6 +81,7 @@ export default function MapaScreen() {
           showUser={!!coords}
           recenterToken={recenter}
           onSelect={open}
+          onBoundsChange={onBoundsChange}
           onSelectPending={(v) => (v.mine ? router.push({ pathname: '/vueltica-enviada/[id]', params: { id: v.id } }) : router.push('/moderacion'))}
         />
       ) : (

@@ -143,6 +143,24 @@ describe('HttpApi', () => {
     expect(res.items[0]).toMatchObject({ type: 'lugar', category: 'Museos', province: 'San José', openingHours: 'Lun–Mar · 9:00 a.m.–5:00 p.m.' });
   });
 
+  it('asks for the map\'s visible area instead of the radius when it is known (#37)', async () => {
+    const { api } = make();
+    routes['GET /categories'] = () => ({ body: CATS });
+    const area = { south: 9.9, north: 10, west: -84.2, east: -84 };
+    for (const path of ['GET /places', 'GET /events']) {
+      routes[path] = (u) => {
+        expect(u.searchParams.get('minLat')).toBe('9.9');
+        expect(u.searchParams.get('maxLat')).toBe('10');
+        expect(u.searchParams.get('minLng')).toBe('-84.2');
+        expect(u.searchParams.get('maxLng')).toBe('-84');
+        expect(u.searchParams.get('radiusKm')).toBeNull(); // the API rejects both at once
+        return { body: page(path === 'GET /places' ? [PLACE] : []) };
+      };
+    }
+    const res = await api.listVuelticas({ filters: DEFAULT_FILTERS, location: LOC, bounds: area });
+    expect(res.items.map((v) => v.id)).toEqual(['p-aaaa']);
+  });
+
   it('keeps events with no location off "near me" but lists them without it, last, with no map point (#37)', async () => {
     const { api } = make();
     routes['GET /categories'] = () => ({ body: CATS });
@@ -407,6 +425,22 @@ describe('HttpApi', () => {
     expect((await api.listSaved(LOC)).map((s) => s.vuelticaView.id)).toEqual(['p-aaaa']);
   });
 
+  it('Guardados tabs ask the API for one type (#37)', async () => {
+    const { api } = make();
+    mockMem.set('t', 'jwt');
+    routes['GET /categories'] = () => ({ body: CATS });
+    routes['GET /me'] = () => ({ body: { ...USER, interests: [] } });
+    const types: (string | null)[] = [];
+    routes['GET /me/favorites'] = (u) => {
+      types.push(u.searchParams.get('type'));
+      return { body: page([{ type: 'PLACE', place: PLACE, event: null, createdAt: '2026-10-01T00:00:00.000Z' }]) };
+    };
+    await api.listSaved(LOC);
+    await api.listSaved(LOC, 'lugar');
+    await api.listSaved(LOC, 'evento');
+    expect(types).toEqual([null, 'PLACE', 'EVENT']);
+  });
+
   it('reviews: lists with the app sorts, creates, and toggles "útil"', async () => {
     const { api } = make();
     mockMem.set('t', 'jwt');
@@ -511,6 +545,23 @@ describe('HttpApi', () => {
     expect(await api.report({ vuelticaId: 'e-e1', reason: 'noGratis' })).toMatchObject({ id: 'rep1', vuelticaId: 'e-e1', reason: 'noGratis' });
     routes['POST /events/e1/reports'] = () => ({ status: 409, body: { message: 'ya' } });
     await expect(api.report({ vuelticaId: 'e-e1', reason: 'spam' })).rejects.toBeInstanceOf(DuplicateReportError);
+  });
+
+  it('review reports (#16): signed in only, 409 → DuplicateReportError, 403 own review, older API → not supported', async () => {
+    const { api } = make();
+    await expect(api.reportReview({ reviewId: 'r1', reason: 'spam' })).rejects.toBeInstanceOf(AuthRequiredError);
+    mockMem.set('t', 'jwt');
+    routes['GET /me'] = () => ({ body: { ...USER, interests: [] } });
+    routes['POST /reviews/r1/reports'] = () => ({ status: 201, body: { hidden: true } });
+    expect(await api.reportReview({ reviewId: 'r1', reason: 'inapropiado', details: '  feo  ' })).toEqual({ hidden: true });
+    expect(calls.find((c) => c.path === '/reviews/r1/reports')?.body).toEqual({ reason: 'inapropiado', details: 'feo' });
+    routes['POST /reviews/r1/reports'] = () => ({ status: 409, body: { message: 'ya' } });
+    await expect(api.reportReview({ reviewId: 'r1', reason: 'spam' })).rejects.toBeInstanceOf(DuplicateReportError);
+    routes['POST /reviews/r1/reports'] = () => ({ status: 403, body: { message: 'propia' } });
+    await expect(api.reportReview({ reviewId: 'r1', reason: 'spam' })).rejects.toBeInstanceOf(ForbiddenError);
+    delete routes['POST /reviews/r1/reports'];
+    routes['POST /reviews/r2/reports'] = () => ({ status: 404 }); // JSON 404: the review is gone
+    await expect(api.reportReview({ reviewId: 'r2', reason: 'spam' })).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it('profile (#42): takes province, member since, points and counts from /me and sends provinceId', async () => {

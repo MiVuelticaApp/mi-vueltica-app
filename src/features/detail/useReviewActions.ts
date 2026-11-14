@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
-import { confirmDialog } from '@/components/ui/Dialog';
+import { chooseDialog, confirmDialog } from '@/components/ui/Dialog';
 import { toast } from '@/components/ui/Toast';
-import { useDeleteReview, useMarkUseful } from '@/data/queries';
-import type { Review } from '@/domain/types';
+import { DuplicateReportError, ForbiddenError } from '@/data/api';
+import { useDeleteReview, useMarkUseful, useReportReview } from '@/data/queries';
+import type { Review, ReviewReportReason } from '@/domain/types';
 import { useRequireAuth } from '@/features/auth/useRequireAuth';
 import { useBlock } from '@/features/blocks/useBlock';
 import { t } from '@/i18n/es-CR';
@@ -13,13 +14,26 @@ import { useSession } from '@/state/session';
 export function useReviewActions(next: string) {
   const mark = useMarkUseful();
   const del = useDeleteReview();
+  const reportReview = useReportReview();
   const requireAuth = useRequireAuth();
   const block = useBlock(next);
   const userId = useSession((s) => s.user?.id ?? null);
   return {
     isMine: (r: Review) => !!userId && r.authorId === userId,
     useful: (r: Review) => requireAuth('useful', { kind: 'useful', reviewId: r.id }, { next }, () => mark.mutate(r.id, { onError: (e) => toast(errorMessage(e)) })),
-    report: () => toast(t.report.sent),
+    report: (r: Review) =>
+      requireAuth('report', null, { next }, async () => {
+        const reasons: ReviewReportReason[] = ['inapropiado', 'spam', 'otro'];
+        const reason = await chooseDialog({ title: t.reviews.reportTitle, testID: 'review.reportDialog', options: reasons.map((value) => ({ value, label: t.reviews.reportReasons[value] })) });
+        if (!reason) return;
+        reportReview.mutate(
+          { reviewId: r.id, reason },
+          {
+            onSuccess: (res) => toast(res.hidden ? t.reviews.reportHidden : t.reviews.reportSent),
+            onError: (e) => toast(e instanceof DuplicateReportError ? t.reviews.reportDupe : e instanceof ForbiddenError ? t.reviews.reportOwn : errorMessage(e)),
+          },
+        );
+      }),
     block: (r: Review) => block({ kind: 'review', id: r.id }, r.authorName),
     edit: (r: Review) => router.push({ pathname: '/vueltica/[id]/escribir-resena', params: { id: r.vuelticaId, reviewId: r.id } }),
     remove: async (r: Review) => {
