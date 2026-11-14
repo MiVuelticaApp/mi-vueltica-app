@@ -216,6 +216,7 @@ export const t = {
     defaultRejectReason: 'No cumple con las normas de la comunidad.',
     title: 'Moderación', intro: (n: number, name: string) => `Con tu nivel ${n} · ${name} podés votar vuelticas nuevas y reportes. Cada voto suma +1 a tu confianza.`,
     newHeader: (n: number) => `NUEVAS · ${n} PENDIENTES`, reportedHeader: (n: number) => `REPORTADAS · ${n}`, newTab: (n: number) => `Nuevas (${n})`, reportedTab: (n: number) => `Reportadas (${n})`,
+    aiFlag: (why: string) => `Revisión automática: posible contenido inapropiado o spam${why ? ` (${why})` : ''}. Revisala con cuidado.`,
     reject: 'Rechazar', approve: 'Aprobar', keep: 'Sigue igual', hide: 'Ocultar vueltica', by: (a: string, ago: string) => `Vueltica de ${a} · ${ago}`,
     progress: (n: number, t: number) => `${n} de ${t} votos para publicar`, reports: (n: number, r: string) => `${n} ${n === 1 ? 'reporte' : 'reportes'} · «${r}»`,
     lastReport: (ago: string, a: string) => `Último reporte ${ago} · Vueltica de ${a}`, thanks: '¡Gracias! Tu voto quedó registrado · +1 confianza', undo: 'Deshacer',

@@ -22,7 +22,7 @@ import type {
   ReportDto, ReportQueueItemDto, ReputationDto, ReviewDto, ReviewListDto, SubmissionDto, UserDto, VerifyBodyDto, VerifyDto,
 } from './dto';
 import {
-  audienceToApi, defaultCantonOf, provinceOfCanton as provinceOfCantonId, eventToView, makeId, moderationFromTally, parseId, parseOpeningHours, placeToView, provinceIdOf,
+  audienceToApi, defaultCantonOf, provinceOfCanton as provinceOfCantonId, eventToView, makeId, moderationFromTally, aiFlagOf, parseId, parseOpeningHours, placeToView, provinceIdOf,
   reportFromApi, reputationFromApi, reviewFromApi, submissionToView, userFromApi,
 } from './mappers';
 import { appleAuthorizationCode, appleSignIn, googleSignIn, googleSignOut } from './socialAuth';
@@ -644,7 +644,7 @@ export class HttpApi implements MiVuelticaApi {
     const q = await this.http.get<ModerationQueueDto>('/moderation/queue', { auth: 'required', reason: 'moderate' });
     const nuevas: QueueEntry[] = q.nuevas.map((n) => {
       const vuelticaView = submissionToView(n.submission, cats, location);
-      return { ...moderationFromTally(vuelticaView.id, 'nueva', n), vuelticaView };
+      return { ...moderationFromTally(vuelticaView.id, 'nueva', n, { aiFlag: aiFlagOf(n.submission) }), vuelticaView };
     });
     const reportadas: QueueEntry[] = await Promise.all(
       q.reportadas.map(async (r) => {

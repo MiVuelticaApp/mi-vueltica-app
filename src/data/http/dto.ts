@@ -193,6 +193,9 @@ export interface SubmissionDto {
   rejectionMessage?: string | null;
   /** #40: the place/event it became once approved. */
   created?: { type: PlanType; id: string } | null;
+  /** #5: automatic check (0-1) and the flagged categories; moderators and the community queue only. */
+  aiScore?: number | null;
+  aiReason?: string | null;
   createdAt: string;
 }
 export interface UploadDto {
