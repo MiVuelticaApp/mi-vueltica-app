@@ -32,11 +32,13 @@ export function StarInput({ value, onChange, size = 36, testID, showLabel }: { v
   );
 }
 
-export function RatingInline({ avg, testID }: { avg: number; testID?: string }) {
+/** "★ 4,5" or, with `count` (list cards, #13), "★ 4,5 (12)". */
+export function RatingInline({ avg, count, testID }: { avg: number; count?: number; testID?: string }) {
   return (
     <View testID={testID} style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
       <Icon name="star" size={14} color={GOLD} />
       <Text variant="label" color="onSurface">{avg.toFixed(1).replace('.', ',')}</Text>
+      {count ? <Text variant="label" color="onSurfaceVariant">{`(${count})`}</Text> : null}
     </View>
   );
 }

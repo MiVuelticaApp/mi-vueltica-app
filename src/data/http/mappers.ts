@@ -172,11 +172,19 @@ export function placeToView(p: PlaceDto | PlaceDetailDto, categories: Map<number
   };
 }
 
-/** `null` when the event has no location (#37 allows it): it cannot be shown on the map or by distance. */
-export function eventToView(e: EventDto | EventDetailDto, categories: Map<number, string>, loc: LatLng): VuelticaView | null {
-  if (e.latitude == null || e.longitude == null) return null;
+/** "Place · address" (the detail shows them as title and subtitle), or whichever of the two the event has. */
+function eventAddress(e: EventDto | EventDetailDto): string {
+  const name = e.place?.name;
+  const addr = e.address ?? e.place?.address ?? undefined;
+  if (name && addr && addr !== name) return `${name} · ${addr}`;
+  return addr ?? name ?? '';
+}
+
+/** An event with no location at all (#37 allows it) is kept, flagged `noLocation`: listed, but not on the map. */
+export function eventToView(e: EventDto | EventDetailDto, categories: Map<number, string>, loc: LatLng): VuelticaView {
   const detail = e as Partial<EventDetailDto>;
-  const point = { lat: e.latitude, lng: e.longitude };
+  const noLocation = e.latitude == null || e.longitude == null;
+  const point = noLocation ? { lat: loc.lat, lng: loc.lng } : { lat: e.latitude!, lng: e.longitude! };
   return {
     ...BASE,
     ...conditionsFromApi(e, e.targetAudience),
@@ -187,7 +195,8 @@ export function eventToView(e: EventDto | EventDetailDto, categories: Map<number
     description: e.description ?? '',
     photos: detail.photos?.length ? [...detail.photos].sort((a, b) => a.position - b.position).map((x) => x.url) : e.coverPhotoUrl ? [e.coverPhotoUrl] : [],
     ...point,
-    address: e.address ?? e.place?.address ?? e.place?.name ?? '',
+    noLocation,
+    address: eventAddress(e),
     province: e.place ? provinceOfCanton(e.place.cantonId) : nearestProvince(point),
     startAt: e.startsAt,
     endAt: e.endsAt ?? undefined,
@@ -200,7 +209,7 @@ export function eventToView(e: EventDto | EventDetailDto, categories: Map<number
     verificationCount: detail.verificationCount ?? 0,
     ratingAvg: e.averageRating ?? 0,
     ratingCount: e.reviewCount ?? 0,
-    distanceKm: haversineKm(loc, point),
+    distanceKm: noLocation ? Infinity : haversineKm(loc, point),
     saved: detail.isFavorite ?? false,
   };
 }

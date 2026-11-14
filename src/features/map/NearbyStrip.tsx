@@ -15,7 +15,7 @@ import { useAppTheme } from '@/theme/useAppTheme';
  */
 export function NearbyStrip({ items, onOpen }: { items: VuelticaView[]; onOpen: (id: string) => void }) {
   const { c } = useAppTheme();
-  const nearest = [...items].sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 8);
+  const nearest = items.filter((v) => !v.noLocation).sort((a, b) => a.distanceKm - b.distanceKm).slice(0, 8);
   if (!nearest.length) return null;
   return (
     <ScrollView testID="map.nearby" horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={t.map.nearby} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
