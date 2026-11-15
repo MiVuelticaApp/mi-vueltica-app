@@ -81,8 +81,9 @@ const config: ExpoConfig = {
     'expo-font',
   ],
   experiments: { typedRoutes: true },
-  // Push (#22): getExpoPushTokenAsync needs the EAS project id. Set EAS_PROJECT_ID (from `eas init`) when building.
-  ...(process.env.EAS_PROJECT_ID ? { extra: { eas: { projectId: process.env.EAS_PROJECT_ID } } } : null),
+  // EAS project id (from `eas init`); push (#22) needs it for getExpoPushTokenAsync. Not a secret.
+  // EAS_PROJECT_ID overrides it, e.g. to point a build at another EAS project.
+  extra: { eas: { projectId: process.env.EAS_PROJECT_ID ?? 'd8df3d35-8553-4d34-8611-90d729705d38' } },
 };
 
 export default config;
