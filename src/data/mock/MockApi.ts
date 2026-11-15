@@ -790,19 +790,29 @@ export class MockApi implements MiVuelticaApi {
 
   readonly signInProviders: User['provider'][] = ['apple', 'google'];
 
-  signIn(input: { provider: User['provider']; privacyVersion?: string }) {
+  signIn(input: { provider: Exclude<User['provider'], 'qa'>; privacyVersion?: string }) {
+    return this.signInAs(input.provider, input.privacyVersion);
+  }
+
+  qaSignIn(input: { email: string; password: string; privacyVersion?: string }) {
+    if (!input.email.trim()) return Promise.reject(new ValidationError('email', t.qa.required));
+    if (!input.password) return Promise.reject(new ValidationError('password', t.qa.required));
+    return this.signInAs('qa', input.privacyVersion);
+  }
+
+  private signInAs(provider: User['provider'], privacyVersion?: string) {
     return this.write(() => {
       let u = this.db.users.find((x) => x.id === ANA_ID);
       if (!u) {
         // After the demo account was deleted: a fresh account, as Google / Apple would create.
         u = {
           id: this.id('u'), displayName: 'Persona Nueva', initials: initialsOf('Persona Nueva'), province: 'San José', memberSince: clockNow().toISOString(),
-          provider: input.provider, points: 0, counts: { vuelticas: 0, reviews: 0, verifications: 0 },
+          provider, points: 0, counts: { vuelticas: 0, reviews: 0, verifications: 0 },
         };
         this.db.users.push(u);
       }
-      u.provider = input.provider;
-      if (input.privacyVersion) u.privacyVersion = input.privacyVersion;
+      u.provider = provider;
+      if (privacyVersion) u.privacyVersion = privacyVersion;
       this.db.currentUserId = u.id;
       return { ...u };
     });

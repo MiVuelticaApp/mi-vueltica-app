@@ -59,6 +59,7 @@ function Navigator() {
           <Stack.Screen name="armar-plan" options={sheetOptions([1])} />
           <Stack.Screen name="elegir-ubicacion" options={sheetOptions([1])} />
           <Stack.Screen name="login" options={{ presentation: Platform.OS === 'web' ? 'card' : 'fullScreenModal', animation: anim('slide_from_bottom') }} />
+          <Stack.Screen name="qa" options={{ presentation: Platform.OS === 'web' ? 'card' : 'fullScreenModal', animation: anim('slide_from_bottom') }} />
           <Stack.Screen name="vueltica-enviada/[id]" options={{ gestureEnabled: false }} />
           <Stack.Screen name="mis-vuelticas" options={{ headerShown: true, title: t.mine.title, headerBackTitle: t.profile.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
           <Stack.Screen name="mis-resenas" options={{ headerShown: true, title: t.myReviews.title, headerBackTitle: t.profile.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />

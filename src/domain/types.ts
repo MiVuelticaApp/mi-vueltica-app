@@ -6,7 +6,8 @@ export type FreeFor = 'estudiantes' | 'ciudadanosOro';
 export type VuelticaStatus = 'pendiente' | 'publicada' | 'rechazada' | 'oculta';
 export type Province = 'San José' | 'Alajuela' | 'Cartago' | 'Heredia' | 'Guanacaste' | 'Puntarenas' | 'Limón';
 /** Google and Apple only (product decision on API #35, 2026-11-08: no email sign-in). */
-export type SignInProvider = 'apple' | 'google';
+/** `qa` is the store-review account (email + password, `POST /auth/qa`); it is not offered as a login button. */
+export type SignInProvider = 'apple' | 'google' | 'qa';
 
 export interface LatLng {
   lat: number;

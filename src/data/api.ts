@@ -278,7 +278,12 @@ export interface MiVuelticaApi {
   unblock(blockId: string): Promise<void>;
   reputationSummary(): Promise<ReputationSummary & { recent: ReputationEvent[] }>;
   /** `privacyVersion`: the notice the person just accepted; the API requires it to create a new account. */
-  signIn(input: { provider: SignInProvider; privacyVersion?: string }): Promise<User>;
+  signIn(input: { provider: Exclude<SignInProvider, 'qa'>; privacyVersion?: string }): Promise<User>;
+  /**
+   * Store-review account (App Store / Play review builds): email + password, `POST /auth/qa`. Wrong credentials surface as
+   * `AuthRequiredError` / `ValidationError` / `ForbiddenError`. Only reachable from the `/qa` screen when `IS_ON_REVIEW` is on.
+   */
+  qaSignIn(input: { email: string; password: string; privacyVersion?: string }): Promise<User>;
   /** Accept a (newer) privacy notice: `POST /me/privacy-consent { version }`. */
   acceptPrivacy(version: string): Promise<User>;
   /** Providers the connected backend can sign in with (the login screen hides the rest). */

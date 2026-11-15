@@ -791,7 +791,7 @@ export class HttpApi implements MiVuelticaApi {
     }
   }
 
-  async signIn(input: { provider: SignInProvider; privacyVersion?: string }): Promise<User> {
+  async signIn(input: { provider: Exclude<SignInProvider, 'qa'>; privacyVersion?: string }): Promise<User> {
     let auth: AuthDto;
     const privacyVersion = input.privacyVersion;
     if (input.provider === 'apple') {
@@ -800,11 +800,21 @@ export class HttpApi implements MiVuelticaApi {
     } else {
       auth = await this.http.post<AuthDto>('/auth/google', { token: await googleSignIn(), privacyVersion }, { auth: false });
     }
+    return this.finishSignIn(auth, input.provider);
+  }
+
+  async qaSignIn(input: { email: string; password: string; privacyVersion?: string }): Promise<User> {
+    const auth = await this.http.post<AuthDto>('/auth/qa', { email: input.email, password: input.password, privacyVersion: input.privacyVersion }, { auth: false });
+    return this.finishSignIn(auth, 'qa');
+  }
+
+  /** Shared tail of every login: keep the JWT and the provider, then load the profile. */
+  private async finishSignIn(auth: AuthDto, provider: SignInProvider): Promise<User> {
     await tokenStore.set(auth.token);
-    await tokenStore.setProvider(input.provider);
+    await tokenStore.setProvider(provider);
     // The login answer has no `counts`; `/me` does.
     const profile = await this.http.get<MyProfileDto>('/me', { auth: 'required' }).catch(() => auth.user);
-    return this.loadUser(profile, input.provider);
+    return this.loadUser(profile, provider);
   }
 
   async acceptPrivacy(version: string): Promise<User> {
