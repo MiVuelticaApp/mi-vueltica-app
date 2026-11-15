@@ -1,9 +1,12 @@
-import { router } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { FlatList, View } from 'react-native';
+import { Icon } from '@/components/icons/Icon';
 import { Button } from '@/components/ui/Button';
 import { confirmDialog } from '@/components/ui/Dialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ListSkeleton } from '@/components/ui/Skeleton';
+import { Tap } from '@/components/ui/Tap';
+import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
 import { MyVuelticaRow } from '@/features/contribute/MyVuelticaRow';
 import { useMyVuelticas, useWithdraw } from '@/data/queries';
@@ -16,6 +19,8 @@ export default function MisVuelticas() {
   const { c } = useAppTheme();
   const q = useMyVuelticas();
   const withdraw = useWithdraw();
+  // Reached from Perfil (push) or from the confirmation screen (replace): without history, go to Perfil.
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/perfil'));
   const onEdit = async (v: Parameters<typeof draftFromVueltica>[0]) => {
     const { draft, load } = useDraft.getState();
     // A new suggestion half written in Aportar would be replaced.
@@ -32,6 +37,17 @@ export default function MisVuelticas() {
   };
   return (
     <View testID="mine.screen" style={{ flex: 1, backgroundColor: c.groupedBackground }}>
+      <Stack.Screen
+        options={{
+          headerBackVisible: false,
+          headerLeft: () => (
+            <Tap testID="mine.back" label={t.a11y.backButton} onPress={goBack} hitSlop={10} style={{ flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingRight: 8 }}>
+              <Icon name="chevronLeft" size={24} color="primary" />
+              <Text variant="body" color="primary">{t.search.back}</Text>
+            </Tap>
+          ),
+        }}
+      />
       <FlatList
         data={q.data ?? []}
         keyExtractor={(i) => i.vuelticaView.id}
