@@ -31,7 +31,16 @@ export function Sheet({ children, testID, tall }: { children: ReactNode; testID?
   const { c } = useAppTheme();
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  if (Platform.OS !== 'web') return <View testID={testID} style={{ flex: 1, backgroundColor: c.groupedBackground }}>{children}</View>;
+  // react-native-screens (RNSScreenContentWrapper) resizes a ScrollView that is a direct child of a formSheet's content by
+  // its index, and warns past 2 siblings; with a header + ScrollView + footer that leaves the list under the header or the
+  // sheet blank. The inner non-collapsable View hides the ScrollView from that logic so plain flex layout applies.
+  if (Platform.OS !== 'web') {
+    return (
+      <View testID={testID} collapsable={false} style={{ flex: 1, backgroundColor: c.groupedBackground }}>
+        <View collapsable={false} style={{ flex: 1 }}>{children}</View>
+      </View>
+    );
+  }
   return (
     <View style={{ flex: 1, justifyContent: 'flex-end' }} testID={testID ? `${testID}.overlay` : undefined}>
       <Pressable testID={testID ? `${testID}.backdrop` : 'sheet.backdrop'} accessibilityLabel={t.common.close} accessibilityRole="button" onPress={closeSheet} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: c.scrim }} />
@@ -49,12 +58,12 @@ export function Sheet({ children, testID, tall }: { children: ReactNode; testID?
 export function SheetHeader({ title, onClose, right, left, testID, subtitle }: { title?: string; onClose?: () => void; right?: ReactNode; left?: ReactNode; testID?: string; subtitle?: string }) {
   return (
     <View style={{ minHeight: 60, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4, gap: 12 }}>
-      <View style={{ width: 44 }}>{left ?? <IconButton testID={testID ? `${testID}.close` : 'sheet.close'} icon="close" label={t.common.close} onPress={onClose ?? closeSheet} />}</View>
+      <View style={{ minWidth: 44 }}>{left ?? <IconButton testID={testID ? `${testID}.close` : 'sheet.close'} icon="close" label={t.common.close} onPress={onClose ?? closeSheet} />}</View>
       <View style={{ flex: 1, alignItems: 'center' }}>
         {title ? <Text variant="headline" bold align="center" accessibilityRole="header" testID={testID ? `${testID}.title` : undefined}>{title}</Text> : null}
         {subtitle ? <Text variant="callout" color="labelSecondary" align="center" numberOfLines={1}>{subtitle}</Text> : null}
       </View>
-      <View style={{ width: 44, alignItems: 'flex-end' }}>{right}</View>
+      <View style={{ minWidth: 44, alignItems: 'flex-end' }}>{right}</View>
     </View>
   );
 }

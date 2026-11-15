@@ -148,7 +148,7 @@ export default function Detalle() {
     const studentElig = v.audiences.includes('estudiantes') || v.freeFor.includes('estudiantes');
     const seniorElig = v.audiences.includes('ciudadanosOro') || v.freeFor.includes('ciudadanosOro');
     body = (
-      <ScrollView testID="detail.scroll" contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 24, gap: 16 }}>
+      <ScrollView testID="detail.scroll" contentContainerStyle={{ paddingTop: 20, paddingBottom: Math.max(insets.bottom, 16) + 24, gap: 16 }}>
         <View style={{ paddingHorizontal: 16, gap: 6 }}>
           <Text testID="detail.title" variant="title" accessibilityRole="header" style={{ paddingRight: 56 }}>{v.name}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -186,7 +186,7 @@ export default function Detalle() {
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16 }}>
           <Button testID="detail.directions" label={t.detail.howToGet} icon="directions" onPress={howToGet} disabled={!!v.noLocation} style={{ flex: 1 }} full={false} />
-          <Button testID="detail.save" label={d.saved ? t.detail.saved : t.detail.save} icon={d.saved ? 'bookmarkFilled' : 'bookmark'} variant="glass" onPress={save} disabled={offline} full={false} accessibilityLabel={d.saved ? t.card.unsave : t.detail.save} />
+          <Button testID="detail.save" label={d.saved ? t.detail.saved : t.detail.save} icon={d.saved ? 'bookmarkFilled' : 'bookmark'} variant="glass" onPress={save} disabled={offline || v.status !== 'publicada'} full={false} accessibilityLabel={d.saved ? t.card.unsave : t.detail.save} />
           <IconButton testID="detail.share" icon="share" label={t.detail.share} onPress={() => void shareVueltica(v.id, v.name)} />
         </View>
 
