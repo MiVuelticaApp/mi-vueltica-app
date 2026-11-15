@@ -1,7 +1,7 @@
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ScrollView, View } from 'react-native';
+import { Platform, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MapPreview } from '@/components/map/MapPreview';
 import { Button } from '@/components/ui/Button';
@@ -42,6 +42,8 @@ export default function Login() {
     else router.replace('/');
   };
   const [notice, setNotice] = useState<'apple' | 'google' | null>(null);
+  /** Provider accepted in the privacy notice, started once the sheet has closed (iOS cannot present Google/Apple over a closing sheet). */
+  const queued = useRef<'apple' | 'google' | null>(null);
   /** The privacy notice comes first (Ley 8968 art. 5); the accepted version goes with the login. */
   const start = (provider: 'apple' | 'google') => {
     if (useSession.getState().privacyAccepted === PRIVACY_VERSION) void go(provider);
@@ -79,7 +81,7 @@ export default function Login() {
         </Group>
         <View style={{ gap: 12 }}>
           {api.signInProviders.includes('apple') ? <Button testID="login.apple" variant="dark" icon="apple" label={t.login.apple} onPress={() => start('apple')} loading={signIn.isPending} /> : null}
-          {api.signInProviders.includes('google') ? <Button testID="login.google" variant="outline" icon="google" label={t.login.google} onPress={() => start('google')} /> : null}
+          {api.signInProviders.includes('google') ? <Button testID="login.google" variant="outline" icon="google" label={t.login.google} onPress={() => start('google')} loading={signIn.isPending} /> : null}
         </View>
         <Text variant="caption" color="labelSecondary" align="center" style={{ lineHeight: 18 }}>
           {t.login.legal}
@@ -96,9 +98,15 @@ export default function Login() {
           const provider = notice!;
           useSession.getState().setPrivacyAccepted(PRIVACY_VERSION);
           setNotice(null);
-          void go(provider);
+          if (Platform.OS === 'ios') queued.current = provider;
+          else void go(provider);
         }}
         onDecline={() => setNotice(null)}
+        onDismissed={() => {
+          const provider = queued.current;
+          queued.current = null;
+          if (provider) void go(provider);
+        }}
       />
     </View>
   );

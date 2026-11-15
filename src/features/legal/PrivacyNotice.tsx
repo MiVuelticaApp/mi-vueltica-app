@@ -14,11 +14,11 @@ import { LegalText } from './LegalText';
  * Shown before the first Google / Apple sign-in and again when the accepted version is outdated. Nothing is
  * recorded until "Acepto".
  */
-export function PrivacyNotice({ visible, onAccept, onDecline, updated, busy }: { visible: boolean; onAccept: () => void; onDecline: () => void; updated?: boolean; busy?: boolean }) {
+export function PrivacyNotice({ visible, onAccept, onDecline, onDismissed, updated, busy }: { visible: boolean; onAccept: () => void; onDecline: () => void; /** iOS only: the sheet has finished closing. */ onDismissed?: () => void; updated?: boolean; busy?: boolean }) {
   const { c } = useAppTheme();
   const insets = useSafeAreaInsets();
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onDecline}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onDecline} onDismiss={onDismissed}>
       <View testID="privacy.notice" style={{ flex: 1, backgroundColor: c.groupedBackground, paddingTop: 16 }}>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 24 }}>
           {LEGAL_FINAL ? null : <Badge kind="stale" label={t.rules.draft} />}
