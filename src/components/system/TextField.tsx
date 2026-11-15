@@ -18,6 +18,7 @@ interface Props {
   accessibilityLabel: string;
   keyboardType?: KeyboardTypeOptions;
   autoFocus?: boolean;
+  secureTextEntry?: boolean;
   maxLength?: number;
   onSubmitEditing?: () => void;
   autoCapitalize?: 'none' | 'sentences' | 'words';
@@ -29,7 +30,7 @@ interface Props {
  * TextInput holds its value in native state which does not suit controlled forms (see IMPLEMENTATION_NOTES).
  */
 export const TextField = forwardRef<TextFieldHandle, Props>(function TextField(
-  { value, onChangeText, placeholder, multiline, rows, testID, accessibilityLabel, keyboardType, autoFocus, maxLength, onSubmitEditing, autoCapitalize, returnKeyType },
+  { value, onChangeText, placeholder, multiline, rows, testID, accessibilityLabel, keyboardType, autoFocus, secureTextEntry, maxLength, onSubmitEditing, autoCapitalize, returnKeyType },
   ref,
 ) {
   const { c, fontScale } = useAppTheme();
@@ -49,6 +50,7 @@ export const TextField = forwardRef<TextFieldHandle, Props>(function TextField(
         numberOfLines={multiline ? (rows ?? 4) : 1}
         keyboardType={keyboardType}
         autoFocus={autoFocus}
+        secureTextEntry={secureTextEntry}
         maxLength={maxLength}
         onSubmitEditing={onSubmitEditing}
         autoCapitalize={autoCapitalize}

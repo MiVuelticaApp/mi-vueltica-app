@@ -10,6 +10,7 @@ import { Tap } from '@/components/ui/Tap';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
 import { api } from '@/data';
+import { IS_ON_REVIEW } from '@/data/http/config';
 import { SignInCancelledError } from '@/data/api';
 import { useSignIn } from '@/data/queries';
 import { t } from '@/i18n/es-CR';
@@ -86,6 +87,7 @@ export default function Login() {
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 16 }}>
           <Tap testID="login.terms" label={t.login.terms} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'terminos' } })}><Text variant="caption" color="primary">{t.login.terms}</Text></Tap>
           <Tap testID="login.privacy" label={t.login.privacy} onPress={() => router.push({ pathname: '/legal/[doc]', params: { doc: 'privacidad' } })}><Text variant="caption" color="primary">{t.login.privacy}</Text></Tap>
+          {IS_ON_REVIEW ? <Tap testID="login.qa" label={t.qa.link} onPress={() => router.push({ pathname: '/qa', params: next ? { next } : {} })}><Text variant="caption" color="primary">{t.qa.link}</Text></Tap> : null}
         </View>
       </ScrollView>
       <PrivacyNotice

@@ -41,6 +41,21 @@ describe('seed', () => {
   });
 });
 
+describe('QA sign-in', () => {
+  it('signs in with provider qa', async () => {
+    const api = make();
+    const u = await api.qaSignIn({ email: 'qa@x.cr', password: 'secret', privacyVersion: '2026-11-13' });
+    expect(u.provider).toBe('qa');
+    expect((await api.currentUser())?.id).toBe(u.id);
+  });
+  it('rejects blank email or password', async () => {
+    const api = make();
+    await expect(api.qaSignIn({ email: '  ', password: 'x' })).rejects.toBeInstanceOf(ValidationError);
+    await expect(api.qaSignIn({ email: 'a@b.cr', password: '' })).rejects.toBeInstanceOf(ValidationError);
+    expect(await api.currentUser()).toBeNull();
+  });
+});
+
 describe('auth gates', () => {
   it('requires sign-in to save, contribute, review and moderate', async () => {
     const api = make();

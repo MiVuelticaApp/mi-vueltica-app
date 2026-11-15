@@ -62,6 +62,7 @@ Variables in `.env` (see `.env.example`):
 | `EXPO_PUBLIC_API_URL` | mi-vueltica-api base URL, without `/api/v1`. Empty = demo data |
 | `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | Google web client id (required for Android sign-in) |
 | `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | Google iOS client id |
+| `EXPO_PUBLIC_IS_ON_REVIEW` | `true` / `1` only in app-store review builds: shows the "QA" login link (email + password, `POST /auth/qa`) |
 | `GOOGLE_IOS_URL_SCHEME` | Reversed Google iOS client id (build time only) |
 | `GOOGLE_MAPS_API_KEY` | Google Maps key for Android (build time only) |
 | `EAS_PROJECT_ID` | EAS project id, required to register the push token |

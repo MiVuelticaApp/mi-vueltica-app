@@ -240,6 +240,27 @@ describe('HttpApi', () => {
     expect(calls.at(-1)?.auth).toBe('Bearer jwt');
   });
 
+  it('QA sign-in: posts email + password without a bearer, stores token and provider qa', async () => {
+    const { api } = make();
+    routes['POST /auth/qa'] = () => ({ body: { user: USER, token: 'qa-jwt', expiresIn: '7d' } });
+    routes['GET /me'] = () => ({ body: { ...USER, interests: [] } });
+    const u = await api.qaSignIn({ email: 'qa@x.cr', password: 'secret', privacyVersion: '2026-11-13' });
+    expect(calls[0]).toMatchObject({ method: 'POST', path: '/auth/qa', body: { email: 'qa@x.cr', password: 'secret', privacyVersion: '2026-11-13' } });
+    expect(calls[0].auth).toBeUndefined();
+    expect(u).toMatchObject({ id: 'u1', provider: 'qa' });
+    expect(mockMem.get('t')).toBe('qa-jwt');
+    expect(mockMem.get('p')).toBe('qa');
+    expect(calls.at(-1)).toMatchObject({ path: '/me', auth: 'Bearer qa-jwt' });
+    expect((await api.currentUser())?.provider).toBe('qa');
+  });
+
+  it('QA sign-in: wrong credentials (401 without a token) reject and leave no session', async () => {
+    const { api } = make();
+    routes['POST /auth/qa'] = () => ({ status: 401, body: { message: 'Invalid credentials' } });
+    await expect(api.qaSignIn({ email: 'qa@x.cr', password: 'nope' })).rejects.toBeInstanceOf(AuthRequiredError);
+    expect(mockMem.get('t')).toBeUndefined();
+  });
+
   it('privacy consent (#18): sends the accepted version with the login and accepts a newer one', async () => {
     const { api } = make();
     routes['POST /auth/google'] = () => ({ body: { user: USER, token: 'jwt', expiresIn: '7d' } });
