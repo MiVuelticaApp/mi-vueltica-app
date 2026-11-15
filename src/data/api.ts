@@ -230,6 +230,8 @@ export interface SimulateInput {
 }
 
 export interface MiVuelticaApi {
+  /** Categories the contribute form offers for a plan type (the API's own catalogue, `GET /categories`). */
+  listCategories(type: VuelticaType): Promise<string[]>;
   listVuelticas(p: ListParams): Promise<ListResult>;
   searchVuelticas(p: ListParams): Promise<ListResult>;
   getVueltica(id: string, location: LatLng): Promise<VuelticaDetail>;

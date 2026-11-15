@@ -19,7 +19,7 @@ import { Segmented } from '@/components/ui/Segmented';
 import { Tap } from '@/components/ui/Tap';
 import { Text } from '@/components/ui/Text';
 import { toast } from '@/components/ui/Toast';
-import { useCantons, useCreateVueltica, useUpdateVueltica } from '@/data/queries';
+import { useCantons, useCategories, useCreateVueltica, useUpdateVueltica } from '@/data/queries';
 import { ConflictError, ValidationError } from '@/data/api';
 import { PROVINCE_ORDER } from '@/domain/cantons';
 import { isPublishablePrice } from '@/domain/rules';
@@ -56,7 +56,9 @@ export function ContributeForm() {
   // An empty price on a paid plan is sent as `null` ("por confirmar", #36); a typed one must be ₡1–₡5.000.
   const priceUnknown = d.paid && d.price.trim() === '';
   const priceInvalid = d.paid && !priceUnknown && (price <= 0 || tooExpensive);
-  const cats = d.type === 'lugar' ? t.contribute.categories.place : t.contribute.categories.event;
+  const fallbackCats = d.type === 'lugar' ? t.contribute.categories.place : t.contribute.categories.event;
+  const catsQuery = useCategories(d.type);
+  const cats = catsQuery.data && catsQuery.data.length > 0 ? catsQuery.data : fallbackCats;
   const offline = useIsOffline();
   const valid = !offline && d.name.trim().length > 0 && d.category !== '' && d.hasLocation && !needsCanton && d.confirm && !priceInvalid;
   const reasons = useMemo(

@@ -49,6 +49,11 @@ export function useVuelticas(filters: Filters, sort: SortKey = 'cercanos', kind:
   });
 }
 
+/** Categories for the contribute form: the connected API's catalogue (the demo has its own list). */
+export function useCategories(type: VuelticaType) {
+  return useQuery({ queryKey: ['categories', type], queryFn: () => api.listCategories(type), staleTime: 3600_000 });
+}
+
 /** Offline fallback: build a read-only detail from whatever list/saved/recent data is cached (FR-16.1). */
 function detailFromCache(qc: QueryClient, id: string): VuelticaDetail | null {
   const found: VuelticaView[] = [];

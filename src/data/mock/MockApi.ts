@@ -183,6 +183,10 @@ export class MockApi implements MiVuelticaApi {
     return { items, count, freeCount: free, pending };
   }
 
+  listCategories(type: VuelticaType) {
+    return Promise.resolve([...(type === 'lugar' ? t.contribute.categories.place : t.contribute.categories.event)]);
+  }
+
   listVuelticas(p: ListParams) {
     return this.read(() => this.list(p));
   }

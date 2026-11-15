@@ -101,6 +101,11 @@ export class HttpApi implements MiVuelticaApi {
     return hit[0];
   }
 
+  /** The API has one catalogue for places and events. */
+  async listCategories(_type: VuelticaType): Promise<string[]> {
+    return [...(await this.categoryMap()).values()];
+  }
+
   private get role(): UserDto['role'] {
     return this.dto?.role ?? 'USER';
   }
