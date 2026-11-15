@@ -45,3 +45,5 @@ example
 # tests
 playwright-report/
 test-results/
+
+.env
