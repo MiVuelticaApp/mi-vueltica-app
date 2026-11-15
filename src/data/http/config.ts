@@ -14,4 +14,7 @@ export const USE_HTTP_API = !!API_BASE && process.env.EXPO_PUBLIC_E2E !== '1';
 export const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 export const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 
+/** App-store review builds only: shows the "QA" link on the login screen (email + password account for reviewers). Never set it in production profiles. */
+export const IS_ON_REVIEW = process.env.EXPO_PUBLIC_IS_ON_REVIEW === 'true' || process.env.EXPO_PUBLIC_IS_ON_REVIEW === '1';
+
 export const REQUEST_TIMEOUT_MS = 15_000;

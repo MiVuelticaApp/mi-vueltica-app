@@ -278,6 +278,16 @@ export function useSignIn() {
   });
 }
 
+/** Store-review account (`/qa` screen): same side effects as `useSignIn`. */
+export function useQaSignIn() {
+  const setUser = useSession((s) => s.setUser);
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: (i: { email: string; password: string; privacyVersion?: string }) => api.qaSignIn(i),
+    onSuccess: async (u) => { setUser(u); await invalidate(); },
+  });
+}
+
 /**
  * Signing out or deleting the account drops the persisted query cache: it holds account data (own pending plans,
  * saved items, moderation info) that must not stay on the device (review m8, NFR-16).

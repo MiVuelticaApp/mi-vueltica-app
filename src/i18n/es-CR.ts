@@ -98,6 +98,11 @@ export const t = {
     terms: 'Términos', privacy: 'Política de privacidad',
     gate: { save: 'Iniciá sesión para guardar. Guardá tus vuelticas favoritas.', contribute: 'Iniciá sesión para aportar. Sumá una vueltica para la comunidad.', review: 'Iniciá sesión para escribir una reseña. Contá cómo te fue.', moderate: 'Iniciá sesión para moderar. Ayudá a revisar lo que se publica.', useful: 'Iniciá sesión para marcar reseñas útiles.', block: 'Iniciá sesión para bloquear a una persona.', report: 'Iniciá sesión para reportar una reseña.' },
   },
+  qa: {
+    title: 'Acceso QA', link: 'QA', email: 'Correo electrónico', password: 'Contraseña', submit: 'Entrar',
+    required: 'Ingresá el correo y la contraseña.', invalid: 'Correo o contraseña incorrectos.',
+  },
+  auth: { sessionExpired: 'Tu sesión expiró. Iniciá sesión de nuevo.' },
   detail: {
     howToGet: 'Cómo llegar', save: 'Guardar', saved: 'Guardado', share: 'Compartir', close: 'Cerrar',
     away: (km: string) => `a ${km}`, remaining: (d: number) => (d === 0 ? 'Es hoy' : d === 1 ? 'Falta 1 día' : `Faltan ${d} días`),
