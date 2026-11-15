@@ -2,7 +2,7 @@ import type { ExpoConfig } from 'expo/config';
 
 const config: ExpoConfig = {
   name: 'MiVueltica',
-  slug: 'mi-vueltica-app',
+  slug: 'mi-vueltica', // must match the EAS project's slug
   version: '1.0.0',
   scheme: 'mivueltica',
   orientation: 'portrait',
