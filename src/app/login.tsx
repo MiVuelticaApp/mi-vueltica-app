@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/Button';
 import { Group, Row } from '@/components/ui/Section';
 import { Tap } from '@/components/ui/Tap';
 import { Text } from '@/components/ui/Text';
-import { toast } from '@/components/ui/Toast';
 import { api } from '@/data';
 import { IS_ON_REVIEW } from '@/data/http/config';
 import { SignInCancelledError } from '@/data/api';
@@ -49,8 +48,11 @@ export default function Login() {
     if (useSession.getState().privacyAccepted === PRIVACY_VERSION) void go(provider);
     else setNotice(provider);
   };
+  /** Shown inline: the root ToastHost sits under this fullScreenModal on iOS, so a toast here is invisible. */
+  const [error, setError] = useState<string | null>(null);
   const go = async (provider: 'apple' | 'google') => {
     const p = useSession.getState().pending;
+    setError(null);
     try {
       await signIn.mutateAsync({ provider, privacyVersion: PRIVACY_VERSION });
       leave();
@@ -60,7 +62,9 @@ export default function Login() {
       }
     } catch (e) {
       // Closing the Apple / Google sheet is not an error.
-      if (!(e instanceof SignInCancelledError)) toast(t.common.errorBody);
+      if (e instanceof SignInCancelledError) return;
+      console.warn(`[login] ${provider} sign-in failed`, e);
+      setError(__DEV__ ? `${t.common.errorBody}\n${(e as Error)?.message ?? String(e)}` : t.common.errorBody);
     }
   };
 
@@ -83,6 +87,7 @@ export default function Login() {
           {api.signInProviders.includes('apple') ? <Button testID="login.apple" variant="dark" icon="apple" label={t.login.apple} onPress={() => start('apple')} loading={signIn.isPending} /> : null}
           {api.signInProviders.includes('google') ? <Button testID="login.google" variant="outline" icon="google" label={t.login.google} onPress={() => start('google')} loading={signIn.isPending} /> : null}
         </View>
+        {error ? <Text testID="login.error" variant="callout" color="danger" align="center" accessibilityRole="alert">{error}</Text> : null}
         <Text variant="caption" color="labelSecondary" align="center" style={{ lineHeight: 18 }}>
           {t.login.legal}
         </Text>
