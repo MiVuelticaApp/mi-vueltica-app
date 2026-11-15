@@ -84,6 +84,7 @@ export function ContributeForm() {
         audiences: d.audiences.length ? d.audiences : (['todo'] as Audience[]), wheelchair: d.wheelchair, photos: d.photos,
     };
     const onError = (e: Error) => {
+      console.error('[ContributeForm] submit failed', { name: e?.name, message: e?.message, field: (e as { field?: string })?.field, status: (e as { status?: number })?.status, error: e, input });
       if (e instanceof ValidationError && e.field === 'price') setPriceError(true);
       else if (e instanceof ConflictError) toast(t.contribute.alreadyDecided);
       else if (e instanceof ValidationError && e.field === 'photo') toast(e.message); // 413 / 415 from POST /uploads (#15)
