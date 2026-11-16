@@ -47,8 +47,21 @@ function NativeMap(props: MapViewProps) {
     return () => clearTimeout(timer);
   }, [bounds, onBoundsChange]);
 
+  // Native camera calls reject when the map isn't ready yet (Android: `cameraState` lateinit), when the view
+  // is gone (iOS: "Unable to find view with tag"), or when a newer move cancels the animation. All harmless.
+  const moveCamera = (lat: number, lng: number, zoom: number) => {
+    ref.current?.setCameraPosition({ coordinates: { latitude: lat, longitude: lng }, zoom })?.catch(() => {});
+  };
+
+  // Skip the first run: the `cameraPosition` prop already sets the initial camera, and the native map
+  // isn't initialised yet on mount.
+  const mounted = useRef(false);
   useEffect(() => {
-    void ref.current?.setCameraPosition({ coordinates: { latitude: center.lat, longitude: center.lng }, zoom: 13 });
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    moveCamera(center.lat, center.lng, 13);
   }, [recenterToken, center.lat, center.lng]);
 
   // Pin images (14 variants), loaded once.
@@ -99,7 +112,7 @@ function NativeMap(props: MapViewProps) {
     const id = m.id ?? '';
     if (id.startsWith('c-')) {
       const node = nodes.find((n) => n.id === id);
-      if (node?.kind === 'cluster') void ref.current?.setCameraPosition({ coordinates: { latitude: node.lat, longitude: node.lng }, zoom: node.expansionZoom });
+      if (node?.kind === 'cluster') moveCamera(node.lat, node.lng, node.expansionZoom);
     } else if (id.startsWith('pending:')) {
       const v = pending.find((p) => p.id === id.slice(8));
       if (v) onSelectPending(v);
