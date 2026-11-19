@@ -40,12 +40,12 @@ export const PRIVACY_NOTICE: LegalSection[] = [
     title: 'Quién lo ve',
     body: [
       'Las vuelticas y reseñas publicadas muestran tu nombre (nombre e inicial del apellido). Los reportes son anónimos.',
-      'Tu correo no se muestra a nadie. El equipo de MiVueltica puede ver tus aportes para moderarlos.',
+      'Tu correo no se muestra a nadie. El equipo de Mi VuelTica puede ver tus aportes para moderarlos.',
     ],
   },
   {
     title: 'Responsable',
-    body: [`El equipo de MiVueltica. Contacto: ${CONTACT_EMAIL}.`],
+    body: [`El equipo de Mi VuelTica. Contacto: ${CONTACT_EMAIL}.`],
   },
   {
     title: 'Tus derechos',
@@ -60,14 +60,14 @@ export const TERMS: LegalSection[] = [
   {
     title: 'Uso de la app',
     body: [
-      'MiVueltica muestra lugares y eventos gratis o de hasta ₡5.000 por persona. La información la aporta y verifica la comunidad: confirmá precios y horarios antes de ir.',
+      'Mi VuelTica muestra lugares y eventos gratis o de hasta ₡5.000 por persona. La información la aporta y verifica la comunidad: confirmá precios y horarios antes de ir.',
       'Podés explorar sin cuenta. Para guardar, aportar, reseñar o moderar necesitás iniciar sesión con Google o Apple.',
     ],
   },
   {
     title: 'Tu contenido',
     body: [
-      'Sos responsable de lo que publicás. Al publicar, permitís que MiVueltica lo muestre en la app.',
+      'Sos responsable de lo que publicás. Al publicar, permitís que Mi VuelTica lo muestre en la app.',
       'Podemos ocultar o eliminar contenido que incumpla las Normas de la comunidad, y la comunidad puede reportarlo.',
     ],
   },

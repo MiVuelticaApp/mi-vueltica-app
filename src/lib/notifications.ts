@@ -21,7 +21,7 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   try {
     if (Platform.OS === 'android') {
       // eslint-disable-next-line import/namespace
-      await Notifications.setNotificationChannelAsync('default', { name: 'MiVueltica', importance: Notifications.AndroidImportance.DEFAULT });
+      await Notifications.setNotificationChannelAsync('default', { name: 'Mi VuelTica', importance: Notifications.AndroidImportance.DEFAULT });
     }
     const cur = await Notifications.getPermissionsAsync();
     if (cur.status === 'granted') return true;

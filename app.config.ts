@@ -1,7 +1,7 @@
 import type { ExpoConfig } from 'expo/config';
 
 const config: ExpoConfig = {
-  name: 'MiVueltica',
+  name: 'Mi VuelTica',
   slug: 'mi-vueltica', // must match the EAS project's slug
   version: '1.0.0',
   scheme: 'mivueltica',
@@ -51,7 +51,7 @@ const config: ExpoConfig = {
       'expo-location',
       {
         locationWhenInUsePermission:
-          'MiVueltica usa tu ubicación solo mientras usás la app, para mostrarte planes cerca.',
+          'Mi VuelTica usa tu ubicación solo mientras usás la app, para mostrarte planes cerca.',
       },
     ],
     [
@@ -59,14 +59,14 @@ const config: ExpoConfig = {
       {
         requestLocationPermission: true,
         locationPermission:
-          'MiVueltica usa tu ubicación solo mientras usás la app, para mostrarte planes cerca.',
+          'Mi VuelTica usa tu ubicación solo mientras usás la app, para mostrarte planes cerca.',
       },
     ],
     [
       'expo-image-picker',
       {
-        photosPermission: 'MiVueltica necesita tus fotos para que puedas adjuntarlas a una vueltica o reseña.',
-        cameraPermission: 'MiVueltica necesita la cámara para que puedas sacar fotos de una vueltica.',
+        photosPermission: 'Mi VuelTica necesita tus fotos para que puedas adjuntarlas a una vueltica o reseña.',
+        cameraPermission: 'Mi VuelTica necesita la cámara para que puedas sacar fotos de una vueltica.',
       },
     ],
     'expo-notifications',

@@ -1,4 +1,4 @@
-# MiVueltica · Mobile app
+# Mi VuelTica · Mobile app
 
 Mobile app to discover free and low-cost places and events in Costa Rica on a map, with community reviews, verifications and moderation.
 
