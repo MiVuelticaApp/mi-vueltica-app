@@ -1,10 +1,13 @@
-import { DEFAULT_FILTERS } from '@/domain/filters';
+import { DEFAULT_FILTERS as ALL_RANGE } from '@/domain/filters';
 import { AuthRequiredError, ConflictError, DuplicateReportError, ForbiddenError, NotFoundError, NotSupportedError, OfflineError } from '../../api';
 import { MemoryKV } from '../../storage/types';
 import { HttpApi } from '../HttpApi';
 import { HttpClient } from '../client';
 import { formatOpeningHours, makeId, parseId, parseOpeningHours } from '../mappers';
 import { isOlder } from '../version';
+
+/** The tests below were written for a 5 km radius; the app default is now the widest one. */
+const DEFAULT_FILTERS = { ...ALL_RANGE, distanceKm: 5 };
 
 jest.mock('../config', () => ({
   API_BASE: 'https://api.test/api/v1',

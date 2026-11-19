@@ -4,13 +4,10 @@
  * `PRIVACY_VERSION` is what the app sends with the first sign-in (`privacyVersion`) and with
  * `POST /me/privacy-consent`; bump it whenever the privacy text changes so everyone is asked again.
  *
- * `LEGAL_FINAL` stays false until the final texts are approved (issue #18, texts by the team's legal
- * owner). While false, the screens show the BORRADOR badge. The texts below describe what the app and
- * mi-vueltica-api actually store and do; the legal owner still has to review the wording, name the
- * responsible party and confirm the retention periods.
+ * The texts below describe what the app and mi-vueltica-api actually store and do; the legal owner
+ * still has to review the wording, name the responsible party and confirm the retention periods.
  */
 export const PRIVACY_VERSION = '2026-11-13';
-export const LEGAL_FINAL = false;
 /** Public copy of the privacy policy for the store listings. Empty until it is published. */
 export const PRIVACY_URL = '';
 export const CONTACT_EMAIL = 'mivuelticacr@gmail.com';

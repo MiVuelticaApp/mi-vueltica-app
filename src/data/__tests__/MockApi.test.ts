@@ -10,7 +10,8 @@ jest.mock('@/lib/clock', () => {
 });
 
 const loc = DEFAULT_LOCATION;
-const filters = DEFAULT_FILTERS;
+/** The seed numbers below are for a 5 km radius; the app default is now the widest one. */
+const filters = { ...DEFAULT_FILTERS, distanceKm: 5 };
 let offline = false;
 const make = () => new MockApi({ store: new MemoryKV(), latency: [0, 0], isOffline: () => offline });
 

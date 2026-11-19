@@ -1,5 +1,5 @@
-import { useFocusEffect, router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect, useNavigation, router } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/icons/Icon';
@@ -17,13 +17,27 @@ import { useAppTheme } from '@/theme/useAppTheme';
 export default function ListaScreen() {
   const { c, isAndroid } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [skeleton, setSkeleton] = useState(true);
+  /** True when the tab lost focus only because a modal / sheet (Detalle…) opened over it, not because another tab was picked. */
+  const coveredByModal = useRef(false);
   useFocusEffect(
     useCallback(() => {
+      // Coming back from a modal: keep the list as it was instead of replaying the skeleton.
+      if (coveredByModal.current) {
+        coveredByModal.current = false;
+        setSkeleton(false);
+        return;
+      }
       setSkeleton(true);
       const tm = setTimeout(() => setSkeleton(false), 1000);
-      return () => clearTimeout(tm);
-    }, []),
+      return () => {
+        clearTimeout(tm);
+        const root = navigation.getParent()?.getParent() ?? navigation.getParent();
+        const routes = root?.getState()?.routes;
+        coveredByModal.current = !!routes && routes[routes.length - 1]?.name !== '(tabs)';
+      };
+    }, [navigation]),
   );
   useEffect(() => () => setSkeleton(true), []);
   return (

@@ -54,7 +54,7 @@ test('P1 profile header, level, points and progress to the next level', async ({
   await expect(page.getByTestId('profile.stat.reviews.value')).toHaveText('8');
   await expect(page.getByTestId('profile.stat.verifications.value')).toHaveText('31');
   await expect(page.getByTestId('profile.moderation')).toContainText('Revisar vuelticas · 6 pendientes');
-  for (const s of ['instagram', 'tiktok', 'facebook', 'whatsapp']) await expect(page.getByTestId(`profile.social.${s}`)).toContainText('@mivueltica');
+  for (const s of ['instagram', 'tiktok']) await expect(page.getByTestId(`profile.social.${s}`)).toContainText('@mi_vueltica');
   await expect(page.getByTestId('profile.settings')).toBeVisible();
   await expect(page.getByTestId('profile.rules')).toBeVisible();
 });
@@ -87,7 +87,7 @@ test('P4 Normas de la comunidad opens the (draft) rules', async ({ page }) => {
   await startSignedIn(page);
   await page.getByTestId('profile.rules').click();
   await expect(page.getByTestId('rules.screen')).toBeVisible();
-  await expect(page.getByTestId('rules.screen')).toContainText('BORRADOR');
+  await expect(page.getByTestId('rules.screen')).toBeVisible();
 });
 
 test('MO1 Aprobar shows "¡Gracias! … +1 confianza"; Deshacer reverts it', async ({ page }) => {

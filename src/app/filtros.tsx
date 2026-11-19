@@ -89,7 +89,7 @@ export default function Filtros() {
               <Text variant="body">{t.filters.upTo}</Text>
               <Text testID="filters.distance.value" variant="body" bold color="primary">{`${String(draft.distanceKm).replace('.', ',')} km`}</Text>
             </View>
-            <Slider testID="filters.distance" accessibilityLabel={t.filters.distance} value={draft.distanceKm} min={0.5} max={MAX_DISTANCE_KM} step={0.5} onValueChange={(v) => patch({ distanceKm: v })} />
+            <Slider testID="filters.distance" accessibilityLabel={t.filters.distance} value={draft.distanceKm} min={1} max={MAX_DISTANCE_KM} step={1} onValueChange={(v) => patch({ distanceKm: v })} />
           </View>
         </Group>
 

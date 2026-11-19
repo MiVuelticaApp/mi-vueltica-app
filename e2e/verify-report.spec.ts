@@ -6,7 +6,7 @@ const points = async (page: import('@playwright/test').Page) => {
   return Number(txt.match(/(\d+) puntos/)![1]);
 };
 
-test('V1 "Sí, sigue igual" gives +2 points and a confirmation toast', async ({ page }) => {
+test('V1 "No, sigue igual" gives +2 points and a confirmation toast', async ({ page }) => {
   await startSignedIn(page);
   await expect(page.getByTestId('profile.points')).toContainText('172 puntos');
   await openDetail(page, 'v-sabana');

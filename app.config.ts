@@ -25,9 +25,6 @@ const config: ExpoConfig = {
       monochromeImage: './assets/adaptive-foreground.png',
     },
     predictiveBackGestureEnabled: false,
-    config: {
-      googleMaps: { apiKey: process.env.GOOGLE_MAPS_API_KEY ?? '' },
-    },
     // Foreground location only (NFR-15).
     blockedPermissions: ['android.permission.ACCESS_BACKGROUND_LOCATION'],
   },
@@ -41,7 +38,7 @@ const config: ExpoConfig = {
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#1b3c8c',
+        backgroundColor: '#0b2f7a', // the logo's own blue, so the artwork blends into the splash with no visible edge
         image: './assets/splash.png',
         imageWidth: 160,
         dark: { backgroundColor: '#0f1522', image: './assets/splash.png' },
@@ -54,14 +51,8 @@ const config: ExpoConfig = {
           'MiVueltica usa tu ubicación solo mientras usás la app, para mostrarte planes cerca.',
       },
     ],
-    [
-      'expo-maps',
-      {
-        requestLocationPermission: true,
-        locationPermission:
-          'MiVueltica usa tu ubicación solo mientras usás la app, para mostrarte planes cerca.',
-      },
-    ],
+    // Mapbox: the public token is read at runtime from EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN (MAPBOX_DOWNLOADS_TOKEN is only for native SDK downloads).
+    '@rnmapbox/maps',
     [
       'expo-image-picker',
       {

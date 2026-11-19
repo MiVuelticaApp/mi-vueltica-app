@@ -125,6 +125,10 @@ export default function Detalle() {
       toggle.mutate({ id, saved: !!d?.saved }, { onSuccess: () => toast(d?.saved ? t.saved.removedToast : t.saved.savedToast, { label: t.common.undo, run: () => toggle.mutate({ id, saved: !d?.saved }) }), onError: (e) => toast(errorMessage(e)) }),
     );
   };
+  const writeReview = () =>
+    requireAuth('review', { kind: 'review', id }, { next: `/vueltica/${id}`, replace: true }, () =>
+      router.replace({ pathname: '/vueltica/[id]/escribir-resena', params: { id } }),
+    );
   const confirm = () =>
     verify.mutate({ vuelticaId: id, stillHappening: 'si' }, { onSuccess: (r) => toast(r.queued ? t.offline.queued : r.points > 0 ? t.detail.thanks : t.detail.thanksGuest), onError: (e) => toast(errorMessage(e)) });
 
@@ -156,6 +160,12 @@ export default function Detalle() {
             <Text variant="callout" color="labelSecondary">{`${v.type === 'evento' ? t.common.event : v.category} · ${v.noLocation ? t.common.locationUnknown : t.detail.away(formatDistance(v.distanceKm))}`}</Text>
           </View>
         </View>
+
+        {v.status === 'publicada' ? (
+          <View style={{ paddingHorizontal: 16 }}>
+            <Button testID="detail.review.write" label={t.reviews.write} icon="star" variant="secondary" disabled={offline} onPress={writeReview} />
+          </View>
+        ) : null}
 
         {v.status !== 'publicada' ? (
           <View testID="detail.status" style={{ marginHorizontal: 16, padding: 12, borderRadius: 12, backgroundColor: c.staleContainer, gap: 2 }}>

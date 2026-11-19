@@ -30,5 +30,5 @@ Expo Go cannot run the app (expo-maps, Google / Apple sign-in), so **usability t
 - [ ] Sign in with Google (Android + iOS) and Apple (iOS) on a real device against the deployed API.
 - [ ] Photo upload, block and report checked on a device (#15, #17).
 - [ ] Store review: `TEST_LOGIN_ENABLED=true` in the API while in review (demo data is seeded), **off once approved**.
-- [ ] Legal texts final (`LEGAL_FINAL = true`), privacy policy at a public URL in `PRIVACY_URL` (#18).
+- [ ] Legal texts final, privacy policy at a public URL in `PRIVACY_URL` (#18).
 - [ ] Store listing: description, screenshots, privacy policy URL, contact `mivuelticacr@gmail.com`.

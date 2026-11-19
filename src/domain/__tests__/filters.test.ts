@@ -16,12 +16,12 @@ describe('filters', () => {
     mk({ id: '2', priceTier: 'hasta2500', audiences: ['estudiantes'], distanceKm: 3 }),
     mk({ id: '3', type: 'evento', priceTier: 'hasta5000', freeFor: ['estudiantes'], distanceKm: 6, startAt: '2026-10-24T18:00:00-06:00', endAt: '2026-10-24T22:00:00-06:00' }),
   ];
-  it('limits to 5 km when nearMe is on (default)', () => {
-    expect(applyFilters(list, DEFAULT_FILTERS, now).map((v) => v.id)).toEqual(['1', '2']);
+  it('limits to the chosen radius when nearMe is on', () => {
+    expect(applyFilters(list, { ...DEFAULT_FILTERS, distanceKm: 5 }, now).map((v) => v.id)).toEqual(['1', '2']);
   });
   it('filters by price and students', () => {
-    expect(applyFilters(list, { ...DEFAULT_FILTERS, maxPrice: 'gratis' }, now).map((v) => v.id)).toEqual(['1']);
-    expect(applyFilters(list, { ...DEFAULT_FILTERS, students: true }, now).map((v) => v.id)).toEqual(['2']);
+    expect(applyFilters(list, { ...DEFAULT_FILTERS, distanceKm: 5, maxPrice: 'gratis' }, now).map((v) => v.id)).toEqual(['1']);
+    expect(applyFilters(list, { ...DEFAULT_FILTERS, distanceKm: 5, students: true }, now).map((v) => v.id)).toEqual(['2']);
   });
   it('respects the user max price setting', () => {
     expect(applyFilters(list, DEFAULT_FILTERS, now, 'gratis').map((v) => v.id)).toEqual(['1']);
@@ -32,6 +32,9 @@ describe('filters', () => {
     const wide = [mk({ id: 'e', type: 'evento', startAt: '2026-10-24T18:00:00-06:00', endAt: '2026-10-24T22:00:00-06:00' })];
     expect(applyFilters(wide, f, now)).toHaveLength(1);
     expect(applyFilters(wide, { ...f, date: 'hoy' }, now)).toHaveLength(0);
+  });
+  it('does not cut plans off by distance by default', () => {
+    expect(applyFilters(list, DEFAULT_FILTERS, now)).toHaveLength(list.length);
   });
   it('searches names ignoring accents and case', () => {
     const l = [mk({ name: 'Museo de los Niños' })];

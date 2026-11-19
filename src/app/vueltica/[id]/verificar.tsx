@@ -23,7 +23,7 @@ import { pickPhotos } from '@/lib/photos';
 import { useSession } from '@/state/session';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-/** 09 ¿Sigue siendo gratis? verification sheet (FR-9.1): single-choice chips + optional photo. */
+/** 09 ¿Cambió algo? verification sheet (FR-9.1): single-choice chips + optional photo. */
 export default function Verificar() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { c, isAndroid } = useAppTheme();

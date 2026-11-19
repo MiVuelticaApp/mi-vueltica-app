@@ -22,7 +22,7 @@ Everything runs against `MockApi` (`src/data/mock`) behind the `MiVuelticaApi` i
 - Map art base is the Figma "Map Base" raster for web/fallback.
 - Android adaptive icon: foreground and monochrome both use the logo mark (`assets/adaptive-foreground.png`), background #1b3c8c; the designer flagged the monochrome silhouette as a rough approximation.
 - Dark tokens use Figma values (surface #0f1522, senior/stale container #3a2e00, price container #1e2533, place container #0b2f1c).
-- Level thresholds, penalties, 72 h flag, socials, BORRADOR legal screens, notification copy: PLAN §8 placeholders.
+- Level thresholds, penalties, 72 h flag, socials, notification copy: PLAN §8 placeholders.
 - Reminder time 9:00 a.m. one day before (changeable 1/2/3/7 days in Ajustes / Guardados "Cambiar").
 - Verification of price counts from Level 2 only; guests can verify/report but earn no points; reports are de-duplicated per device.
 - Offline: persisted react-query cache (list/detail/saved/recent), banner + saved/recent cards, queued verifications sent on reconnect; dev switch "Simular sin conexión".

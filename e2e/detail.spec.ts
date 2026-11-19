@@ -20,8 +20,8 @@ test('D1 Museo del Jade detail shows the designed information', async ({ page })
   await expect(page.getByTestId('detail.directions')).toBeVisible();
   await expect(page.getByTestId('detail.save')).toBeVisible();
   await expect(page.getByTestId('detail.share')).toBeVisible();
-  await expect(page.getByTestId('detail.verification')).toContainText('¿Sigue siendo gratis?');
-  await expect(page.getByTestId('detail.verify.same')).toHaveAttribute('aria-label', 'Sí, sigue igual');
+  await expect(page.getByTestId('detail.verification')).toContainText('¿Cambió algo?');
+  await expect(page.getByTestId('detail.verify.same')).toHaveAttribute('aria-label', 'No, sigue igual');
   await expect(page.getByTestId('detail.verify.changed')).toHaveAttribute('aria-label', 'Algo cambió');
   await expect(page.getByTestId('detail.community')).toContainText('Vueltica de Carlos M. · verificada por 23 personas');
   await expect(page.getByTestId('detail.report')).toHaveAttribute('aria-label', 'Reportar vueltica');

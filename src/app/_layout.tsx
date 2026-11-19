@@ -42,24 +42,25 @@ function Navigator() {
           <Stack.Screen name="bienvenida" options={{ gestureEnabled: false }} />
         </Stack.Protected>
         <Stack.Protected guard={onboarded}>
+          {/* `dangerouslySingular` on every modal / sheet: a second instance of the same one can never stack up (fast double taps, deep links). */}
           <Stack.Screen name="(tabs)" />
           {/* Component kit: development builds only (review m14). */}
           <Stack.Protected guard={__DEV__ || process.env.EXPO_PUBLIC_E2E === '1'}>
             <Stack.Screen name="__kit" />
           </Stack.Protected>
           <Stack.Screen name="buscar" options={{ animation: anim('fade') }} />
-          <Stack.Screen name="vueltica/[id]/index" options={sheetOptions([0.5, 1], 0, 0)} />
+          <Stack.Screen name="vueltica/[id]/index" dangerouslySingular options={sheetOptions([0.5, 1], 0, 0)} />
           <Stack.Screen name="vueltica/[id]/resenas" options={{ headerShown: true, title: t.reviews.title, headerBackTitle: t.common.back, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
-          <Stack.Screen name="vueltica/[id]/escribir-resena" options={Platform.OS === 'android' ? { presentation: 'fullScreenModal', animation: anim('slide_from_bottom') } : sheetOptions([1])} />
-          <Stack.Screen name="vueltica/[id]/verificar" options={sheetOptions([0.5, 1])} />
-          <Stack.Screen name="vueltica/[id]/reportar" options={sheetOptions([0.5, 1])} />
-          <Stack.Screen name="vueltica/[id]/decidir" options={sheetOptions([1])} />
-          <Stack.Screen name="vueltica/[id]/como-llegar" options={sheetOptions([0.5])} />
-          <Stack.Screen name="filtros" options={sheetOptions([1])} />
-          <Stack.Screen name="armar-plan" options={sheetOptions([1])} />
-          <Stack.Screen name="elegir-ubicacion" options={sheetOptions([1])} />
-          <Stack.Screen name="login" options={{ presentation: Platform.OS === 'web' ? 'card' : 'fullScreenModal', animation: anim('slide_from_bottom') }} />
-          <Stack.Screen name="qa" options={{ presentation: Platform.OS === 'web' ? 'card' : 'fullScreenModal', animation: anim('slide_from_bottom') }} />
+          <Stack.Screen name="vueltica/[id]/escribir-resena" dangerouslySingular options={Platform.OS === 'android' ? { presentation: 'fullScreenModal', animation: anim('slide_from_bottom') } : sheetOptions([1])} />
+          <Stack.Screen name="vueltica/[id]/verificar" dangerouslySingular options={sheetOptions([0.5, 1])} />
+          <Stack.Screen name="vueltica/[id]/reportar" dangerouslySingular options={sheetOptions([0.5, 1])} />
+          <Stack.Screen name="vueltica/[id]/decidir" dangerouslySingular options={sheetOptions([1])} />
+          <Stack.Screen name="vueltica/[id]/como-llegar" dangerouslySingular options={sheetOptions([0.5])} />
+          <Stack.Screen name="filtros" dangerouslySingular options={sheetOptions([1])} />
+          <Stack.Screen name="armar-plan" dangerouslySingular options={sheetOptions([1])} />
+          <Stack.Screen name="elegir-ubicacion" dangerouslySingular options={sheetOptions([1])} />
+          <Stack.Screen name="login" dangerouslySingular options={{ presentation: Platform.OS === 'web' ? 'card' : 'fullScreenModal', animation: anim('slide_from_bottom') }} />
+          <Stack.Screen name="qa" dangerouslySingular options={{ presentation: Platform.OS === 'web' ? 'card' : 'fullScreenModal', animation: anim('slide_from_bottom') }} />
           <Stack.Screen name="vueltica-enviada/[id]" options={{ gestureEnabled: false }} />
           <Stack.Screen name="mis-vuelticas" options={{ headerShown: true, title: t.mine.title, headerBackTitle: t.profile.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />
           <Stack.Screen name="mis-resenas" options={{ headerShown: true, title: t.myReviews.title, headerBackTitle: t.profile.title, headerStyle: { backgroundColor: c.groupedBackground }, headerTintColor: c.primary, headerTitleStyle: { color: c.onSurface } }} />

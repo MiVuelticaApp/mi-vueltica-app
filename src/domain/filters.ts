@@ -1,7 +1,8 @@
 import { tierRank } from './rules';
 import type { DateFilter, Filters, MaxPrice, SortKey, VuelticaView } from './types';
 
-export const MAX_DISTANCE_KM = 5;
+/** Widest radius the slider offers (covers the whole country); the default, so nothing is cut off until the user narrows it. */
+export const MAX_DISTANCE_KM = 300;
 
 export const DEFAULT_FILTERS: Filters = {
   text: '',

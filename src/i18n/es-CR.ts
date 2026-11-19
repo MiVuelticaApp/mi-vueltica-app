@@ -34,7 +34,7 @@ export const t = {
     forFree: 'gratis', forAccessible: 'accesibles', upTo: (p: string) => `de hasta ${p}`, nearby: 'Planes más cercanos',
     forStudents: 'para estudiantes', forSeniors: 'para ciudadanos de oro', forFamilies: 'para familias',
     locate: 'Mi ubicación', account: 'Perfil', accountA11y: 'Abrir tu perfil', cluster: (n: number) => `${n} planes agrupados`,
-    pinPlace: (name: string) => `Lugar: ${name}`, pinEvent: (name: string) => `Evento: ${name}`, pinPending: (name: string) => `Pendiente: ${name}`,
+    pinPlace: (name: string) => `Lugar: ${name}`, pinEvent: (name: string) => `Evento: ${name}`, pinPending: (name: string) => `Pendiente: ${name}`, clusterA11y: (n: number) => `${n} planes agrupados. Tocá para acercar`,
     userLocation: 'Tu ubicación', noMap: 'El mapa necesita internet',
     pickedLocation: 'Ubicación elegida', mapA11y: 'Mapa', zoomIn: 'Acercar', zoomOut: 'Alejar', locationOff: 'Ubicación desactivada', openSettings: 'Abrir ajustes',
   },
@@ -52,7 +52,7 @@ export const t = {
   empty: {
     title: 'Sin resultados',
     body: 'No encontramos planes con estos filtros. Probá ampliar la distancia o subir el precio máximo.',
-    widen: 'Ampliar a 5 km', contribute: 'Aportar un lugar', clearFilters: 'Limpiar filtros', activeFilters: 'Filtros activos',
+    widen: 'Ampliar la distancia', contribute: 'Aportar un lugar', clearFilters: 'Limpiar filtros', activeFilters: 'Filtros activos',
     maxPrice: (p: string) => `Hasta ${p}`, atKm: (n: number) => `A ${n} km`,
     saved: 'Todavía no guardaste planes', savedBody: 'Tocá el marcador en cualquier plan para guardarlo y recibir un recordatorio.',
     reviews: 'Todavía no hay reseñas', reviewsBody: 'Sé la primera persona en contar cómo estuvo.',
@@ -107,8 +107,8 @@ export const t = {
     howToGet: 'Cómo llegar', save: 'Guardar', saved: 'Guardado', share: 'Compartir', close: 'Cerrar',
     away: (km: string) => `a ${km}`, remaining: (d: number) => (d === 0 ? 'Es hoy' : d === 1 ? 'Falta 1 día' : `Faltan ${d} días`),
     freeEntry: 'Entrada gratuita', noReservation: 'Sin reserva', accessible: 'Accesible en silla de ruedas', notAccessible: 'Sin información de accesibilidad',
-    verifyTitle: '¿Sigue siendo gratis?', verifyLast: (d: string, n: number) => `Última verificación ${d} · ${n} personas`,
-    stillSame: 'Sí, sigue igual', changed: 'Algo cambió',
+    verifyTitle: '¿Cambió algo?', verifyLast: (d: string, n: number) => `Última verificación ${d} · ${n} personas`,
+    stillSame: 'No, sigue igual', changed: 'Algo cambió',
     community: (author: string, n: number) => `Vueltica de ${author} · verificada por ${n} personas`, updated: (d: string) => `Actualizada ${d}`,
     report: 'Reportar vueltica', reviews: 'Reseñas', seeAll: (n: number) => `Ver todas (${n})`, noReviews: 'Todavía no hay reseñas',
     description: 'Descripción', hours: 'Horario', openingHours: 'Horario de apertura', pending: 'Pendiente de aprobación', hidden: 'Oculta', rejected: 'No publicada',
@@ -209,7 +209,7 @@ export const t = {
     moderation: 'Moderación', review: (n: number) => `Revisar vuelticas · ${n} pendientes`, mine: 'Mis vuelticas', social: 'Seguinos', rules: 'Normas de la comunidad',
     settings: 'Ajustes', signOut: 'Cerrar sesión', signOutTitle: '¿Cerrar sesión?', signOutBody: 'Podés volver a entrar cuando quieras.', info: 'Cómo funciona la confianza',
     signedOutTitle: 'Tu perfil', signedOutBody: 'Iniciá sesión para ver tu nivel, tus vuelticas y tu reputación.', signIn: 'Iniciar sesión',
-    instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', whatsapp: 'WhatsApp', email: 'Correo',
+    instagram: 'Instagram', tiktok: 'TikTok', email: 'Correo',
   },
   trust: {
     title: 'Confianza en tus vuelticas', intro: 'Tu nivel muestra qué tan útiles y precisas han sido tus vuelticas para la comunidad.',
@@ -261,9 +261,9 @@ export const t = {
   /** Reasons the demo backend (MockApi) and the shared rules write on a plan. */
   reasons: { gone: 'Ya no existe', underReview: 'En revisión por reportes', hiddenByModeration: 'Ocultada por moderación', communityRejected: 'La comunidad no la aprobó' },
   rules: {
-    title: 'Normas de la comunidad', draft: 'BORRADOR',
+    title: 'Normas de la comunidad',
     body: ['Aportá solo actividades gratis o de hasta ₡5.000 por persona y abiertas al público.', 'Verificá con honestidad: tu reputación depende de la precisión.', 'Respetá a las demás personas: no se permite contenido inapropiado ni publicidad.', 'Los reportes son anónimos; usalos con criterio.'],
-    terms: 'Términos de uso', privacy: 'Política de privacidad', draftNote: 'Este texto es un borrador y será reemplazado por el contenido legal definitivo.',
+    terms: 'Términos de uso', privacy: 'Política de privacidad',
     version: (v: string) => `Versión ${v}`, contact: (email: string) => `Consultas: ${email}`,
   },
   notifications: {

@@ -46,6 +46,7 @@ export default function MapaScreen() {
     const next = queryBounds(b);
     setArea((prev) => (prev && prev.north === next.north && prev.south === next.south && prev.east === next.east && prev.west === next.west ? prev : next));
   }, []);
+  // Pins and the results card both follow the active filters (price, audience, date, distance…).
   const query = useVuelticas({ ...filters, nearMe: true }, 'cercanos', 'list', area);
   const data = query.data;
   const n = activeFilterCount(filters);
