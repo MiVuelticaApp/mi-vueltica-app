@@ -18,6 +18,11 @@ export default function ListaScreen() {
   const { c, isAndroid } = useAppTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  // Read through a ref so the focus effect below keeps a stable identity (a changing one would re-run it on every render).
+  const navRef = useRef(navigation);
+  useEffect(() => {
+    navRef.current = navigation;
+  }, [navigation]);
   const [skeleton, setSkeleton] = useState(true);
   /** True when the tab lost focus only because a modal / sheet (Detalle…) opened over it, not because another tab was picked. */
   const coveredByModal = useRef(false);
@@ -33,11 +38,12 @@ export default function ListaScreen() {
       const tm = setTimeout(() => setSkeleton(false), 1000);
       return () => {
         clearTimeout(tm);
-        const root = navigation.getParent()?.getParent() ?? navigation.getParent();
+        const nav = navRef.current;
+        const root = nav.getParent()?.getParent() ?? nav.getParent();
         const routes = root?.getState()?.routes;
         coveredByModal.current = !!routes && routes[routes.length - 1]?.name !== '(tabs)';
       };
-    }, [navigation]),
+    }, []),
   );
   useEffect(() => () => setSkeleton(true), []);
   return (

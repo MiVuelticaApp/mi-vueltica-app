@@ -1,14 +1,12 @@
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
-import { Tap } from '@/components/ui/Tap';
 import { t } from '@/i18n/es-CR';
-import type { VuelticaView } from '@/domain/types';
 import { useAppTheme } from '@/theme/useAppTheme';
 import ImageMap from './ImageMap';
 import { PIN_ANCHOR } from './Markers';
 import { PIN_SIZE, pinSource } from './pins';
-import type { MapViewProps, PendingView } from './types';
+import type { MapViewProps } from './types';
 
 /**
  * Mapbox (`@rnmapbox/maps`) is a native module and needs a public token (EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN). Without either
@@ -34,7 +32,16 @@ const STYLE_LIGHT = process.env.EXPO_PUBLIC_MAPBOX_STYLE_LIGHT || 'mapbox://styl
 const STYLE_DARK = process.env.EXPO_PUBLIC_MAPBOX_STYLE_DARK || 'mapbox://styles/mapbox/dark-v11';
 const START_ZOOM = 12;
 
-type PinNode = { kind: 'pin'; id: string; lat: number; lng: number; item: VuelticaView } | { kind: 'pending'; id: string; lat: number; lng: number; item: PendingView };
+/** Pin art is exported @3x, so it is drawn at a third of its pixel size. */
+const PIN_IMAGES: Record<string, number> = (() => {
+  const out: Record<string, number> = {};
+  for (const kind of ['lugar', 'evento'] as const) for (const tier of ['gratis', 'hasta2500', 'hasta5000'] as const) for (const sel of [false, true]) out[`${kind}.${tier}.${sel}`] = pinSource(kind, tier, sel);
+  out['pendiente.false'] = pinSource('pendiente', 'gratis', false);
+  return out;
+})();
+/** The tip of the drop sits at 85% of the image height; the layer anchors on the bottom edge, so shift the icon down by the rest. */
+const OFFSET_NORMAL = Math.round((1 - PIN_ANCHOR.y) * PIN_SIZE.normal.h * 3);
+const OFFSET_SELECTED = Math.round((1 - PIN_ANCHOR.y) * PIN_SIZE.selected.h * 3);
 
 function NativeMap(props: MapViewProps) {
   const { items, pending, selectedId, center, showUser, recenterToken, onSelect, onSelectPending, onMapPress, onBoundsChange, dropPin } = props;
@@ -42,13 +49,33 @@ function NativeMap(props: MapViewProps) {
   const M = Mapbox!;
   const camera = useRef<{ setCamera: (c: { centerCoordinate?: number[]; zoomLevel?: number; animationDuration?: number }) => void } | null>(null);
   const [cam, setCam] = useState({ zoom: START_ZOOM, bounds: { north: center.lat + 0.05, south: center.lat - 0.05, east: center.lng + 0.05, west: center.lng - 0.05 } });
-  // Every plan keeps its own pin at every zoom level: no clustering (the image fallback map still clusters).
-  const nodes = useMemo<PinNode[]>(
-    () => [
-      ...items.filter((v) => !v.noLocation).map((v) => ({ kind: 'pin' as const, id: v.id, lat: v.lat, lng: v.lng, item: v })),
-      ...pending.map((v) => ({ kind: 'pending' as const, id: v.id, lat: v.lat, lng: v.lng, item: v })),
-    ],
-    [items, pending],
+  // Every plan keeps its own pin at every zoom level (no clustering). The pins are ONE map layer fed by GeoJSON, not a native
+  // view each: hundreds of views exhausted the phone's memory as soon as the list refreshed.
+  const pins = useMemo(
+    () => ({
+      type: 'FeatureCollection' as const,
+      features: [
+        ...items
+          .filter((v) => !v.noLocation)
+          .map((v) => {
+            const sel = selectedId === v.id;
+            return { type: 'Feature' as const, id: v.id, geometry: { type: 'Point' as const, coordinates: [v.lng, v.lat] }, properties: { id: v.id, icon: `${v.type}.${v.priceTier}.${sel}`, z: sel ? 2 : 0 } };
+          }),
+        ...pending.map((v) => ({ type: 'Feature' as const, id: `pending:${v.id}`, geometry: { type: 'Point' as const, coordinates: [v.lng, v.lat] }, properties: { id: `pending:${v.id}`, icon: 'pendiente.false', z: 1 } })),
+      ],
+    }),
+    [items, pending, selectedId],
+  );
+  const onPinPress = useCallback(
+    (e: { features: { properties?: { id?: string } | null }[] }) => {
+      const id = e.features[0]?.properties?.id;
+      if (!id) return;
+      if (id.startsWith('pending:')) {
+        const v = pending.find((p) => p.id === id.slice(8));
+        if (v) onSelectPending(v);
+      } else onSelect(id);
+    },
+    [pending, onSelect, onSelectPending],
   );
 
   // Report the visible area once the camera settles. The screen passes a stable callback.
@@ -68,9 +95,13 @@ function NativeMap(props: MapViewProps) {
     camera.current?.setCamera({ centerCoordinate: [center.lng, center.lat], zoomLevel: START_ZOOM, animationDuration: 400 });
   }, [recenterToken, center.lat, center.lng]);
 
+  // Only store a genuinely new area: a fresh object on every idle would re-render all the pins, and re-laying them out can
+  // make the map go idle again (an endless loop that ends with the OS killing the app for memory).
   const onIdle = useCallback((s: { properties: { zoom: number; bounds: { ne: number[]; sw: number[] } } }) => {
     const { ne, sw } = s.properties.bounds;
-    setCam({ zoom: s.properties.zoom, bounds: { north: ne[1], south: sw[1], east: ne[0], west: sw[0] } });
+    const next = { north: ne[1], south: sw[1], east: ne[0], west: sw[0] };
+    const close = (a: number, b: number) => Math.abs(a - b) < 1e-5;
+    setCam((prev) => (close(prev.bounds.north, next.north) && close(prev.bounds.south, next.south) && close(prev.bounds.east, next.east) && close(prev.bounds.west, next.west) ? prev : { zoom: s.properties.zoom, bounds: next }));
   }, []);
 
   const defaultSettings = useMemo(() => ({ centerCoordinate: [center.lng, center.lat], zoomLevel: START_ZOOM }), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -96,25 +127,21 @@ function NativeMap(props: MapViewProps) {
       >
         <M.Camera ref={camera as never} defaultSettings={defaultSettings} />
         {showUser ? <M.LocationPuck puckBearingEnabled={false} pulsing={{ isEnabled: true }} /> : null}
-        {nodes.map((n) => {
-          const isPending = n.kind === 'pending';
-          const sel = !isPending && selectedId === n.id;
-          const size = sel ? PIN_SIZE.selected : PIN_SIZE.normal;
-          const label = isPending ? t.map.pinPending(n.item.name) : n.item.type === 'evento' ? t.map.pinEvent(n.item.name) : t.map.pinPlace(n.item.name);
-          return (
-            <M.MarkerView key={isPending ? `pending:${n.id}` : n.id} id={isPending ? `pending:${n.id}` : n.id} coordinate={[n.lng, n.lat]} anchor={PIN_ANCHOR} allowOverlap isSelected={sel}>
-              <Tap
-                testID={isPending ? `map.pin.pending.${n.id}` : `map.pin.${n.id}`}
-                label={label}
-                accessibilityState={{ selected: sel }}
-                onPress={() => (n.kind === 'pending' ? onSelectPending(n.item) : onSelect(n.id))}
-                style={{ width: size.w, height: size.h }}
-              >
-                <Image source={pinSource(isPending ? 'pendiente' : n.item.type, isPending ? 'gratis' : n.item.priceTier, sel)} style={{ width: size.w, height: size.h }} contentFit="contain" />
-              </Tap>
-            </M.MarkerView>
-          );
-        })}
+        <M.Images images={PIN_IMAGES} />
+        <M.ShapeSource id="pins" shape={pins} hitbox={{ width: 44, height: 56 }} onPress={onPinPress}>
+          <M.SymbolLayer
+            id="pins-layer"
+            style={{
+              iconImage: ['get', 'icon'],
+              iconSize: 1 / 3,
+              iconAnchor: 'bottom',
+              iconOffset: ['case', ['==', ['get', 'z'], 2], ['literal', [0, OFFSET_SELECTED]], ['literal', [0, OFFSET_NORMAL]]],
+              iconAllowOverlap: true,
+              iconIgnorePlacement: true,
+              symbolSortKey: ['get', 'z'],
+            }}
+          />
+        </M.ShapeSource>
         {dropPin ? (
           <M.MarkerView id="drop" coordinate={[dropPin.lng, dropPin.lat]} anchor={PIN_ANCHOR} allowOverlap>
             <Image source={pinSource(dropPin.type, 'gratis', true)} style={{ width: PIN_SIZE.selected.w, height: PIN_SIZE.selected.h }} contentFit="contain" accessibilityLabel={t.map.pickedLocation} />
