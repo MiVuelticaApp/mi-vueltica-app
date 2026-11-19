@@ -41,7 +41,7 @@ const config: ExpoConfig = {
         backgroundColor: '#0b2f7a', // the logo's own blue, so the artwork blends into the splash with no visible edge
         image: './assets/splash.png',
         imageWidth: 160,
-        dark: { backgroundColor: '#0f1522', image: './assets/splash.png' },
+        dark: { backgroundColor: '#0b2f7a', image: './assets/splash.png' },
       },
     ],
     [
