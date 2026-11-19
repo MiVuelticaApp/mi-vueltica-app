@@ -1,9 +1,10 @@
-/** Placeholder handles (PDF open question 4). */
+import { CONTACT_EMAIL } from './legal';
+
 export const SOCIAL = {
-  handle: '@mivueltica',
-  instagram: 'https://instagram.com/mivueltica',
-  tiktok: 'https://www.tiktok.com/@mivueltica',
-  facebook: 'https://facebook.com/mivueltica',
-  whatsapp: 'https://wa.me/50600000000',
-  email: 'mailto:mivuelticacr@gmail.com',
+  handle: '@mi_vueltica',
+  instagram: 'https://instagram.com/mi_vueltica',
+  tiktok: 'https://www.tiktok.com/@mi_vueltica',
+  email: `mailto:${CONTACT_EMAIL}`,
+  /** Shown in the row: the full address does not fit next to "Correo". */
+  emailLabel: CONTACT_EMAIL.split('@')[0],
 } as const;

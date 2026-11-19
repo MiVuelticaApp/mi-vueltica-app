@@ -15,7 +15,7 @@ const MAP = {
   mail: 'email-outline', apple: 'apple', google: 'google', settings: 'cog-outline', trash: 'trash-can-outline', download: 'download-outline', bell: 'bell-outline',
   image: 'image-outline', alert: 'alert-circle-outline', wifiOff: 'wifi-off', undo: 'undo', moon: 'weather-night', lock: 'lock-outline', plus: 'plus', minus: 'minus',
   heart: 'heart-outline', museum: 'bank-outline', park: 'tree-outline', arrowLeft: 'arrow-left', verified: 'check-decagram-outline', shield: 'shield-check-outline',
-  checkCircle: 'check-circle', circleOutline: 'circle-outline', logout: 'logout', help: 'help-circle-outline', instagram: 'instagram', facebook: 'facebook', whatsapp: 'whatsapp', tiktok: 'music-note',
+  checkCircle: 'check-circle', circleOutline: 'circle-outline', logout: 'logout', help: 'help-circle-outline', instagram: 'instagram', tiktok: 'music-note',
   sort: 'chevron-down', refresh: 'refresh', ticketFilled: 'ticket-confirmation', external: 'open-in-new', text: 'format-size', eye: 'eye-outline',
 } as const satisfies Record<string, MCI>;
 
