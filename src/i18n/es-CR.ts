@@ -4,13 +4,13 @@ import { formatCRC } from './format';
 const c = formatCRC;
 
 export const t = {
-  app: { name: 'MiVueltica', tagline: 'Lugares y eventos gratis o de bajo costo (hasta ₡5.000) en Costa Rica, recomendados por la comunidad.' },
+  app: { name: 'Mi VuelTica', tagline: 'Lugares y eventos gratis o de bajo costo (hasta ₡5.000) en Costa Rica, recomendados por la comunidad.' },
   common: {
     cancel: 'Cancelar', close: 'Cerrar', retry: 'Reintentar', done: 'Listo', clear: 'Limpiar', save: 'Guardar', saved: 'Guardado',
     share: 'Compartir', back: 'Atrás', ok: 'Aceptar', understood: 'Entendido', change: 'Cambiar', send: 'Enviar', publish: 'Publicar',
     optional: 'Opcional', choose: 'Elegir…', photoAdded: '1 foto agregada', notifDenied: 'Activá las notificaciones en los ajustes del sistema para recibir recordatorios', yes: 'Sí', no: 'No', today: 'Hoy', delete: 'Eliminar', confirm: 'Confirmar', loading: 'Cargando…',
     seeAll: 'Ver todas', more: 'Más', undo: 'Deshacer', selectedSuffix: ', seleccionado', event: 'Evento', place: 'Lugar', free: 'Gratis', priceUnknown: 'Precio por confirmar', locationUnknown: 'Ubicación por confirmar', anonymous: 'Anónimo', community: 'Comunidad', km: 'km',
-    updateRequired: 'Hay una versión nueva de MiVueltica. Actualizá la app para seguir usándola sin problemas.',
+    updateRequired: 'Hay una versión nueva de Mi VuelTica. Actualizá la app para seguir usándola sin problemas.',
     notSupported: 'Esta función todavía no está disponible. Estamos trabajando en ella.',
     errorTitle: 'Algo salió mal', errorBody: 'No pudimos cargar esta información. Probá de nuevo.',
     actionFailed: 'No pudimos guardar el cambio. Probá de nuevo.', rateLimited: 'Hiciste muchos intentos seguidos. Esperá unos minutos y probá de nuevo.',
@@ -113,7 +113,7 @@ export const t = {
     report: 'Reportar vueltica', reviews: 'Reseñas', seeAll: (n: number) => `Ver todas (${n})`, noReviews: 'Todavía no hay reseñas',
     description: 'Descripción', hours: 'Horario', openingHours: 'Horario de apertura', pending: 'Pendiente de aprobación', hidden: 'Oculta', rejected: 'No publicada',
     verifiedBy: 'Verificada por la comunidad', priceConditions: 'Precio y condiciones', perks: 'Beneficios', accessibility: 'Accesibilidad',
-    copied: 'Enlace copiado', shareMessage: (name: string, url: string) => `${name} en MiVueltica: ${url}`,
+    copied: 'Enlace copiado', shareMessage: (name: string, url: string) => `${name} en Mi VuelTica: ${url}`,
     preferential: 'Fila preferencial presentando carné', perPerson: (p: string) => `${p} por persona`, limitedSpots: 'cupo limitado',
     freeFor: (who: ('estudiantes' | 'ciudadanosOro')[]) => `Gratis para ${who.map((x) => (x === 'estudiantes' ? 'estudiantes' : 'ciudadanos de oro')).join(' y ')}`,
     notFound: 'No encontramos este plan', stillThere: 'Sigue igual', alreadyVerified: 'Ya verificaste este plan hoy', thanks: 'Verificación enviada · +2 puntos', thanksGuest: 'Gracias por verificar',
@@ -234,7 +234,7 @@ export const t = {
       note: 'Nota para la persona autora', notePlaceholder: 'Opcional, salvo con «Otro motivo»', needNote: 'Escribí el motivo cuando elegís «Otro motivo»',
       approved: 'Vueltica publicada', rejected: 'Vueltica rechazada', failed: 'No pudimos guardar la decisión. Probá de nuevo.',
       codes: {
-        duplicado: 'Ya existe en MiVueltica', masDe5000: `Cuesta más de ${c(5000)}`, eventoPasado: 'El evento ya pasó', datosIncompletos: 'Faltan datos o no se pudieron verificar',
+        duplicado: 'Ya existe en Mi VuelTica', masDe5000: `Cuesta más de ${c(5000)}`, eventoPasado: 'El evento ya pasó', datosIncompletos: 'Faltan datos o no se pudieron verificar',
         ubicacionIncorrecta: 'La ubicación no es correcta', noEsPublico: 'No es abierto al público', inapropiado: 'Contenido inapropiado', spam: 'Spam o publicidad', otro: 'Otro motivo',
       },
     },
@@ -249,7 +249,7 @@ export const t = {
     deleteTitle: '¿Eliminar tu cuenta?', deleteBody: 'Se borran tu perfil, tus reseñas y tus vuelticas pendientes. Las publicadas quedan a nombre de «Anónimo». No se puede deshacer.', deleteConfirm: 'Eliminar cuenta', deleted: 'Cuenta eliminada',
     exportDone: 'Tus datos están listos', exportBody: 'Armamos un archivo con tu perfil, guardados, reseñas y vuelticas.', exportShare: 'Compartir archivo', reminderWhen: 'Cuándo recordar', promptTitle: '¿Querés recordatorios?', promptHeadline: 'Te avisamos un día antes', promptBody: 'Mandamos un aviso a las 9:00 a. m. del día anterior a tus eventos guardados. Después el sistema te pide permiso.', promptAccept: 'Activar recordatorios', promptLater: 'Ahora no', noMapsTitle: 'No encontramos una app de mapas', noMapsBody: 'Instalá Google Maps o Waze, o abrí la dirección en el navegador.', openBrowser: 'Abrir en el navegador', copyAddress: 'Copiar dirección',
     dev: 'Desarrollo', simulateCommunity: 'Simular comunidad', simulateOffline: 'Simular sin conexión', simulated: 'Comunidad simulada',
-    locationHint: 'MiVueltica solo usa tu ubicación mientras la app está abierta. Podés cambiarlo en los ajustes del sistema.',
+    locationHint: 'Mi VuelTica solo usa tu ubicación mientras la app está abierta. Podés cambiarlo en los ajustes del sistema.',
     reminderTitle: 'Recordatorio', reminderOptions: [1, 2, 3, 7] as const, reminderOption: (d: number) => (d === 1 ? '1 día antes' : `${d} días antes`),
     notificationPrompt: 'Activá las notificaciones para recibir recordatorios',
   },

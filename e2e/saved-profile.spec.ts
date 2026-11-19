@@ -55,6 +55,8 @@ test('P1 profile header, level, points and progress to the next level', async ({
   await expect(page.getByTestId('profile.stat.verifications.value')).toHaveText('31');
   await expect(page.getByTestId('profile.moderation')).toContainText('Revisar vuelticas · 6 pendientes');
   for (const s of ['instagram', 'tiktok']) await expect(page.getByTestId(`profile.social.${s}`)).toContainText('@mi_vueltica');
+  await expect(page.getByTestId('profile.social.email')).toContainText('mivuelticacr');
+  for (const s of ['facebook', 'whatsapp']) await expect(page.getByTestId(`profile.social.${s}`)).toHaveCount(0);
   await expect(page.getByTestId('profile.settings')).toBeVisible();
   await expect(page.getByTestId('profile.rules')).toBeVisible();
 });

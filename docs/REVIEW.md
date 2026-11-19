@@ -1,4 +1,4 @@
-# MiVueltica frontend: independent review
+# Mi VuelTica frontend: independent review
 
 Branch `claude/admiring-cray-qxnk8j`, commits `014dd9f..c252549`. Reviewer: independent agent (no code changed).
 Reference: `docs/requirements.pdf` (FR-1..16, rules, data model, NFR-1..18), `docs/PLAN.md` §10, `docs/IMPLEMENTATION_NOTES.md`, `docs/GAPS_FIGMA.md`, Figma `hK6ZmxpUjxlz7NT3fxoFVd`.

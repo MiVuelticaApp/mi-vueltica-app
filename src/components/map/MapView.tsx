@@ -58,7 +58,13 @@ function NativeMap(props: MapViewProps) {
     return () => clearTimeout(timer);
   }, [cam.bounds, onBoundsChange]);
 
+  // Skip the first run: `defaultSettings` already sets the initial camera, and the native map isn't ready yet on mount.
+  const mounted = useRef(false);
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
     camera.current?.setCamera({ centerCoordinate: [center.lng, center.lat], zoomLevel: START_ZOOM, animationDuration: 400 });
   }, [recenterToken, center.lat, center.lng]);
 
